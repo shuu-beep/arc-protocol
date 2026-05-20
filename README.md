@@ -7,11 +7,63 @@
 > not a production project or startup pitch.
 > One person's vision for what open commerce infrastructure should look like.
 
+## One-Sentence Summary
+
+ARC Protocol is an experimental open-source protocol for trusted, human-approved, AI-to-AI commerce.
+
+## IMPORTANT NOTICE
+
+ARC Protocol is a manifesto, protocol proposal, governance philosophy, and architecture draft.
+
+It is not production-ready infrastructure.
+
+It does not provide real payments, real delivery, verified identity, legal guarantees, or production-grade security.
+
+ARC is intended as a research-oriented, non-profit, open-source exploration of human-approved agent commerce infrastructure.
+
 ARC Protocol is an experimental, non-profit, open-source project exploring a future where AI agents can negotiate, compare, request, coordinate, and prepare transactions on behalf of humans — while humans always keep the final approval.
 
 This is not just a shopping app.
 
 This is a proposal for an open commerce layer for the agent economy.
+
+---
+
+## Table of Contents
+
+- [1. Philosophy](#1-philosophy)
+- [2. The Problem](#2-the-problem)
+- [3. Vision](#3-vision)
+- [3.1 Why Now?](#31-why-now)
+- [3.2 Human Sovereignty](#32-human-sovereignty)
+- [3.3 Open Protocol Philosophy](#33-open-protocol-philosophy)
+- [4. Core Principle](#4-core-principle)
+- [5. Basic Scenario](#5-basic-scenario)
+- [6. Long-Term Expansion](#6-long-term-expansion)
+- [7. Main Actors](#7-main-actors)
+- [8. Identity Layer](#8-identity-layer)
+- [9. Human Approval Layer](#9-human-approval-layer)
+- [10. Reputation Layer](#10-reputation-layer)
+- [11. Community Trial and Expulsion](#11-community-trial-and-expulsion)
+- [12. Blockchain Boundary](#12-blockchain-boundary)
+- [13. Payment Layer](#13-payment-layer)
+- [14. Map and Local Infrastructure](#14-map-and-local-infrastructure)
+- [15. Advertising in the Agent Economy](#15-advertising-in-the-agent-economy)
+- [16. Architecture Overview](#16-architecture-overview)
+- [17. Technical Architecture](#17-technical-architecture)
+- [18. MVP Scope](#18-mvp-scope)
+- [19. Example MVP Flow](#19-example-mvp-flow)
+- [20. Suggested Repository Structure](#20-suggested-repository-structure)
+- [21. Protocol Concepts](#21-protocol-concepts)
+- [22. Security Considerations](#22-security-considerations)
+- [23. Permission Levels](#23-permission-levels)
+- [24. Governance Model](#24-governance-model)
+- [25. Why Non-Profit and Open Source?](#25-why-non-profit-and-open-source)
+- [26. Current Status](#26-current-status)
+- [27. Roadmap](#27-roadmap)
+- [28. Design Principle](#28-design-principle)
+- [29. Manifesto](#29-manifesto)
+- [30. License](#30-license)
 
 ---
 
@@ -1040,11 +1092,7 @@ Instead, ARC should optimize for:
 - lower transaction friction
 - community accountability
 
-## 29. One-Sentence Summary
-
-ARC Protocol is an experimental open-source protocol for trusted, human-approved, AI-to-AI commerce.
-
-## 30. Manifesto
+## 29. Manifesto
 
 We believe AI agents will become a new interface of commerce.
 
@@ -1064,7 +1112,7 @@ ARC Protocol is a small experiment toward that future.
 
 An open, community-driven, human-approved commerce network for the agent era.
 
-## 31. License
+## 30. License
 
 This project is licensed under the Apache License 2.0.
 
