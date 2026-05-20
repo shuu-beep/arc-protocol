@@ -3,10 +3,9 @@
 > Autonomous Relay Commerce  
 > A community-driven open protocol for human-approved AI-to-AI commerce.
 
-> This is a philosophical declaration and protocol design document.
-> Not a production-ready platform.
-> Not a startup pitch.
-> An open exploration of what human-approved AI commerce infrastructure could become.
+> This is a philosophical declaration and design document,
+> not a production project or startup pitch.
+> One person's vision for what open commerce infrastructure should look like.
 
 ARC Protocol is an experimental, non-profit, open-source project exploring a future where AI agents can negotiate, compare, request, coordinate, and prepare transactions on behalf of humans — while humans always keep the final approval.
 
@@ -86,7 +85,7 @@ AI should reduce friction, not remove human sovereignty.
 
 ---
 
-## Why Now?
+## 3.1 Why Now?
 
 Several technological shifts are happening at the same time:
 
@@ -105,7 +104,7 @@ ARC Protocol exists to explore what happens if that infrastructure is open inste
 
 ---
 
-## Human Sovereignty
+## 3.2 Human Sovereignty
 
 ARC assumes that AI agents should assist humans, not replace them.
 
@@ -129,7 +128,7 @@ ARC rejects the idea of fully autonomous economic agents operating without meani
 
 ---
 
-## Open Protocol Philosophy
+## 3.3 Open Protocol Philosophy
 
 ARC is designed as an open protocol, not a closed platform.
 
@@ -389,6 +388,10 @@ Example:
 ```
 
 ## 9. Human Approval Layer
+
+This section describes the practical permission system.
+
+For the philosophical position on human sovereignty, see section 3.2.
 
 ARC is not designed for blind automation.
 
@@ -1037,32 +1040,17 @@ Instead, ARC should optimize for:
 - lower transaction friction
 - community accountability
 
-## 29. Important Warning
+## 29. License
 
-This project is experimental.
+This project is licensed under the Apache License 2.0.
 
-Do not use it for real payments, real delivery, or legally binding transactions without proper security, legal review, identity verification, and compliance.
+See the LICENSE file for details.
 
-ARC is a research and prototype project.
-
-## 30. License
-
-Recommended license:
-
-Apache License 2.0
-
-Reason:
-
-- open-source friendly
-- business-friendly
-- includes patent protection
-- suitable for protocol-style projects
-
-## 31. One-Sentence Summary
+## 30. One-Sentence Summary
 
 ARC Protocol is an experimental open-source protocol for trusted, human-approved, AI-to-AI commerce.
 
-## 32. Manifesto
+## 31. Manifesto
 
 We believe AI agents will become a new interface of commerce.
 
