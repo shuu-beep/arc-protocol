@@ -3,6 +3,11 @@
 > Autonomous Relay Commerce  
 > A community-driven open protocol for human-approved AI-to-AI commerce.
 
+> This is a philosophical declaration and protocol design document.
+> Not a production-ready platform.
+> Not a startup pitch.
+> An open exploration of what human-approved AI commerce infrastructure could become.
+
 ARC Protocol is an experimental, non-profit, open-source project exploring a future where AI agents can negotiate, compare, request, coordinate, and prepare transactions on behalf of humans — while humans always keep the final approval.
 
 This is not just a shopping app.
