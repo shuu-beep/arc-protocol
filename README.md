@@ -81,6 +81,74 @@ AI should reduce friction, not remove human sovereignty.
 
 ---
 
+## Why Now?
+
+Several technological shifts are happening at the same time:
+
+- Large Language Models are becoming agent-capable
+- AI systems can now compare, negotiate, summarize, and coordinate
+- Payment APIs are globally accessible
+- Smartphones already act as identity and approval devices
+- Local commerce APIs are becoming programmable
+- Open-source AI models are rapidly improving
+
+The next commerce layer may not be a website or an app.
+
+It may be an ecosystem of agents interacting on behalf of humans.
+
+ARC Protocol exists to explore what happens if that infrastructure is open instead of controlled by a small number of corporations.
+
+---
+
+## Human Sovereignty
+
+ARC assumes that AI agents should assist humans, not replace them.
+
+Agents may:
+
+- negotiate
+- compare
+- summarize
+- coordinate
+- prepare actions
+
+But humans should always retain:
+
+- payment authority
+- permission control
+- dispute rights
+- override ability
+- final approval
+
+ARC rejects the idea of fully autonomous economic agents operating without meaningful human oversight.
+
+---
+
+## Open Protocol Philosophy
+
+ARC is designed as an open protocol, not a closed platform.
+
+Any community should be able to:
+
+- build their own agents
+- host their own governance systems
+- create local reputation rules
+- integrate local payment providers
+- adapt ARC for regional commerce
+
+ARC should be:
+
+- forkable
+- inspectable
+- extensible
+- interoperable
+
+The goal is not platform ownership.
+
+The goal is protocol interoperability.
+
+---
+
 ## 4. Core Principle
 
 ```txt
@@ -439,11 +507,8 @@ ARC uses cryptographic proofs or blockchain checkpoints only where shared verifi
 In short:
 
 Speed: WebRTC / APIs / databases
-
 Payment: existing payment providers
-
 Discovery: existing map and local search providers
-
 Trust: signatures, reputation proofs, dispute records, and optional blockchain checkpoints
 
 ## 13. Payment Layer
