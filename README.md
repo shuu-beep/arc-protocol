@@ -407,36 +407,44 @@ Possible penalties:
 - identity provider report
 - deposit slashing, if staking exists
 
-## 12. Blockchain Usage
+## Blockchain Boundary
 
-ARC does not require everything to be on-chain.
+ARC does not use blockchain as a real-time commerce engine.
 
-Full blockchain commerce can be slow, expensive, and bad for user experience.
+Blockchain may be useful for records where manipulation resistance matters:
 
-ARC uses blockchain only where it makes sense.
+- reputation checkpoints
+- verified review proofs
+- blacklist or ban records
+- dispute result hashes
+- signed contract hashes
+- community governance proofs
+- agent identity proofs
 
-Recommended blockchain use:
+Blockchain is not suitable for:
 
-- contract hash proof
-- reputation checkpoint
-- dispute decision record
-- community governance record
-- agent identity proof
+- real-time agent communication
+- merchant search
+- map discovery
+- payment execution
+- delivery status updates
+- chat logs
+- every price negotiation
+- every small transaction
 
-Not recommended:
+ARC uses WebRTC, APIs, relay servers, and normal databases for speed.
 
-- every chat message on-chain
-- every price negotiation on-chain
-- every delivery update on-chain
-- every small payment on-chain
+ARC uses cryptographic proofs or blockchain checkpoints only where shared verification and manipulation resistance matter.
 
-ARC is blockchain-minimal.
+In short:
 
-Use normal databases for speed.
+Speed: WebRTC / APIs / databases
 
-Use cryptographic proof for trust.
+Payment: existing payment providers
 
-Use blockchain only for shared verification.
+Discovery: existing map and local search providers
+
+Trust: signatures, reputation proofs, dispute records, and optional blockchain checkpoints
 
 ## 13. Payment Layer
 
