@@ -475,7 +475,7 @@ Possible penalties:
 - identity provider report
 - deposit slashing, if staking exists
 
-## Blockchain Boundary
+## 12. Blockchain Boundary
 
 ARC does not use blockchain as a real-time commerce engine.
 
@@ -506,10 +506,10 @@ ARC uses cryptographic proofs or blockchain checkpoints only where shared verifi
 
 In short:
 
-Speed: WebRTC / APIs / databases
-Payment: existing payment providers
-Discovery: existing map and local search providers
-Trust: signatures, reputation proofs, dispute records, and optional blockchain checkpoints
+- Speed: WebRTC / APIs / databases
+- Payment: existing payment providers
+- Discovery: existing map and local search providers
+- Trust: signatures, reputation proofs, dispute records, and optional blockchain checkpoints
 
 ## 13. Payment Layer
 
