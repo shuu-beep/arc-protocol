@@ -1,11 +1,13 @@
 # ARC Protocol
 
-> Autonomous Relay Commerce  
+> Autonomous Relay Commerce
 > A community-driven open protocol for human-approved AI-to-AI commerce.
 
 > This is a philosophical declaration and design document,
 > not a production project or startup pitch.
 > One person's vision for what open commerce infrastructure should look like.
+
+→ Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Governance](docs/governance.md) · [Roadmap](docs/roadmap.md)
 
 ## One-Sentence Summary
 
