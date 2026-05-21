@@ -643,6 +643,10 @@ Instead, future merchant visibility may depend on:
 
 This may reduce manipulation-based advertising and increase merit-based discovery.
 
+> See [Philosophy](docs/philosophy.md) for extended discussion on
+> advertising evolution, recommendation transparency,
+> and manipulation-resistant discovery design.
+
 ## 16. Architecture Overview
 
 ```txt
