@@ -314,6 +314,8 @@ It can also apply to intangible services:
 - local labor
 - B2B procurement
 
+For regulated domains such as legal, medical, or financial services, future ARC-compatible systems may support agents operating under delegated authority from verified licensed professionals.
+
 ### Phase 5 — Open Agent Economy
 
 Eventually, ARC may support:

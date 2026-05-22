@@ -16,6 +16,7 @@ Completed:
 - [x] `docs/philosophy.md` — attention economy critique, centralized agent bias, design axioms
 - [x] `docs/architecture.md` — system diagram, agent roles, message types, discovery layer, MVP scope
 - [x] `docs/governance.md` — dispute resolution model, penalty scale, community self-governance
+- [x] `docs/identity.md` — exploratory identity, credential, and trust model
 - [x] `docs/roadmap.md` — this document
 - [x] `CONTRIBUTING.md` — contribution guide including research contributions
 - [x] Apache 2.0 license

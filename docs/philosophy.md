@@ -185,3 +185,32 @@ ARC Protocol is a small experiment toward that principle.
 Not a startup. Not a platform. A proposal.
 
 > *"Agents should help people compare, negotiate, and coordinate — not replace human sovereignty."*
+
+---
+
+## 9. Information Sovereignty
+
+The agent economy is not only about commerce.
+
+It is about attention.
+
+Today, what you see is determined by algorithms you did not choose, optimized for goals you did not set. Social feeds, search results, news aggregators — all of them decide what reaches you based on engagement metrics, advertiser relationships, and platform incentives. You search for signal and wade through noise that someone else placed there.
+
+ARC proposes a different model.
+
+Your agent knows you. It knows your interests, your preferences, your thresholds for what is worth your time. It can scan communities, threads, and people you care about — and surface only what you actually want to see.
+
+Not what an algorithm decides you should want.
+Not what an advertiser paid to put in front of you.
+What you asked for.
+
+This is information sovereignty: the ability to define your own filters, set your own priorities, and delegate curation to an agent that works for you — not for a platform.
+
+The same principle that governs commerce in ARC governs information:
+
+- You define the intent
+- The agent executes on your behalf
+- You approve what matters
+- No invisible intermediary decides what you see
+
+ARC does not claim to solve the information overload problem. It proposes that the right tool for personal curation is a personal agent — not a corporate algorithm.

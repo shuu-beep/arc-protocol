@@ -136,6 +136,22 @@ That's it.
 
 ---
 
+## A Vision for Collaborative Development
+
+GitHub changed how open-source collaboration works. Anyone can fork, contribute, and propose changes. But discovery is still passive — you publish a project and wait to be found.
+
+In an agent economy, this changes.
+
+An agent representing a developer could scan community projects, identify where its owner's skills are most needed, and propose collaboration — not waiting to be discovered, but actively finding the right match. The human still decides whether to engage. The agent does the legwork of finding where contribution is most valuable.
+
+ARC Protocol itself is a candidate for this model. Today it has zero contributors besides the author. In an agent-enabled future, a project like this could find the people most likely to care about federated governance, reputation systems, or agent communication protocols — and reach out directly.
+
+This is not autonomous development. It is agent-assisted collaboration, with humans approving every step.
+
+The same sovereignty principle that governs commerce applies here: agents assist, humans decide.
+
+---
+
 ## A Note on Scale
 
 This project has zero contributors right now besides the author.
