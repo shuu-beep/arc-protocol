@@ -18,6 +18,22 @@ Three principles guide every architectural decision:
 - **Hybrid over dogmatic.** Full decentralization is not required from day one. A realistic hybrid model is more valuable than an ideologically pure system that never ships.
 - **Human approval as a hard constraint.** No architectural shortcut should bypass the requirement for explicit human confirmation of significant transactions.
 
+### 1.1 Database-First Boundary
+
+ARC's hybrid approach starts with standard databases and existing infrastructure. Blockchain remains optional and should be considered only where shared verification is worth its additional complexity.
+
+| Use Case | Blockchain | Standard DB |
+|----------|------------|-------------|
+| Real-time offer negotiation | No | Primary |
+| Session and payment state | No | Primary |
+| Routine reputation records | No | Primary |
+| Reputation integrity checkpoints | Optional | Primary |
+| Dispute transparency checkpoints | Optional | Primary |
+| Agent identity proof | Optional | Primary |
+| Governance transparency checkpoints | Optional | Primary |
+
+ARC is DB-first and blockchain-minimal. No core commerce flow depends on on-chain execution or governance.
+
 ---
 
 ## 2. System Overview
@@ -82,7 +98,7 @@ Responsibilities:
 - Request human approval before any payment
 - Submit reputation events after transaction completion
 
-**Hard constraint:** The consumer agent must not execute payment without explicit human approval unless the user has pre-authorized automatic approval within defined limits.
+**Hard constraint:** The consumer agent must not execute payment without explicit human approval. A future implementation may explore user-defined, auditable low-risk pre-authorization rules as a limited exception, not the default.
 
 ### 3.2 Merchant Agent
 
@@ -135,6 +151,23 @@ All agent communication uses typed, signed JSON messages.
 | `dispute_report` | Any party → Governance Layer | Report fraud or transaction failure |
 | `suspension_notice` | Governance → Agent | Notify agent of suspension decision |
 
+### 4.1 Transaction Lifecycle States
+
+Transactions are not binary. A transaction may move through several states:
+
+| State | Description |
+|-------|-------------|
+| `pending_approval` | Offer prepared, awaiting human confirmation |
+| `approved` | Human confirmed, payment initiated |
+| `fulfilled` | Delivery or service completed |
+| `disputed` | One or more parties opened a dispute |
+| `refund_partial` | Partial refund issued after resolution |
+| `refund_full` | Full refund issued after resolution |
+| `cancelled` | Transaction cancelled before fulfillment |
+| `expired` | Offer or approval window lapsed without action |
+
+Refund and dispute rates are relevant reputation signals and should remain visible to users evaluating an offer.
+
 ---
 
 ## 5. Communication Layer
@@ -154,7 +187,17 @@ When direct P2P is not available (NAT traversal failure, mobile network constrai
 
 ARC does not require full decentralization. Relay servers are acceptable and pragmatic.
 
-### 5.3 Message Format
+### 5.3 Asynchronous Inbox Alternative
+
+For scenarios where real-time negotiation is unnecessary, such as service bookings or non-urgent procurement, an asynchronous inbox may be more appropriate than persistent connections.
+
+An implementation could accept an `offer_request` through an HTTP endpoint and respond through a webhook or polling flow. This can reduce mobile connection overhead and avoid requiring a persistent P2P channel.
+
+ARC does not mandate one communication model. Implementations may use real-time P2P, relay-based communication, asynchronous inboxes, or combinations appropriate to their context.
+
+Relay infrastructure is pragmatic but may expose message metadata to its operator. Communities operating relay services should document their policies.
+
+### 5.4 Message Format
 
 All agent messages are structured JSON with mandatory signature fields:
 
@@ -213,6 +256,23 @@ Merchants may pay to appear higher in discovery results. This is permitted under
 ```
 
 Undisclosed sponsored placement is a protocol violation.
+
+### 6.4 Discovery Infrastructure Sustainability
+
+Open discovery still requires infrastructure, maintenance, and curation. ARC does not prescribe a funding model, but implementations should address who operates discovery backends and how that work remains sustainable.
+
+Possible approaches to study include community-operated directories supported by modest listing fees, municipal infrastructure, or non-profit cooperatives with member dues. These are practical questions for communities, not protocol-level economic requirements.
+
+### 6.5 Privacy Principles
+
+Consumer agents may handle sensitive data such as location, purchase history, dietary preferences, and budget constraints. ARC does not define a complete privacy specification at this stage, but identifies directional principles:
+
+- **Local-first storage.** User preference and behavioral data should default to storage on the user's device.
+- **Minimum necessary sharing.** Agents should share only the data needed for a specific transaction.
+- **Explicit consent for retention.** Retaining data beyond the immediate transaction should require opt-in.
+- **User data portability.** Users should be able to export or delete their data from an ARC-compatible implementation.
+
+These are design intentions rather than finalized protocol requirements.
 
 ---
 
@@ -316,14 +376,16 @@ Every offer must be cryptographically signed:
 └─────────────────────────────────────┘
 ```
 
-### 9.2 User-Defined Permission Levels
+### 9.2 User-Defined Approval Policies
 
 ```
-Auto-approve: transactions under $5.00
-Manual approval: transactions $5.00 and above
-Always require approval: new merchants with no reputation
+Default: manual approval for payments
+Consider for explicit pre-authorization: low-risk routine requests under $5.00
+Always require per-transaction approval: new merchants with no reputation
 Block: agents with dispute rate above 10%
 ```
+
+Any pre-authorized low-risk rule remains user-defined, reviewable, and subordinate to the requirement for explicit approval of meaningful economic actions.
 
 ---
 

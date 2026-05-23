@@ -205,6 +205,12 @@ The goal is not platform ownership.
 
 The goal is protocol interoperability.
 
+ARC is not the first attempt at open digital infrastructure. Projects such as ActivityPub, Matrix, Nostr, Farcaster, and AT Protocol have explored federation, identity portability, and resistance to centralized platform control.
+
+ARC learns from those efforts, but focuses specifically on human-approved agent commerce: structured negotiation, transparent recommendation, reputation portability, and community-governed economic coordination.
+
+ARC does not emerge in isolation. As agent commerce becomes an active area of experimentation, multiple organizations and protocols are beginning to explore interoperable agent transactions, machine-readable commerce, and agent payment coordination. ARC remains a narrower, non-profit proposal for human-approved, community-governed commerce coordination.
+
 ---
 
 ## 4. Core Principle
@@ -463,13 +469,15 @@ Examples:
 - approve contract terms
 - approve service estimate
 
-Users may define limits:
+Manual approval is the default. Implementations may explore explicitly pre-authorized, low-risk rules such as:
 
 ```txt
-Allow automatic approval under $5.
-Require manual approval over $5.
+Consider a pre-authorized routine request under $5.
+Require explicit approval for meaningful purchases.
 Block all new merchants without reputation.
 ```
+
+Any such rule should remain user-defined, reviewable, and auditable.
 
 This protects users from unwanted AI actions.
 
@@ -537,7 +545,6 @@ Possible penalties:
 - payment limit
 - community ban
 - identity provider report
-- deposit slashing, if staking exists
 
 ## 12. Blockchain Boundary
 
@@ -850,7 +857,10 @@ arc-protocol/
 |   |-- identity.md
 |   |-- reputation.md
 |   |-- governance.md
-|   `-- roadmap.md
+|   |-- roadmap.md
+|   `-- adjacent-ideas/
+|       |-- information-sovereignty.md
+|       `-- agent-mediated-collaboration.md
 |-- apps/
 |   `-- web/
 |       |-- app/

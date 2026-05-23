@@ -173,9 +173,19 @@ Fake identity farming to accumulate positive reputation or submit false dispute 
 
 Mitigations:
 - Identity provider verification required for agent creation
-- New agents face transaction volume limits during probation period
+- New agents may face temporary anti-fraud risk controls during a probation period
 - Reputation score velocity limits (scores cannot increase too rapidly)
 - Community moderators may flag sudden reputation spikes for review
+
+AI-assisted Sybil attacks may increase the speed and scale of fake identity farming. Automated agents could build apparently legitimate histories before coordinating fraud, narrowing the window for review.
+
+Additional mitigations worth exploring include:
+
+- behavioral pattern review for apparently independent agents with unusually similar activity
+- cross-community analysis of coordinated reputation patterns
+- temporary onboarding rate limits during detected anomaly periods
+
+These signals should support human review rather than produce automatic penalties by themselves.
 
 ### 6.2 Collusion Detection
 
@@ -194,6 +204,19 @@ Mitigations:
 - Dispute reporters with high false-report rates face reputation penalties
 - Evidence standards require verifiable records
 - Moderators may flag serial reporters for review
+
+### 6.4 Governance Capture
+
+A community governance process can be captured or obstructed by coordinated participants, including competing merchants or an organized bad-faith group.
+
+Mitigations worth exploring include:
+
+- moderator term limits and rotation
+- diversity rules that reduce control by a single affiliated group
+- anomaly review when dispute activity spikes from a narrow set of participants
+- periodic review of whether active governance participants reflect the community they serve
+
+No governance model is fully resistant to coordinated capture. ARC's response is procedural transparency, review, and diversity, not a claim of technical impossibility.
 
 ---
 
@@ -233,6 +256,18 @@ It should be held by the communities that use the infrastructure — distributed
 This is not idealism. It is a practical conclusion from observing what happens when governance of shared infrastructure is captured by private interests: the infrastructure becomes a rent-extraction mechanism, and participants have no recourse.
 
 ARC proposes a different structure. Not because it is easy, but because the alternative is worse.
+
+### 8.1 The Sustainability Problem
+
+Community governance depends on time spent reviewing fraud, mediating disputes, and maintaining fair procedures. ARC does not yet have a complete answer for how that work remains sustainable as a community grows.
+
+Possible approaches to study include:
+
+- modest dispute-processing fees with transparent handling rules
+- optional community membership contributions
+- paid mediation for complex disputes while routine review remains community-led
+
+These are open design questions, not a protocol treasury or mandatory compensation system.
 
 ---
 

@@ -31,6 +31,10 @@ Goal: demonstrate that multiple agents can simulate a complete commerce transact
 
 This is not a product. It is a working proof of concept.
 
+**Why local food delivery as an initial test domain?**
+
+Food delivery combines time sensitivity, location dependency, and changing order state in a familiar scenario. That makes it a useful sandbox for testing approval, logistics, cancellation, and reputation flows without claiming that it represents every commerce domain.
+
 ### Milestones
 
 **1.1 Consumer Agent (Basic)**
@@ -83,6 +87,8 @@ No real money. No real delivery. That is fine for Stage 1.
 ## Stage 2 — Identity and Reputation
 
 **Status: Not started**
+
+Stage 2 implements the foundational identity and reputation concepts described in `docs/identity.md` and future reputation specifications.
 
 ### Milestones
 
@@ -144,7 +150,7 @@ No real money. No real delivery. That is fine for Stage 1.
 - [ ] Toss integration (Korea)
 - [ ] Google Pay / Apple Pay support
 - [ ] Payment execution blocked until human approval confirmed
-- [ ] User-configurable auto-approval limits
+- [ ] User-configured approval thresholds
 - [ ] Approval audit log
 - [ ] Refund flow support
 
@@ -155,6 +161,10 @@ No real money. No real delivery. That is fine for Stage 1.
 **Status: Not started**
 
 Goal: run a limited, real-world test with actual merchants in a defined geography.
+
+**Why would merchants participate?**
+
+Stage 5 would need to test this in practice. A small pilot may be relevant to volunteer merchants interested in direct customer relationships and in exploring lower intermediary overhead, while recognizing that ARC offers no built-in demand, marketing, or transaction-volume guarantee.
 
 ### Scope Constraints
 

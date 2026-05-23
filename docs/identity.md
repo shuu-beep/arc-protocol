@@ -39,6 +39,10 @@ Possible identity providers:
 - Business registration systems
 - Verified payment accounts
 
+**A known tension:** ARC values open and portable infrastructure, yet an accessible early identity model may rely on centralized providers such as Google Account or Apple ID. This is a pragmatic starting point, not a final position.
+
+One direction worth exploring is progressive trust: initial provider verification supplemented over time by verified transaction history and community-reviewed status. How such portability can work without weakening accountability remains an open design problem.
+
 The owner layer answers: **who is responsible for this agent?**
 
 ### 2.2 Agent Identity (Cryptographic Layer)
@@ -82,7 +86,7 @@ The key idea is: **a licensed professional may delegate limited agent activity u
     "issued_at": "2020-03-01",
     "expires_at": "2026-03-01",
     "verified": true,
-    "verification_url": "https://www.koreanbar.or.kr/verify/example"
+    "verification_url": "https://example.org/credential-verification"
   },
   "agent_scope": ["legal_information", "contract_review_support", "dispute_summary"],
   "community": "seoul-legal-services",
@@ -93,6 +97,12 @@ The key idea is: **a licensed professional may delegate limited agent activity u
 ---
 
 ## 3. Professional License Binding
+
+This credential layer is speculative and high-risk. Real deployment would require legal, regulatory, and institutional review in each jurisdiction before implementation.
+
+**Legal warning:** An agent associated with a licensed professional does not automatically gain authority to provide regulated services. Legal, medical, financial, or architectural assistance must remain within what the responsible licensed human and local law permit; even information-support workflows may be restricted in some jurisdictions.
+
+ARC does not propose this layer for an MVP or pilot. Many professional authorities may never provide public verification APIs, and verification may remain manual, legally restricted, or unavailable without formal institutional cooperation.
 
 ### 3.1 Core Principle
 
@@ -139,7 +149,7 @@ Credential expiry monitored or periodically rechecked
 On expiry or revocation, agent scope is restricted or reviewed
 ```
 
-Most licensing authorities may not provide public verification APIs. ARC should support layered verification: API verification where available, cryptographic credential issuance where supported, and community-reviewed manual verification as a pragmatic fallback.
+Where permissible and institutionally supported, ARC could explore layered verification: API verification where available, cryptographic credential issuance where supported, and community-reviewed manual verification as a pragmatic fallback.
 
 ### 3.4 Scope Declaration
 
@@ -202,7 +212,7 @@ Scope restricted, credential removed, or agent suspended
 
 New agents may enter a probation period during which:
 
-- Transaction volume is limited
+- Temporary risk controls may apply during the probation period
 - These temporary limits are intended as anti-fraud safeguards, not economic controls.
 - Reputation score changes are rate-limited
 - Community moderators may flag unusual activity
@@ -276,41 +286,55 @@ Verified completed jobs, community ratings, and dispute history may form the tru
 
 ### 8.2 New Entrant Protection
 
-A community that blocks new entrants can become a monopoly. ARC governance should protect against this.
+A community that completely blocks new entrants can become stagnant or monopolistic. ARC governance should leave room for new participants to build trust without weakening consumer choice.
 
 New agents entering a community may receive:
 
-- A probation period with reduced transaction limits, not zero access
-- Access to lower-risk job categories to build initial reputation
-- A "new member" badge visible to consumers, with optional discount incentives
-- Protection from being systematically excluded by established providers
+- temporary anti-fraud risk controls during probation, not zero access
+- access to lower-risk job categories to build initial reputation
+- a "new member" badge visible to consumers
+- voluntary incentives or discounts, where communities choose to support them
+- protection from being permanently excluded by established providers
+
+These mechanisms should be anti-fraud and pro-entry safeguards, not economic controls.
 
 Communities should avoid entry requirements that prevent new participants from ever building reputation.
 
-### 8.3 Healthy Competition / Anti-Monopoly Discovery Principles
+Cold start protection is an important design concern, but ARC does not prescribe a mandatory ranking rule at this stage.
+
+As a recommended default, discovery implementations should consider surfacing clearly labeled, verified new entrants during a bootstrap period when suitable alternatives exist, while preserving consumer choice and visible trust signals.
+
+Communities should avoid making verified new entrants categorically undiscoverable unless users explicitly choose a more restrictive view.
+
+### 8.3 Healthy Competition / Discovery Diversity
 
 ARC encourages open and competitive local discovery ecosystems.
 
-ARC governance may support transparent discovery diversity policies, such as:
+Mature communities may review discovery patterns when local markets become too concentrated, but ARC should not hide trusted providers from consumers or impose rigid transaction caps as a default rule.
 
-- Preventing a single provider from dominating a local category
-- Making ranking concentration visible to communities and users
-- Giving consumers clear choice among trusted providers, including newer entrants
-- Allowing communities to review discovery patterns when local markets become too concentrated
+Possible community-level tools may include:
 
-This should not hide the best provider from consumers or enforce rigid economic control. It is an optional community review principle for keeping discovery open, transparent, and resistant to monopoly capture.
+- making ranking concentration visible to users
+- highlighting newer verified entrants as optional alternatives
+- showing recent reliability signals alongside historical reputation
+- supporting voluntary discounts or incentives for new entrants
+- allowing users to switch discovery backends when they suspect bias
 
-### 8.4 Optional Reputation Decay
+The goal is not to punish success.
 
-Established agents with high reputation scores should not permanently block new entrants simply by existing.
+The goal is to keep discovery transparent, competitive, and open to new participants while preserving consumer sovereignty.
 
-Communities may optionally apply reputation decay mechanisms, such as:
+### 8.4 Optional Recent Reliability Signals
 
-- Lower discovery weight for agents with low recent activity
-- Recent reliability signals alongside historical reputation
-- Community-defined decay policies that reflect local conditions
+Historical reputation remains useful, but consumers may also want to understand whether an agent is currently reliable.
 
-The goal: **reputation should reflect current reliability, not just historical dominance.**
+Communities may optionally make additional signals visible, such as:
+
+- recent verified activity alongside historical reputation
+- clearly labeled reliability time windows
+- user-selectable views that prioritize history or recent signals
+
+These signals should inform consumer choice, not silently suppress established providers.
 
 ---
 

@@ -68,6 +68,8 @@ This is not speculative. It is the natural endpoint of combining AI agent infras
 
 ARC Protocol is a response to this threat.
 
+ARC is adjacent to earlier open protocol efforts such as ActivityPub, Matrix, Nostr, Farcaster, and AT Protocol, but its focus is narrower: human-approved economic coordination between agents. The goal is not to replace social protocols or communication networks, but to explore what open infrastructure might look like when agents negotiate commerce on behalf of humans.
+
 ---
 
 ## 4. Our Five Beliefs
@@ -76,6 +78,8 @@ ARC Protocol is built on five foundational beliefs:
 
 **1. Agents may negotiate, but humans must approve.**
 AI should reduce friction, not remove sovereignty. Every significant economic action should require explicit human confirmation. Agents are assistants, not autonomous economic actors.
+
+Manual approval is the default and recommended behavior. A future implementation may explore explicitly pre-authorized, low-risk approval rules within user-defined thresholds, provided meaningful economic actions still require explicit confirmation and every action remains auditable. Approval fatigue, and the risk that convenience erodes oversight, remains an open design tension.
 
 **2. Commerce infrastructure should be open.**
 If agent-to-agent commerce becomes the next layer of the internet, its infrastructure should be forkable, inspectable, and community-governed — not owned by a single corporation.
@@ -109,6 +113,10 @@ Rejected: Merchant C — reputation score 3.2 (below user threshold)
 ```
 
 Agents must not be black boxes. Users must be able to inspect, question, and override any recommendation.
+
+A log is necessary for auditability, but not sufficient. If users cannot understand, verify, or act on it, a log may provide false assurance. Whether people have usable tools and sufficient context to evaluate agent reasoning remains an open design problem.
+
+One exploratory direction is intent-based delegation: users might define constraints such as budget limits, reputation thresholds, and category restrictions, then review audit records rather than approve every routine prompt. ARC does not treat this as a preferred model or a substitute for human authority; it records the tension that excessive prompts may also weaken meaningful attention.
 
 ### 5.2 Explicit Sponsored Weight
 
@@ -186,31 +194,4 @@ Not a startup. Not a platform. A proposal.
 
 > *"Agents should help people compare, negotiate, and coordinate — not replace human sovereignty."*
 
----
-
-## 9. Information Sovereignty
-
-The agent economy is not only about commerce.
-
-It is about attention.
-
-Today, what you see is determined by algorithms you did not choose, optimized for goals you did not set. Social feeds, search results, news aggregators — all of them decide what reaches you based on engagement metrics, advertiser relationships, and platform incentives. You search for signal and wade through noise that someone else placed there.
-
-ARC proposes a different model.
-
-Your agent knows you. It knows your interests, your preferences, your thresholds for what is worth your time. It can scan communities, threads, and people you care about — and surface only what you actually want to see.
-
-Not what an algorithm decides you should want.
-Not what an advertiser paid to put in front of you.
-What you asked for.
-
-This is information sovereignty: the ability to define your own filters, set your own priorities, and delegate curation to an agent that works for you — not for a platform.
-
-The same principle that governs commerce in ARC governs information:
-
-- You define the intent
-- The agent executes on your behalf
-- You approve what matters
-- No invisible intermediary decides what you see
-
-ARC does not claim to solve the information overload problem. It proposes that the right tool for personal curation is a personal agent — not a corporate algorithm.
+> Note: ARC's ideas may have implications beyond commerce, including information discovery and social curation. Those speculative ideas are kept outside the core philosophy document to preserve ARC's current scope as a commerce protocol.

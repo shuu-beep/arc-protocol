@@ -34,7 +34,7 @@ Found a flaw in the philosophy? A contradiction in the architecture? A governanc
 Open an issue. Describe the problem clearly. We take all serious criticism seriously.
 
 Good issue titles:
-- "Section 3.2 contradicts Section 9 on automatic approvals"
+- "Pre-authorized low-risk actions need clearer safeguards"
 - "Governance model doesn't address cross-community agent identity disputes"
 - "Reputation decay mechanism needs more detail"
 
@@ -61,7 +61,7 @@ The `docs/` folder contains the core design documents. If you see something uncl
 
 Documents that need the most work:
 - `docs/protocol.md` — protocol message specification (currently a stub)
-- `docs/identity.md` — identity layer detail (currently a stub)
+- `docs/identity.md` — exploratory identity, credential, and trust model
 - `docs/reputation.md` — reputation model detail (currently a stub)
 
 ### 4. Propose Protocol Changes
@@ -136,19 +136,16 @@ That's it.
 
 ---
 
-## A Vision for Collaborative Development
+## Adjacent Ideas
 
-GitHub changed how open-source collaboration works. Anyone can fork, contribute, and propose changes. But discovery is still passive — you publish a project and wait to be found.
+Some future-facing ideas, such as agent-mediated collaboration or information sovereignty, are discussed separately in `docs/adjacent-ideas/`.
 
-In an agent economy, this changes.
+These are not core protocol requirements.
+They are speculative extensions and should not be treated as current ARC scope.
 
-An agent representing a developer could scan community projects, identify where its owner's skills are most needed, and propose collaboration — not waiting to be discovered, but actively finding the right match. The human still decides whether to engage. The agent does the legwork of finding where contribution is most valuable.
+Future ARC-adjacent ideas may explore machine-readable collaboration intent and opt-in contributor discovery, where projects and contributors publish compatible intent and agents help humans find matches.
 
-ARC Protocol itself is a candidate for this model. Today it has zero contributors besides the author. In an agent-enabled future, a project like this could find the people most likely to care about federated governance, reputation systems, or agent communication protocols — and reach out directly.
-
-This is not autonomous development. It is agent-assisted collaboration, with humans approving every step.
-
-The same sovereignty principle that governs commerce applies here: agents assist, humans decide.
+For now, contribution remains entirely human-directed. ARC does not support unsolicited agent outreach.
 
 ---
 
