@@ -7,7 +7,7 @@
 > not a production project or startup pitch.
 > One person's vision for what open commerce infrastructure should look like.
 
-→ Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Governance](docs/governance.md) · [Roadmap](docs/roadmap.md)
+→ Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Governance](docs/governance.md) · [Identity](docs/identity.md) · [Roadmap](docs/roadmap.md)
 
 ## One-Sentence Summary
 
