@@ -455,7 +455,7 @@ This section describes the practical permission system.
 
 For the philosophical position on human sovereignty, see section 3.2.
 
-ARC is not designed for blind automation.
+ARC is not designed for unreviewed automation.
 
 Every important transaction should support human approval.
 
