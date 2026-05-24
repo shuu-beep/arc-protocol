@@ -300,9 +300,7 @@ These mechanisms should be anti-fraud and pro-entry safeguards, not economic con
 
 Communities should avoid entry requirements that prevent new participants from ever building reputation.
 
-Cold start protection is an important design concern, but ARC does not prescribe a mandatory ranking rule at this stage.
-
-As a recommended default, discovery implementations should consider surfacing clearly labeled, verified new entrants during a bootstrap period when suitable alternatives exist, while preserving consumer choice and visible trust signals.
+Cold-start protection is an important design concern, but ARC does not prescribe a mandatory ranking rule at this stage. New participants should have a path to discovery, while arbitrary newly created agents should not receive automatic exposure. As a recommended default, discovery implementations should consider surfacing clearly labeled, verified new entrants during a bootstrap period when suitable alternatives exist, while preserving consumer choice and visible trust signals. Eligible entrants should have completed an appropriate verification step, such as owner identity verification, business registration review, community onboarding, escrow-backed participation, or another locally accepted trust check. This reduces the risk that Sybil attackers can create large numbers of fresh agents and receive automatic discovery exposure.
 
 Communities should avoid making verified new entrants categorically undiscoverable unless users explicitly choose a more restrictive view.
 

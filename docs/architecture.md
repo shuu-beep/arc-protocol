@@ -151,6 +151,8 @@ All agent communication uses typed, signed JSON messages.
 | `dispute_report` | Any party → Governance Layer | Report fraud or transaction failure |
 | `suspension_notice` | Governance → Agent | Notify agent of suspension decision |
 
+For the full exploratory message type list and lifecycle flow, see [protocol.md](./protocol.md).
+
 ### 4.1 Transaction Lifecycle States
 
 Transactions are not binary. A transaction may move through several states:
@@ -259,9 +261,22 @@ Undisclosed sponsored placement is a protocol violation.
 
 ### 6.4 Discovery Infrastructure Sustainability
 
-Open discovery still requires infrastructure, maintenance, and curation. ARC does not prescribe a funding model, but implementations should address who operates discovery backends and how that work remains sustainable.
+Discovery infrastructure is a public goods problem. Open directories, indexes, relay endpoints, moderation queues, and reputation displays create value for many participants, but the cost of operating them does not disappear. ARC does not assume that merchants alone must pay for this infrastructure.
 
-Possible approaches to study include community-operated directories supported by modest listing fees, municipal infrastructure, or non-profit cooperatives with member dues. These are practical questions for communities, not protocol-level economic requirements.
+Possible funding and operation models to study may include:
+
+- community-operated directories
+- municipal or public-interest infrastructure
+- non-profit cooperatives
+- voluntary member dues
+- modest listing fees where appropriate
+- sponsored discovery with explicit disclosure
+- merchant-hosted or association-hosted registries
+- consumer-supported or donation-supported discovery tools
+
+For small merchants, the most attractive ARC-compatible systems may be those that reduce platform dependency, lower intermediary overhead, improve settlement transparency, and preserve reputation portability. However, ARC should not claim that all merchants will participate or that infrastructure can be free. The practical question is how coordination costs can be made more transparent, portable, and less extractive than closed platform models.
+
+These are practical questions for communities, not protocol-level economic requirements.
 
 ### 6.5 Privacy Principles
 
