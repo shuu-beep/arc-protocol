@@ -46,6 +46,7 @@ stateDiagram-v2
     offer_received --> pending_approval: pickup or no logistics needed
     logistics_requested --> logistics_received: logistics offer received
     logistics_requested --> logistics_unavailable: timeout or no provider
+    logistics_unavailable --> pending_approval: pickup fallback or user informed
     logistics_received --> pending_approval: recommendation prepared
     pending_approval --> approved: human confirms
     pending_approval --> rejected: human rejects
@@ -59,19 +60,21 @@ stateDiagram-v2
     fulfillment_pending --> disputed: complaint filed
     fulfilled --> reputation_pending: rating/reputation event prepared
     reputation_pending --> completed: reputation event recorded
+    disputed --> resolved_no_fault: dismissed
     disputed --> resolved_partial_refund: partial resolution
     disputed --> resolved_full_refund: full refund
-    disputed --> resolved_no_refund: dispute rejected
+    disputed --> resolved_confirmed_fraud: fraud confirmed
+    resolved_no_fault --> reputation_pending
+    resolved_partial_refund --> reputation_pending
+    resolved_full_refund --> reputation_pending
+    resolved_confirmed_fraud --> governance_action_pending: governance review initiated
+    governance_action_pending --> reputation_pending: outcome recorded after appeal window
     completed --> [*]
     rejected --> [*]
     expired --> [*]
     no_offer_available --> [*]
-    logistics_unavailable --> [*]
     payment_failed --> [*]
     cancelled --> [*]
-    resolved_partial_refund --> [*]
-    resolved_full_refund --> [*]
-    resolved_no_refund --> [*]
 ```
 
 This lifecycle is a starting model. Particular communities or services may need additional states, especially around partial fulfillment, cancellation rights, refunds, and regulated transactions.
@@ -169,7 +172,7 @@ Expiration protects both people and merchants from approval based on prices, sto
 | Failure Mode | Example | Recommended Handling |
 | --- | --- | --- |
 | Merchant no response | No `offer_response` before timeout | Mark unavailable, try alternatives. |
-| Logistics timeout | No `logistics_response` | Ask user for pickup or retry. |
+| Logistics timeout | No `logistics_response` | Inform user, fall back to pickup or retry. Route to `pending_approval`. |
 | Stale offer | Human approves after `expires_at` | Require refreshed offer. |
 | Duplicate offer | Same merchant sends conflicting offers | Use latest signed offer or ask merchant to clarify. |
 | Payment failure | Provider declines payment | Stop fulfillment, notify human. |
