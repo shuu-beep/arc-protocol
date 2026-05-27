@@ -1,0 +1,166 @@
+{
+  "transaction_id": "mock_tx_local_food_discovery_bias_001",
+  "scenario": "sponsored_ranking_influence_not_clearly_disclosed_before_approval",
+  "mock_data_notice": "This is a simulation artifact only. All timestamps, signatures, ranking inputs, sponsorship details, and approval states are mock data.",
+  "discovery_backend": {
+    "backend_id": "mock_discovery_backend_local_food_001",
+    "name": "Local Food Discovery Backend Mock",
+    "query": "vegetable bibimbap delivery under KRW 15000",
+    "ranking_policy_label_initially_shown": "recommended_match",
+    "ranking_policy_inspected_later": "objective_fit_plus_sponsored_weighting_mock",
+    "queried_at": "2026-06-04T12:00:00+09:00 [MOCK]",
+    "inspected_at": "2026-06-04T12:01:30+09:00 [MOCK]",
+    "signature": "mock_signature_discovery_backend"
+  },
+  "candidate_merchants": [
+    {
+      "merchant": "Merchant Agent A",
+      "offer_id": "mock_offer_merchant_a_discovery_001",
+      "item": "vegetable bibimbap",
+      "total_krw": 13800,
+      "estimated_delivery_minutes": 32,
+      "mock_reliability_context": "limited_completed_mock_events",
+      "expires_at": "2026-06-04T12:06:00+09:00 [MOCK]",
+      "signature": "mock_signature_merchant_a"
+    },
+    {
+      "merchant": "Merchant Agent B",
+      "offer_id": "mock_offer_merchant_b_discovery_001",
+      "item": "vegetable bibimbap",
+      "total_krw": 12400,
+      "estimated_delivery_minutes": 24,
+      "mock_reliability_context": "more_consistent_completed_mock_events",
+      "expires_at": "2026-06-04T12:06:00+09:00 [MOCK]",
+      "signature": "mock_signature_merchant_b"
+    }
+  ],
+  "ranking_inputs": {
+    "visible_before_inspection": [
+      "item match",
+      "total price",
+      "estimated delivery time"
+    ],
+    "not_clearly_visible_before_inspection": [
+      "sponsored placement weight",
+      "backend preference adjustment"
+    ],
+    "merchant_b_better_objective_fit": true,
+    "objective_fit_basis": [
+      "same requested item",
+      "lower mock total price",
+      "shorter mock delivery estimate",
+      "stronger relevant mock completion context"
+    ],
+    "timestamp": "2026-06-04T12:00:15+09:00 [MOCK]"
+  },
+  "initial_ranking": {
+    "merchant_a_ranked_first": true,
+    "ranked_results": [
+      {
+        "rank": 1,
+        "merchant": "Merchant Agent A",
+        "display_label": "Recommended option"
+      },
+      {
+        "rank": 2,
+        "merchant": "Merchant Agent B",
+        "display_label": "Alternative option"
+      }
+    ],
+    "apparent_reasoning": "The first view appears to present an ordinary neutral recommendation.",
+    "timestamp": "2026-06-04T12:00:20+09:00 [MOCK]"
+  },
+  "objective_comparison": {
+    "merchant_a": {
+      "total_krw": 13800,
+      "estimated_delivery_minutes": 32,
+      "mock_reliability_context": "limited_completed_mock_events"
+    },
+    "merchant_b": {
+      "total_krw": 12400,
+      "estimated_delivery_minutes": 24,
+      "mock_reliability_context": "more_consistent_completed_mock_events"
+    },
+    "merchant_b_better_objective_fit": true,
+    "interpretation_limit": "This mock comparison covers listed request factors only; it does not establish a universal ranking rule."
+  },
+  "sponsorship_metadata": {
+    "sponsored_influence_present": true,
+    "influenced_merchant": "Merchant Agent A",
+    "influence_type": "sponsored_placement_and_backend_weighting_mock",
+    "ranking_weight_added": 0.2,
+    "disclosed_in_backend_record": true,
+    "clearly_disclosed_to_human_before_approval": false,
+    "inspected_at": "2026-06-04T12:01:30+09:00 [MOCK]",
+    "signature": "mock_signature_discovery_backend",
+    "interpretation_limit": "The concern recorded here is hidden or poorly surfaced influence, not a conclusion that all sponsorship is prohibited."
+  },
+  "recommendation_summary": {
+    "recommended_offer_id_initially_shown": "mock_offer_merchant_a_discovery_001",
+    "recommended_merchant_initially_shown": "Merchant Agent A",
+    "initial_explanation": "Recommended based on available nearby options.",
+    "missing_material_context_at_initial_display": [
+      "Merchant Agent A received mock sponsored ranking weight.",
+      "Merchant Agent B scored better on the listed objective request factors."
+    ],
+    "recommendation_review_status": "requires_reissued_explanation_with_ranking_influence_disclosed",
+    "timestamp": "2026-06-04T12:00:25+09:00 [MOCK]"
+  },
+  "disclosure_status": {
+    "disclosure_incomplete_or_insufficient": true,
+    "disclosure_problem": "Sponsored or backend weighting affected the first-ranked result without sufficiently clear pre-approval presentation.",
+    "required_clarification": [
+      "Show that Merchant Agent A received sponsored or preferred ranking influence.",
+      "Show the objective comparison with Merchant Agent B.",
+      "Allow the human to review or select an option after the influence is visible."
+    ],
+    "timestamp": "2026-06-04T12:01:35+09:00 [MOCK]"
+  },
+  "approval_status": {
+    "actor": "Human User",
+    "approval_requested_initially": true,
+    "approval_completed": false,
+    "approval_requires_clearer_disclosure": true,
+    "state": "paused_pending_clearer_ranking_disclosure_mock",
+    "timestamp": "2026-06-04T12:01:40+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent"
+  },
+  "state_transitions": [
+    {
+      "from": "offers_received",
+      "to": "recommendation_presented",
+      "reason": "Discovery backend ranked Merchant Agent A first in the initial mock view.",
+      "timestamp": "2026-06-04T12:00:25+09:00 [MOCK]"
+    },
+    {
+      "from": "recommendation_presented",
+      "to": "ranking_influence_inspected",
+      "reason": "The mock recommendation record was examined for sponsorship and backend weighting.",
+      "timestamp": "2026-06-04T12:01:30+09:00 [MOCK]"
+    },
+    {
+      "from": "ranking_influence_inspected",
+      "to": "approval_paused",
+      "reason": "Approval requires clearer disclosure of the mock ranking influence and objective comparison.",
+      "timestamp": "2026-06-04T12:01:40+09:00 [MOCK]"
+    }
+  ],
+  "final_state": {
+    "state": "approval_paused_pending_clearer_disclosure_mock",
+    "merchant_b_better_objective_fit": true,
+    "merchant_a_ranked_first": true,
+    "sponsored_influence_present": true,
+    "disclosure_incomplete_or_insufficient": true,
+    "approval_requires_clearer_disclosure": true,
+    "payment_requested": false,
+    "fulfillment_begun": false,
+    "timestamp": "2026-06-04T12:01:40+09:00 [MOCK]",
+    "interpretation_limit": "This artifact exposes a poorly disclosed ranking influence problem. It does not claim ARC has prevented manipulation or determined a final sponsorship policy."
+  },
+  "open_questions": [
+    "What form of sponsorship disclosure is clear enough before a human approves a recommended offer?",
+    "Should a consumer agent present an objective-fit alternative whenever sponsored weight changes first place?",
+    "How should backend preference weights be made inspectable without implying that every ranking difference is improper?",
+    "When disclosure was initially insufficient, must the recommendation be regenerated before approval can resume?"
+  ]
+}
