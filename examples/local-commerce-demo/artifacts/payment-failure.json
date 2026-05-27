@@ -1,0 +1,103 @@
+{
+  "transaction_id": "mock_tx_local_food_payment_failure_001",
+  "scenario": "approved_current_offer_payment_rejected_before_fulfillment",
+  "mock_data_notice": "This is a simulation artifact only. All timestamps, signatures, offers, approvals, payments, and notifications are mock data.",
+  "selected_offer": {
+    "offer_id": "mock_offer_merchant_a_payment_failure_001",
+    "merchant": "Merchant Agent A",
+    "item": "vegetable bibimbap",
+    "quantity": 1,
+    "item_price_krw": 9800,
+    "delivery_fee_krw": 2500,
+    "total_krw": 12300,
+    "offered_at": "2026-06-02T12:00:30+09:00 [MOCK]",
+    "expires_at": "2026-06-02T12:05:30+09:00 [MOCK]",
+    "status_at_approval": "current_mock_offer",
+    "signature": "mock_signature_merchant_a"
+  },
+  "approval_record": {
+    "actor": "Human User",
+    "approved_offer_id": "mock_offer_merchant_a_payment_failure_001",
+    "approved_total_krw": 12300,
+    "approval_state": "approved_mock_before_expiry",
+    "offer_expired_at_approval": false,
+    "timestamp": "2026-06-02T12:01:20+09:00 [MOCK]",
+    "signature": "mock_signature_human_approval",
+    "notice": "The mock approval was recorded for a current offer before payment was requested."
+  },
+  "payment_request": {
+    "provider": "Payment Provider Mock",
+    "payment_reference": "mock_payment_failure_001",
+    "approved_offer_id": "mock_offer_merchant_a_payment_failure_001",
+    "amount_krw": 12300,
+    "status": "payment_pending_mock",
+    "requested_at": "2026-06-02T12:01:30+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent",
+    "notice": "No real payment request was submitted."
+  },
+  "payment_response": {
+    "provider": "Payment Provider Mock",
+    "payment_reference": "mock_payment_failure_001",
+    "status": "payment_failed_mock",
+    "failure_reason": "declined_by_payment_provider_mock",
+    "responded_at": "2026-06-02T12:01:35+09:00 [MOCK]",
+    "signature": "mock_signature_payment_provider",
+    "notice": "No real payment was attempted or rejected."
+  },
+  "merchant_notification": {
+    "recipient": "Merchant Agent A",
+    "fulfillment_authorization_sent": false,
+    "authorization_blocked_reason": "payment_not_confirmed_mock",
+    "visible_state": "do_not_begin_fulfillment_mock",
+    "timestamp": "2026-06-02T12:01:36+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent"
+  },
+  "logistics_notification": {
+    "recipient": "Logistics Agent",
+    "fulfillment_authorization_sent": false,
+    "authorization_blocked_reason": "payment_not_confirmed_mock",
+    "visible_state": "do_not_begin_delivery_mock",
+    "timestamp": "2026-06-02T12:01:36+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent"
+  },
+  "state_transitions": [
+    {
+      "from": "pending_approval",
+      "to": "approved",
+      "reason": "Human User approved a current mock offer.",
+      "timestamp": "2026-06-02T12:01:20+09:00 [MOCK]"
+    },
+    {
+      "from": "approved",
+      "to": "payment_pending",
+      "reason": "Mock payment was requested only after approval.",
+      "timestamp": "2026-06-02T12:01:30+09:00 [MOCK]"
+    },
+    {
+      "from": "payment_pending",
+      "to": "payment_failed",
+      "reason": "Payment Provider Mock rejected the mock payment request.",
+      "timestamp": "2026-06-02T12:01:35+09:00 [MOCK]"
+    },
+    {
+      "from": "payment_failed",
+      "to": "incomplete",
+      "reason": "Fulfillment authorization was blocked and no initial dispute was opened.",
+      "timestamp": "2026-06-02T12:01:36+09:00 [MOCK]"
+    }
+  ],
+  "open_questions": [
+    "Should the offer remain reservable after a mock payment failure, and for how long?",
+    "Should an approval be reusable for a payment retry while the offer remains current?",
+    "Should the user re-approve after any retry, even if no displayed terms changed?"
+  ],
+  "final_state": {
+    "state": "incomplete_after_payment_failed_mock",
+    "approval_occurred": true,
+    "payment_succeeded": false,
+    "fulfillment_blocked": true,
+    "dispute_opened_initially": false,
+    "timestamp": "2026-06-02T12:01:36+09:00 [MOCK]",
+    "interpretation_limit": "This artifact tests state integrity after a mock payment failure. It does not show that ARC resolved the retry, reservation, or renewed-approval questions."
+  }
+}
