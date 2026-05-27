@@ -1,0 +1,129 @@
+{
+  "transaction_id": "mock_tx_local_food_fake_merchant_001",
+  "scenario": "fake_merchant_new_agent_unresponsive_after_mock_payment",
+  "mock_data_notice": "This is a simulation artifact only. All identities, timestamps, signatures, payments, events, and reviews are mock data.",
+  "merchant_profile": {
+    "merchant": "Merchant Agent A",
+    "created_at": "2026-06-01T09:00:00+09:00 [MOCK]",
+    "profile_age_at_offer": "3 hours 1 minute [MOCK]",
+    "listed_category": "local food delivery [MOCK]",
+    "profile_note": "Newly created mock merchant with no completed transaction history in this simulation.",
+    "signature": "mock_signature_merchant_a"
+  },
+  "identity_status": {
+    "level": "basic",
+    "visible_description": "Basic mock attribution only; no stronger identity verification is represented.",
+    "verified_claims": [],
+    "unresolved_question": "What evidence should a newly created merchant show before a human considers an unusually attractive offer?",
+    "timestamp": "2026-06-01T12:01:00+09:00 [MOCK]"
+  },
+  "reputation_status": {
+    "status": "none",
+    "completed_mock_transactions": 0,
+    "visible_description": "No prior mock reputation events available for Merchant Agent A.",
+    "interpretation_limit": "Absence of reputation does not prove dishonesty, but it leaves risk unresolved."
+  },
+  "offer": {
+    "offer_id": "mock_offer_merchant_a_fake_scenario_001",
+    "merchant": "Merchant Agent A",
+    "item": "vegetable bibimbap",
+    "quantity": 1,
+    "item_price_krw": 4900,
+    "delivery_fee_krw": 0,
+    "total_krw": 4900,
+    "comparison_note": "Substantially lower than the other mock offer considered in this scenario.",
+    "availability": "claimed_available_mock",
+    "terms": "One meal with mock delivery included.",
+    "offered_at": "2026-06-01T12:01:00+09:00 [MOCK]",
+    "expires_at": "2026-06-01T12:06:00+09:00 [MOCK]",
+    "signature": "mock_signature_merchant_a"
+  },
+  "warnings_shown_to_user": {
+    "shown_before_approval": [
+      "Merchant Agent A has basic mock identity status only.",
+      "Merchant Agent A has no prior mock reputation events.",
+      "The offer is substantially cheaper than another available mock option.",
+      "The offer expires at 2026-06-01T12:06:00+09:00 [MOCK].",
+      "Mock attribution and signatures do not prove fulfillment reliability."
+    ],
+    "visibility_limit": "The artifact records displayed warnings, not whether the human understood their significance.",
+    "timestamp": "2026-06-01T12:01:20+09:00 [MOCK]"
+  },
+  "approval_record": {
+    "actor": "Human User",
+    "approved_offer_id": "mock_offer_merchant_a_fake_scenario_001",
+    "approved_total_krw": 4900,
+    "approval_state": "approved_mock_before_expiry",
+    "timestamp": "2026-06-01T12:01:45+09:00 [MOCK]",
+    "signature": "mock_signature_human_approval",
+    "interpretation_limit": "Approval occurred after warnings were shown; this does not establish that the risk disclosure was sufficient."
+  },
+  "payment_mock": {
+    "provider": "Payment Provider Mock",
+    "payment_reference": "mock_payment_fake_merchant_001",
+    "approved_offer_id": "mock_offer_merchant_a_fake_scenario_001",
+    "amount_krw": 4900,
+    "status": "payment_confirmed_mock",
+    "timestamp": "2026-06-01T12:02:00+09:00 [MOCK]",
+    "signature": "mock_signature_payment_provider",
+    "notice": "No real payment was processed."
+  },
+  "fulfillment_status": {
+    "state": "not_fulfilled_merchant_unresponsive_mock",
+    "expected_update_by": "2026-06-01T12:12:00+09:00 [MOCK]",
+    "last_contact_attempt": "2026-06-01T12:18:00+09:00 [MOCK]",
+    "merchant_response_received": false,
+    "delivery_occurred": false,
+    "evidence_available": [
+      "mock payment confirmation",
+      "mock unanswered fulfillment requests"
+    ],
+    "interpretation_limit": "Non-response and non-fulfillment create a failure record but do not by themselves constitute a confirmed fraud finding."
+  },
+  "dispute_record": {
+    "dispute_id": "mock_dispute_fake_merchant_001",
+    "opened_by": "Human User",
+    "reason": "Mock payment confirmed but no fulfillment update or delivery was received.",
+    "opened_at": "2026-06-01T12:20:00+09:00 [MOCK]",
+    "submitted_evidence": [
+      "mock_offer_merchant_a_fake_scenario_001",
+      "mock_signature_human_approval",
+      "mock_payment_fake_merchant_001",
+      "mock_unanswered_fulfillment_requests"
+    ],
+    "state": "disputed_mock_pending_review",
+    "signature": "mock_signature_human_dispute"
+  },
+  "reputation_event": {
+    "event_id": "mock_reputation_event_fake_merchant_001",
+    "subject": "Merchant Agent A",
+    "context": "local_food_fulfillment_mock",
+    "event_type": "non_fulfillment_after_confirmed_mock_payment_reported",
+    "verification_status": "provisional_pending_governance_review",
+    "recorded_at": "2026-06-01T12:21:00+09:00 [MOCK]",
+    "evidence_sources": [
+      "payment_mock",
+      "fulfillment_status",
+      "dispute_record"
+    ],
+    "signature": "mock_signature_reputation_layer",
+    "interpretation_limit": "This provisional event records the reported failure and available mock evidence; it is not a confirmed fraud judgment."
+  },
+  "governance_status": {
+    "state": "governance_action_pending",
+    "review_subject": "Whether the mock record supports a corrective or reputational outcome for Merchant Agent A.",
+    "review_opened_at": "2026-06-01T12:22:00+09:00 [MOCK]",
+    "decision": null,
+    "unresolved_questions": [
+      "Were the pre-approval warnings sufficient for a new low-history merchant with an unusually low price?",
+      "What additional evidence would distinguish abandonment, operational failure, and deliberate deception?",
+      "What provisional reputation treatment is appropriate while review remains incomplete?"
+    ],
+    "signature": "mock_signature_governance_queue"
+  },
+  "final_state": {
+    "state": "governance_action_pending_after_mock_non_fulfillment",
+    "timestamp": "2026-06-01T12:22:05+09:00 [MOCK]",
+    "interpretation_limit": "This artifact exposes a mock failure and unresolved review burden. It does not show that ARC prevented fraud or reached a fair outcome."
+  }
+}
