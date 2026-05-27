@@ -60,9 +60,9 @@ If you've thought carefully about agent commerce, decentralized governance, or a
 The `docs/` folder contains the core design documents. If you see something unclear, incomplete, or wrong — fix it and submit a pull request.
 
 Documents that need the most work:
-- `docs/protocol.md` — protocol message specification (currently a stub)
+- `docs/protocol.md` — exploratory protocol mechanics draft
 - `docs/identity.md` — exploratory identity, credential, and trust model
-- `docs/reputation.md` — reputation model detail (currently a stub)
+- `docs/reputation.md` — exploratory reputation model
 
 ### 4. Propose Protocol Changes
 
