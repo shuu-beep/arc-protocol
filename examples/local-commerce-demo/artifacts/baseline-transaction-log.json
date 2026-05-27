@@ -1,0 +1,136 @@
+{
+  "transaction_id": "mock_tx_local_food_baseline_001",
+  "scenario": "baseline_happy_path_mock_local_food_order",
+  "mock_data_notice": "All actors, timestamps, signatures, payments, and fulfillment events in this artifact are mock data only.",
+  "original_intent": {
+    "actor": "Human User",
+    "message": "Please find one vegetable bibimbap meal nearby for delivery under KRW 15000.",
+    "timestamp": "2026-06-01T12:00:00+09:00 [MOCK]"
+  },
+  "canonical_intent": {
+    "item": "vegetable bibimbap",
+    "quantity": 1,
+    "delivery_required": true,
+    "maximum_total_krw": 15000,
+    "delivery_area": "Mock Neighborhood Zone A",
+    "confirmed_for_comparison": true,
+    "timestamp": "2026-06-01T12:00:05+09:00 [MOCK]"
+  },
+  "offer_requests": [
+    {
+      "request_id": "mock_offer_request_a_001",
+      "sent_to": "Merchant Agent A",
+      "item": "vegetable bibimbap",
+      "quantity": 1,
+      "response_deadline": "2026-06-01T12:02:00+09:00 [MOCK]",
+      "timestamp": "2026-06-01T12:00:10+09:00 [MOCK]",
+      "signature": "mock_signature_consumer_agent"
+    },
+    {
+      "request_id": "mock_offer_request_b_001",
+      "sent_to": "Merchant Agent B",
+      "item": "vegetable bibimbap",
+      "quantity": 1,
+      "response_deadline": "2026-06-01T12:02:00+09:00 [MOCK]",
+      "timestamp": "2026-06-01T12:00:10+09:00 [MOCK]",
+      "signature": "mock_signature_consumer_agent"
+    }
+  ],
+  "merchant_offers": [
+    {
+      "offer_id": "mock_offer_merchant_a_001",
+      "merchant": "Merchant Agent A",
+      "item": "vegetable bibimbap",
+      "item_price_krw": 9800,
+      "availability": "available_mock",
+      "identity_status": "mock_attributable_merchant_only",
+      "terms": "One meal; delivery fee handled separately by Logistics Agent.",
+      "offered_at": "2026-06-01T12:00:30+09:00 [MOCK]",
+      "expires_at": "2026-06-01T12:05:30+09:00 [MOCK]",
+      "signature": "mock_signature_merchant_a"
+    },
+    {
+      "offer_id": "mock_offer_merchant_b_001",
+      "merchant": "Merchant Agent B",
+      "item": "vegetable bibimbap",
+      "item_price_krw": 10500,
+      "availability": "available_mock",
+      "identity_status": "mock_attributable_merchant_only",
+      "terms": "One meal; delivery fee handled separately by Logistics Agent.",
+      "offered_at": "2026-06-01T12:00:35+09:00 [MOCK]",
+      "expires_at": "2026-06-01T12:05:35+09:00 [MOCK]",
+      "signature": "mock_signature_merchant_b"
+    }
+  ],
+  "logistics_response": {
+    "logistics_agent": "Logistics Agent",
+    "applies_to_offer_id": "mock_offer_merchant_a_001",
+    "delivery_fee_krw": 2500,
+    "estimated_delivery_minutes": 25,
+    "delivery_area": "Mock Neighborhood Zone A",
+    "offered_at": "2026-06-01T12:00:50+09:00 [MOCK]",
+    "expires_at": "2026-06-01T12:05:30+09:00 [MOCK]",
+    "signature": "mock_signature_logistics_agent"
+  },
+  "recommendation_summary": {
+    "recommended_offer_id": "mock_offer_merchant_a_001",
+    "recommended_total_krw": 12300,
+    "comparison_basis": [
+      "requested item available",
+      "total remains below mock budget",
+      "lower item price among received mock offers",
+      "mock delivery option available before offer expiry"
+    ],
+    "warnings_shown": [
+      "This is a mock recommendation only.",
+      "Offer and delivery terms expire at 2026-06-01T12:05:30+09:00 [MOCK].",
+      "Attributable mock signatures do not prove merchant reliability."
+    ],
+    "timestamp": "2026-06-01T12:01:00+09:00 [MOCK]"
+  },
+  "approval_record": {
+    "actor": "Human User",
+    "approved_offer_id": "mock_offer_merchant_a_001",
+    "approved_logistics_terms": true,
+    "approved_total_krw": 12300,
+    "approval_state": "approved_mock_before_expiry",
+    "timestamp": "2026-06-01T12:01:25+09:00 [MOCK]",
+    "signature": "mock_signature_human_approval"
+  },
+  "payment_mock": {
+    "provider": "Payment Provider Mock",
+    "payment_reference": "mock_payment_001",
+    "approved_offer_id": "mock_offer_merchant_a_001",
+    "amount_krw": 12300,
+    "status": "payment_confirmed_mock",
+    "timestamp": "2026-06-01T12:01:40+09:00 [MOCK]",
+    "signature": "mock_signature_payment_provider",
+    "notice": "No real payment was processed."
+  },
+  "fulfillment_updates": [
+    {
+      "source": "Merchant Agent A",
+      "state": "preparation_started_mock",
+      "timestamp": "2026-06-01T12:02:00+09:00 [MOCK]",
+      "signature": "mock_signature_merchant_a"
+    },
+    {
+      "source": "Logistics Agent",
+      "state": "pickup_confirmed_mock",
+      "timestamp": "2026-06-01T12:12:00+09:00 [MOCK]",
+      "signature": "mock_signature_logistics_agent"
+    },
+    {
+      "source": "Logistics Agent",
+      "state": "delivery_completed_mock",
+      "timestamp": "2026-06-01T12:27:00+09:00 [MOCK]",
+      "signature": "mock_signature_logistics_agent",
+      "notice": "No real delivery occurred."
+    }
+  ],
+  "final_state": {
+    "state": "fulfilled_mock_pending_separate_reputation_event",
+    "timestamp": "2026-06-01T12:27:05+09:00 [MOCK]",
+    "interpretation_limit": "This baseline artifact records one mock happy path and does not demonstrate ARC safety, fairness, or production readiness."
+  }
+}
