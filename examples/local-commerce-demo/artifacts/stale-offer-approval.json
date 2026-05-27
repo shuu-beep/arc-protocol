@@ -1,0 +1,102 @@
+{
+  "transaction_id": "mock_tx_local_food_stale_offer_001",
+  "scenario": "approval_submitted_after_offer_expiry_payment_blocked",
+  "mock_data_notice": "This is a simulation artifact only. All timestamps, signatures, offers, approvals, and notifications are mock data.",
+  "offer": {
+    "offer_id": "mock_offer_merchant_a_stale_001",
+    "merchant": "Merchant Agent A",
+    "item": "vegetable bibimbap",
+    "quantity": 1,
+    "item_price_krw": 9800,
+    "delivery_fee_krw": 2500,
+    "total_krw": 12300,
+    "offered_at": "2026-06-03T12:00:30+09:00 [MOCK]",
+    "expires_at": "2026-06-03T12:03:30+09:00 [MOCK]",
+    "signature": "mock_signature_merchant_a"
+  },
+  "offer_expiry": {
+    "expires_at": "2026-06-03T12:03:30+09:00 [MOCK]",
+    "offer_expired": true,
+    "expiry_detected_at": "2026-06-03T12:04:10+09:00 [MOCK]",
+    "expiry_rule_applied": "Mock payment must not be requested for expired offer terms."
+  },
+  "approval_record": {
+    "actor": "Human User",
+    "submitted_offer_id": "mock_offer_merchant_a_stale_001",
+    "submitted_total_krw": 12300,
+    "review_started_at": "2026-06-03T12:01:00+09:00 [MOCK]",
+    "submitted_at": "2026-06-03T12:04:10+09:00 [MOCK]",
+    "approval_after_expiry": true,
+    "record_state": "approval_received_but_invalid_for_payment_mock",
+    "signature": "mock_signature_human_approval",
+    "interpretation_limit": "The mock record captures the user's approval attempt, but it cannot authorize payment against expired terms."
+  },
+  "time_comparison": {
+    "offer_expires_at": "2026-06-03T12:03:30+09:00 [MOCK]",
+    "approval_submitted_at": "2026-06-03T12:04:10+09:00 [MOCK]",
+    "approval_delay_after_expiry_seconds": 40,
+    "offer_expired": true,
+    "approval_after_expiry": true
+  },
+  "payment_attempt": {
+    "provider": "Payment Provider Mock",
+    "payment_request_created": false,
+    "payment_blocked": true,
+    "blocked_reason": "approved_offer_expired_before_payment_request_mock",
+    "amount_krw": 12300,
+    "timestamp": "2026-06-03T12:04:11+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent",
+    "notice": "No real or mock provider payment request was sent."
+  },
+  "merchant_notification": {
+    "recipient": "Merchant Agent A",
+    "offer_refresh_required": true,
+    "notification_type": "request_refreshed_offer_mock",
+    "fulfillment_authorization_sent": false,
+    "timestamp": "2026-06-03T12:04:12+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent"
+  },
+  "state_transitions": [
+    {
+      "from": "pending_approval",
+      "to": "expired",
+      "reason": "The selected mock offer expired before approval was submitted.",
+      "timestamp": "2026-06-03T12:03:30+09:00 [MOCK]"
+    },
+    {
+      "from": "expired",
+      "to": "refresh_required",
+      "reason": "A mock approval was submitted after expiry and cannot authorize payment.",
+      "timestamp": "2026-06-03T12:04:11+09:00 [MOCK]"
+    },
+    {
+      "from": "refresh_required",
+      "to": "awaiting_refreshed_offer",
+      "reason": "Merchant Agent A was asked for new mock terms; fulfillment remains blocked.",
+      "timestamp": "2026-06-03T12:04:12+09:00 [MOCK]"
+    }
+  ],
+  "user_notification": {
+    "recipient": "Human User",
+    "message": "The selected mock offer expired before approval was submitted. No payment request was made. Updated terms are required before any new approval step.",
+    "offer_refresh_required": true,
+    "payment_blocked": true,
+    "timestamp": "2026-06-03T12:04:12+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent"
+  },
+  "open_questions": [
+    "Should the user re-approve refreshed terms even if the merchant returns the same price and conditions?",
+    "Can the merchant automatically extend an offer, or must any extension become a new signed offer?",
+    "How should changed pricing or delivery timing be presented so a refreshed offer is not mistaken for the expired one?"
+  ],
+  "final_state": {
+    "state": "awaiting_refreshed_offer_after_expired_approval_mock",
+    "offer_expired": true,
+    "approval_after_expiry": true,
+    "payment_blocked": true,
+    "offer_refresh_required": true,
+    "fulfillment_begun": false,
+    "timestamp": "2026-06-03T12:04:12+09:00 [MOCK]",
+    "interpretation_limit": "This artifact exposes an invalid-transition risk and a proposed mock block. It does not show that ARC has solved stale-offer handling or renewed consent."
+  }
+}
