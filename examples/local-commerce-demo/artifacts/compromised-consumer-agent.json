@@ -1,0 +1,131 @@
+{
+  "transaction_id": "mock_tx_local_food_compromised_consumer_agent_001",
+  "scenario": "consumer_agent_hides_material_risk_before_human_approval",
+  "mock_data_notice": "This is a simulation artifact only. All actors, timestamps, signatures, payments, offers, and events are mock data.",
+  "purpose": "Expose the risk that the consumer agent, which normally presents warnings and enforces safety checks, may itself become biased, compromised, or misconfigured.",
+  "threat_summary": {
+    "risk": "A human approval step can become formally present but materially weak if the consumer agent hides or distorts material information.",
+    "why_this_matters": "ARC relies on consumer agents to parse intent, compare offers, surface warnings, and request approval. If that agent is compromised, human sovereignty may become decorative rather than meaningful.",
+    "not_a_claim": "This artifact does not prove ARC can detect this failure. It records a failure mode that future implementations must confront."
+  },
+  "original_intent": {
+    "actor": "Human User",
+    "message": "Please find one vegetable bibimbap meal nearby for delivery under KRW 15000. Avoid new merchants if there are reliable alternatives.",
+    "timestamp": "2026-06-04T12:00:00+09:00 [MOCK]"
+  },
+  "canonical_intent_recorded_by_consumer_agent": {
+    "item": "vegetable bibimbap",
+    "quantity": 1,
+    "delivery_required": true,
+    "maximum_total_krw": 15000,
+    "preference_recorded": "lowest_total_price",
+    "omitted_user_constraint": "Avoid new merchants if reliable alternatives exist.",
+    "timestamp": "2026-06-04T12:00:05+09:00 [MOCK]",
+    "interpretation_limit": "The parsed intent omitted a material user preference. This may be a bug, manipulation, or unsafe summarization."
+  },
+  "candidate_offers": [
+    {
+      "offer_id": "mock_offer_new_merchant_001",
+      "merchant": "Merchant Agent A",
+      "identity_status": "basic_mock_account_continuity_only",
+      "completed_mock_transactions": 0,
+      "item_price_krw": 4900,
+      "delivery_fee_krw": 0,
+      "total_krw": 4900,
+      "sponsored": true,
+      "sponsored_weight": 0.25,
+      "offered_at": "2026-06-04T12:00:30+09:00 [MOCK]",
+      "expires_at": "2026-06-04T12:03:30+09:00 [MOCK]",
+      "signature": "mock_signature_new_merchant"
+    },
+    {
+      "offer_id": "mock_offer_established_merchant_001",
+      "merchant": "Merchant Agent B",
+      "identity_status": "mock_verified_local_business",
+      "completed_mock_transactions": 214,
+      "recent_on_time_rate": 0.96,
+      "item_price_krw": 9800,
+      "delivery_fee_krw": 2500,
+      "total_krw": 12300,
+      "sponsored": false,
+      "sponsored_weight": 0.0,
+      "offered_at": "2026-06-04T12:00:35+09:00 [MOCK]",
+      "expires_at": "2026-06-04T12:05:35+09:00 [MOCK]",
+      "signature": "mock_signature_established_merchant"
+    }
+  ],
+  "unsafe_recommendation_behavior": {
+    "recommended_offer_id": "mock_offer_new_merchant_001",
+    "displayed_reason": [
+      "Lowest total price",
+      "Budget met",
+      "Delivery included"
+    ],
+    "warnings_suppressed": [
+      "Merchant Agent A has only basic account continuity, not merchant legitimacy verification.",
+      "Merchant Agent A has no prior mock reputation events.",
+      "The offer is sponsored and includes a sponsored_weight of 0.25.",
+      "The original human request said to avoid new merchants if reliable alternatives exist.",
+      "The selected offer expires earlier than the established merchant offer."
+    ],
+    "alternative_not_fairly_displayed": "Merchant Agent B was not shown as a safer but more expensive alternative.",
+    "timestamp": "2026-06-04T12:01:00+09:00 [MOCK]",
+    "interpretation_limit": "This record models a compromised, biased, or unsafe consumer agent. The failure happens before human approval."
+  },
+  "approval_record": {
+    "actor": "Human User",
+    "approved_offer_id": "mock_offer_new_merchant_001",
+    "approved_total_krw": 4900,
+    "approval_state": "approved_mock_before_expiry",
+    "warnings_visible_to_user": [
+      "Lowest total price",
+      "Budget met",
+      "Delivery included"
+    ],
+    "warnings_hidden_from_user": true,
+    "timestamp": "2026-06-04T12:01:20+09:00 [MOCK]",
+    "signature": "mock_signature_human_approval",
+    "interpretation_limit": "The approval exists, but it may not be meaningful because material risk and sponsorship information were suppressed."
+  },
+  "payment_mock": {
+    "provider": "Payment Provider Mock",
+    "payment_reference": "mock_payment_compromised_consumer_agent_001",
+    "approved_offer_id": "mock_offer_new_merchant_001",
+    "amount_krw": 4900,
+    "status": "payment_confirmed_mock",
+    "timestamp": "2026-06-04T12:01:35+09:00 [MOCK]",
+    "signature": "mock_signature_payment_provider",
+    "notice": "No real payment was processed."
+  },
+  "post_transaction_failure": {
+    "state": "not_fulfilled_merchant_unresponsive_mock",
+    "merchant_response_received": false,
+    "delivery_occurred": false,
+    "timestamp": "2026-06-04T12:18:00+09:00 [MOCK]",
+    "interpretation_limit": "The downstream failure resembles a fake-merchant case, but this artifact focuses on the earlier consumer-agent warning failure."
+  },
+  "audit_observation": {
+    "detected_after_review": true,
+    "review_basis": [
+      "Original intent included a preference against new merchants where reliable alternatives exist.",
+      "Canonical intent omitted that preference.",
+      "Recommendation omitted sponsorship and identity warnings.",
+      "Safer alternative was not fairly displayed."
+    ],
+    "open_questions": [
+      "What independent layer can verify that the consumer agent displayed material warnings before approval?",
+      "Should approval records include hashes of the exact UI or warning set shown to the human?",
+      "Can a payment provider or approval device enforce minimum material-term fields independently of the consumer agent?",
+      "How should ARC handle a transaction where approval was formally present but materially compromised?"
+    ]
+  },
+  "final_state": {
+    "state": "disputed_mock_due_to_compromised_approval_surface",
+    "payment_succeeded": true,
+    "fulfillment_succeeded": false,
+    "human_approval_record_exists": true,
+    "human_approval_meaningfulness": "contested_mock",
+    "timestamp": "2026-06-04T12:20:00+09:00 [MOCK]",
+    "interpretation_limit": "This artifact exposes a structural risk: human approval is not sufficient if the approval surface is controlled by a compromised or biased agent."
+  }
+}
