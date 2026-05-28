@@ -7,7 +7,7 @@
 > not a production project or startup pitch.
 > One person's vision for what open commerce infrastructure should look like.
 
-→ Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
+→ Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Bootstrap & Incentives](docs/bootstrap-and-incentives.md) · [Liability Boundaries](docs/liability-boundaries.md) · [Future Protocol Spec](docs/future-protocol-spec.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
 
 ## One-Sentence Summary
 
@@ -16,6 +16,8 @@ ARC Protocol is an experimental open-source protocol for trusted, human-approved
 ## IMPORTANT NOTICE
 
 ARC Protocol is a manifesto, protocol proposal, governance philosophy, and architecture draft.
+
+ARC Protocol is a protocol-oriented design project. It is not yet a complete protocol specification.
 
 It is not production-ready infrastructure.
 
@@ -55,7 +57,7 @@ This is a proposal for an open commerce layer for the agent economy.
 - [17. Technical Architecture](#17-technical-architecture)
 - [18. MVP Scope](#18-mvp-scope)
 - [19. Example MVP Flow](#19-example-mvp-flow)
-- [20. Suggested Repository Structure](#20-suggested-repository-structure)
+- [20. Possible Future Repository Structure](#20-possible-future-repository-structure)
 - [21. Protocol Concepts](#21-protocol-concepts)
 - [22. Security Considerations](#22-security-considerations)
 - [23. Permission Levels](#23-permission-levels)
@@ -101,6 +103,8 @@ Most platforms control:
 - delivery matching
 - dispute process
 - platform fees
+
+ARC does not assume centralized platforms provide no value. Existing platforms provide discovery, payment mediation, customer support, fraud handling, logistics coordination, and familiar user interfaces. ARC asks whether some of these functions can become more open, inspectable, portable, and less extractive.
 
 This creates several problems:
 
@@ -227,6 +231,8 @@ Instead:
 ```txt
 Agent negotiation -> Human confirmation -> Payment execution -> Community-verifiable reputation
 ```
+
+This remains a design goal and philosophical commitment, not a proven property of the current proposal.
 
 ## 5. Basic Scenario
 
@@ -424,6 +430,8 @@ Possible Identity Providers:
 - business registration systems
 - verified payment accounts
 
+Consumer-grade identity providers such as Google, Apple, or Microsoft may help establish account continuity, but they do not prove merchant legitimacy, inventory ownership, fulfillment capability, professional authority, or legal compliance. See [Identity](docs/identity.md) for the fuller model and its limits.
+
 Agent Identity:
 
 Each agent should have:
@@ -477,7 +485,7 @@ Require explicit approval for meaningful purchases.
 Block all new merchants without reputation.
 ```
 
-Any such rule should remain user-defined, reviewable, and auditable.
+Any such rule should remain exploratory, optional, user-defined, reviewable, auditable, and easily revocable. Pre-authorization is risky if it weakens meaningful review, so ARC should not treat fixed dollar thresholds as protocol defaults.
 
 This protects users from unwanted AI actions.
 
@@ -507,6 +515,8 @@ Agents compare:
 Therefore, the future of commerce may shift from advertising economy to reputation economy.
 
 ARC proposes reputation based on verified transactions, not fake reviews.
+
+Reputation is contextual and gameable. It must not become a universal social credit score. See [Reputation](docs/reputation.md) for the current boundaries and unresolved risks.
 
 Reputation Data:
 
@@ -650,7 +660,7 @@ Instead, future merchant visibility may depend on:
 - refund behavior
 - community standing
 
-This may reduce manipulation-based advertising and increase merit-based discovery.
+This may reduce manipulation-based advertising and increase merit-based discovery, but this remains a hypothesis to test rather than a proven outcome.
 
 > See [Philosophy](docs/philosophy.md) for extended discussion on
 > advertising evolution, recommendation transparency,
@@ -698,6 +708,8 @@ This may reduce manipulation-based advertising and increase merit-based discover
 ```
 
 ## 17. Technical Architecture
+
+The listed stack is a possible reference implementation stack, not part of the ARC protocol itself.
 
 ### Frontend
 
@@ -844,7 +856,9 @@ MVP Non-Goals:
 
 10. User instructs agent to leave a rating.
 
-## 20. Suggested Repository Structure
+## 20. Possible Future Repository Structure
+
+This is a possible future implementation structure, not a description of the current repository state.
 
 ```txt
 arc-protocol/
@@ -995,6 +1009,8 @@ Governance should be transparent.
 
 No single corporation should control the entire network.
 
+Community governance can inform trust and participation decisions, but it does not replace courts, payment-provider dispute processes, consumer protection law, professional regulation, or legal liability. See [Governance](docs/governance.md) and [Liability Boundaries](docs/liability-boundaries.md).
+
 ## 25. Why Non-Profit and Open Source?
 
 Because the agent economy may become basic infrastructure.
@@ -1016,7 +1032,7 @@ The goal is to explore an open commerce protocol for the AI agent era.
 
 ## 26. Current Status
 
-ARC Protocol is currently an experimental concept and MVP-stage open-source project.
+ARC Protocol is currently an experimental documentation and mock-artifact project.
 
 It is not production-ready.
 
@@ -1028,7 +1044,9 @@ It does not currently provide:
 - verified identity
 - production-grade security
 
-It is a research-oriented prototype for exploring:
+An initial documentation baseline exists, but identity, discovery, incentives, governance, liability, and full protocol interoperability remain unresolved.
+
+It is a research-oriented proposal for exploring:
 
 - AI-to-AI commerce
 - human-approved transactions
