@@ -20,6 +20,10 @@ ARC's identity model starts from one principle:
 
 > **Agent identity is derived from human identity. An agent cannot be more trusted than the human or organization behind it.**
 
+This principle is directional, not solved.
+
+ARC does not currently solve the identity-reputation bootstrap problem. Early trust must come from a combination of external identity providers, limited transaction scope, probation, visible uncertainty, and human review. This remains a structural design problem rather than a completed layer.
+
 ---
 
 ## 2. Identity Layers
@@ -41,9 +45,17 @@ Possible identity providers:
 
 **A known tension:** ARC values open and portable infrastructure, yet an accessible early identity model may rely on centralized providers such as Google Account or Apple ID. This is a pragmatic starting point, not a final position.
 
+A consumer-grade identity provider account is not merchant verification.
+
+Google, Apple, Microsoft, or similar accounts may help establish account continuity. They do not prove business legitimacy, inventory ownership, fulfillment capability, professional authority, safe operations, or legal compliance.
+
+Business identity may require additional checks such as business registration review, payment account verification, local community onboarding, address or domain verification, professional credential review, or provider-specific merchant checks. ARC does not define a universal verification process at this stage.
+
 One direction worth exploring is progressive trust: initial provider verification supplemented over time by verified transaction history and community-reviewed status. How such portability can work without weakening accountability remains an open design problem.
 
 The owner layer answers: **who is responsible for this agent?**
+
+It does not fully answer: **is this agent safe, legitimate, solvent, licensed, or capable of fulfillment?**
 
 ### 2.2 Agent Identity (Cryptographic Layer)
 
@@ -64,6 +76,8 @@ Each agent may have a unique cryptographic identity:
 ```
 
 Offers, approvals, and reputation events should be signed where manipulation resistance matters. Unsigned messages may still exist in early prototypes, but users should be able to distinguish verified records from unverified records.
+
+A signature proves that a key signed a message. It does not prove that the signer is honest, that the offer is fulfillable, that the merchant is legitimate, or that the human understood the terms.
 
 ### 2.3 Professional License Layer (Credential Layer)
 
@@ -100,9 +114,11 @@ The key idea is: **a licensed professional may delegate limited agent activity u
 
 This credential layer is speculative and high-risk. Real deployment would require legal, regulatory, and institutional review in each jurisdiction before implementation.
 
-**Legal warning:** An agent associated with a licensed professional does not automatically gain authority to provide regulated services. Legal, medical, financial, or architectural assistance must remain within what the responsible licensed human and local law permit; even information-support workflows may be restricted in some jurisdictions.
+**Legal warning:** An agent associated with a licensed professional does not automatically gain authority to provide regulated services. Legal, medical, financial, tax, architectural, or other professional assistance must remain within what the responsible licensed human and local law permit; even information-support workflows may be restricted in some jurisdictions.
 
 ARC does not propose this layer for an MVP or pilot. Many professional authorities may never provide public verification APIs, and verification may remain manual, legally restricted, or unavailable without formal institutional cooperation.
+
+Unauthorized practice risk is a core boundary. A future ARC-compatible system must not imply that credential metadata, community review, or agent association authorizes services that local law reserves to licensed humans or regulated entities.
 
 ### 3.1 Core Principle
 
@@ -151,6 +167,8 @@ On expiry or revocation, agent scope is restricted or reviewed
 
 Where permissible and institutionally supported, ARC could explore layered verification: API verification where available, cryptographic credential issuance where supported, and community-reviewed manual verification as a pragmatic fallback.
 
+This flow is illustrative. It should not be interpreted as a claim that professional authorities will cooperate, that manual verification is legally sufficient, or that community governance can grant professional authority.
+
 ### 3.4 Scope Declaration
 
 A credentialed agent should declare its operating scope. It should not imply authority outside that scope.
@@ -175,11 +193,13 @@ These levels are illustrative and may change as the design matures.
 | Status | Meaning |
 | --- | --- |
 | `unverified` | No identity verification completed |
-| `basic` | Identity provider verified (Google, Apple, etc.) |
-| `verified` | Community-verified identity |
-| `credentialed` | Professional credential verified and active |
+| `basic` | Account continuity only, such as identity provider verification; does not prove merchant legitimacy or professional authority |
+| `verified` | Community-reviewed or institutionally supported identity evidence, with scope and limits visible |
+| `credentialed` | Professional credential reviewed and active within a declared scope, where legally permissible |
 | `suspended` | Temporarily suspended by governance |
 | `revoked` | Removed or no longer trusted by the community |
+
+These labels should be displayed with context. A single status word can mislead if users cannot see what was actually verified.
 
 ---
 
@@ -225,7 +245,9 @@ The goal is not to block newcomers. The goal is to let new agents build trust wh
 
 ### 6.1 Agents Cannot Self-Verify
 
-No agent should verify its own identity or credentials. Verification should come from external identity providers, professional authorities, or community governance.
+No agent should verify its own identity or credentials. Verification should come from external identity providers, professional authorities, payment providers, business registries, or community governance.
+
+Community governance may review evidence, but it should not pretend to replace institutional authority where such authority is legally required.
 
 ### 6.2 License Revocation Should Propagate
 
@@ -235,13 +257,21 @@ This document does not define a universal enforcement window. Different domains 
 
 ### 6.3 Agents Are Not Legal Entities
 
-An agent is not a legal person. It cannot enter legally binding contracts on its own behalf. All legal responsibility remains with the human owner or legal entity behind the agent.
+An agent is not a legal person. It cannot enter legally binding contracts on its own behalf. All legal responsibility remains with the human owner or legal entity behind the agent, subject to jurisdiction-specific law and the roles of providers involved in the transaction.
 
 The credential layer reflects the owner's professional standing. It does not create new legal standing for the agent.
 
 ### 6.4 Scope Is Conservative by Default
 
 Agents should default to the minimum necessary scope. A lawyer's agent does not automatically get permission to provide financial information, even if the lawyer holds dual qualifications. Scope should be explicitly declared and reviewed.
+
+### 6.5 Identity and Reputation Are Circular Without Care
+
+Identity helps decide which reputation records are meaningful.
+
+Reputation helps a new or lightly verified participant build trust.
+
+This creates a circular dependency. ARC does not yet define a complete solution. Early implementations should reduce risk through limited transaction scope, visible uncertainty, probation, rate limits, and reviewable records rather than pretending the circle is closed.
 
 ---
 
@@ -252,6 +282,8 @@ Professional license numbers and verification details are sensitive. ARC recomme
 - Store credential hashes, not raw license numbers, in public agent profiles
 - Provide verification URLs that allow third parties to confirm validity without exposing raw data
 - Allow professionals to control visibility of credential details beyond community governance
+- Avoid exposing more identity evidence than is necessary for a given trust decision
+- Apply local retention and deletion rules where legally required
 
 ---
 
@@ -283,6 +315,8 @@ Agents representing skilled tradespeople may attach verified career records:
 ```
 
 Verified completed jobs, community ratings, and dispute history may form the trust basis — not a license number.
+
+Career-based trust still requires caution. Portfolio claims, experience counts, and community endorsements can be exaggerated, captured, or laundered across contexts.
 
 ### 8.2 New Entrant Protection
 
@@ -345,6 +379,8 @@ Priority for Stage 2 implementation may include:
 - Ed25519 key pair generation per agent
 - Basic identity provider integration (Google / Apple)
 - Agent profile schema
+- Clear distinction between account continuity, merchant legitimacy, and professional authority
+- Key rotation and compromised-key handling notes
 
 Professional credential binding is a later-stage design area and depends on community demand, jurisdiction, and regulatory review.
 
