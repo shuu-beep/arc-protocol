@@ -1,0 +1,149 @@
+{
+  "transaction_id": "mock_tx_local_food_approval_fatigue_001",
+  "scenario": "repeated_small_term_changes_degrade_meaningful_human_review",
+  "mock_data_notice": "This is a simulation artifact only. All timestamps, signatures, approval prompts, changed terms, and user attention signals are mock data.",
+  "original_intent": {
+    "actor": "Human User",
+    "message": "Please find one vegetable bibimbap meal nearby for delivery under KRW 15000.",
+    "timestamp": "2026-06-05T12:00:00+09:00 [MOCK]"
+  },
+  "approval_sequence": [
+    {
+      "request_number": 1,
+      "approval_request_id": "mock_approval_request_fatigue_001",
+      "offer_id": "mock_offer_merchant_a_fatigue_001",
+      "displayed_total_krw": 12300,
+      "displayed_delivery_minutes": 25,
+      "material_change_from_previous": false,
+      "displayed_difference_summary": "Initial approval request for the selected mock offer.",
+      "user_action": "reviewed_and_approved_mock",
+      "timestamp": "2026-06-05T12:01:20+09:00 [MOCK]",
+      "signature": "mock_signature_human_approval_001"
+    },
+    {
+      "request_number": 2,
+      "approval_request_id": "mock_approval_request_fatigue_002",
+      "offer_id": "mock_offer_merchant_a_fatigue_002",
+      "displayed_total_krw": 12600,
+      "displayed_delivery_minutes": 25,
+      "material_change_from_previous": true,
+      "changed_terms": [
+        "total_krw_increased_by_300"
+      ],
+      "displayed_difference_summary": "Price changed from KRW 12300 to KRW 12600.",
+      "user_action": "approved_after_brief_review_mock",
+      "timestamp": "2026-06-05T12:02:10+09:00 [MOCK]",
+      "signature": "mock_signature_human_approval_002"
+    },
+    {
+      "request_number": 3,
+      "approval_request_id": "mock_approval_request_fatigue_003",
+      "offer_id": "mock_offer_merchant_a_fatigue_003",
+      "displayed_total_krw": 12600,
+      "displayed_delivery_minutes": 31,
+      "material_change_from_previous": true,
+      "changed_terms": [
+        "estimated_delivery_minutes_increased_by_6"
+      ],
+      "displayed_difference_summary": "Delivery estimate changed from 25 minutes to 31 minutes.",
+      "user_action": "approved_quickly_mock",
+      "timestamp": "2026-06-05T12:02:55+09:00 [MOCK]",
+      "signature": "mock_signature_human_approval_003"
+    },
+    {
+      "request_number": 4,
+      "approval_request_id": "mock_approval_request_fatigue_004",
+      "offer_id": "mock_offer_merchant_a_fatigue_004",
+      "displayed_total_krw": 12900,
+      "displayed_delivery_minutes": 31,
+      "material_change_from_previous": true,
+      "changed_terms": [
+        "total_krw_increased_by_300",
+        "free_cancellation_window_removed_mock"
+      ],
+      "displayed_difference_summary": "Price changed from KRW 12600 to KRW 12900. Cancellation terms changed.",
+      "user_action": "approval_attempt_interrupted_by_consumer_agent_mock",
+      "timestamp": "2026-06-05T12:03:40+09:00 [MOCK]",
+      "signature": "mock_signature_consumer_agent"
+    }
+  ],
+  "fatigue_indicators": {
+    "approval_requests_within_minutes": 4,
+    "window_minutes": 3,
+    "repeated_prompt_pattern_detected": true,
+    "material_changes_detected": 3,
+    "quick_approval_after_prior_prompts": true,
+    "attention_quality_unverified": true,
+    "interpretation_limit": "Fast repeated approvals may indicate fatigue or familiarity, but the artifact cannot prove the user's mental state. It records a consent-quality risk, not a psychological conclusion."
+  },
+  "safeguard_applied": {
+    "state": "approval_paused_for_clear_re_review_mock",
+    "trigger": "multiple material changes across repeated approval requests in a short time window",
+    "required_user_interface_change": [
+      "Stop showing the next request as an ordinary confirmation tap.",
+      "Present a consolidated change history before renewed approval.",
+      "Separate unchanged terms from changed material terms.",
+      "Require an explicit renewed approval after the consolidated review."
+    ],
+    "timestamp": "2026-06-05T12:03:42+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent"
+  },
+  "payment_attempt": {
+    "provider": "Payment Provider Mock",
+    "payment_request_created": false,
+    "payment_blocked": true,
+    "blocked_reason": "meaningful_review_uncertain_after_repeated_changed_approval_requests_mock",
+    "amount_krw": 12900,
+    "timestamp": "2026-06-05T12:03:43+09:00 [MOCK]",
+    "notice": "No real or mock provider payment request was sent."
+  },
+  "state_transitions": [
+    {
+      "from": "pending_approval",
+      "to": "approved",
+      "reason": "Human User approved the initial mock offer.",
+      "timestamp": "2026-06-05T12:01:20+09:00 [MOCK]"
+    },
+    {
+      "from": "approved",
+      "to": "renewed_approval_requested",
+      "reason": "A small price change required renewed approval.",
+      "timestamp": "2026-06-05T12:02:10+09:00 [MOCK]"
+    },
+    {
+      "from": "renewed_approval_requested",
+      "to": "repeated_approval_pattern_detected",
+      "reason": "Additional changed terms appeared after recent approvals.",
+      "timestamp": "2026-06-05T12:02:55+09:00 [MOCK]"
+    },
+    {
+      "from": "repeated_approval_pattern_detected",
+      "to": "approval_paused_for_clear_re_review",
+      "reason": "Repeated changed prompts made meaningful review uncertain.",
+      "timestamp": "2026-06-05T12:03:42+09:00 [MOCK]"
+    }
+  ],
+  "user_notification": {
+    "recipient": "Human User",
+    "message": "Several approval requests changed the mock order terms in a short period. Payment was paused until the changed terms are reviewed together.",
+    "requires_consolidated_re_review": true,
+    "payment_blocked": true,
+    "timestamp": "2026-06-05T12:03:44+09:00 [MOCK]",
+    "signature": "mock_signature_consumer_agent"
+  },
+  "open_questions": [
+    "How many repeated approval requests should trigger a stronger review surface?",
+    "Which changes are material enough to require consolidated re-review rather than another confirmation tap?",
+    "Can a user opt into low-friction approvals without weakening human sovereignty?",
+    "How should ARC distinguish informed speed from approval fatigue without pretending to read the user's intent?"
+  ],
+  "final_state": {
+    "state": "approval_paused_pending_consolidated_re_review_mock",
+    "approval_requests_within_minutes": 4,
+    "material_changes_detected": 3,
+    "payment_requested": false,
+    "fulfillment_begun": false,
+    "timestamp": "2026-06-05T12:03:45+09:00 [MOCK]",
+    "interpretation_limit": "This artifact exposes a consent-quality risk in repeated human approvals. It does not claim ARC solved approval fatigue or can reliably measure human attention."
+  }
+}
