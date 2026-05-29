@@ -25,6 +25,7 @@ Completed baseline documents:
 - [x] `docs/reputation.md` — exploratory reputation model and manipulation risks
 - [x] `docs/bootstrap-and-incentives.md` — cold-start, platform-value, and sustainability limitations
 - [x] `docs/liability-boundaries.md` — payment, legal, and responsibility boundaries
+- [x] `docs/authority-and-conflict.md` — authority-of-last-resort boundaries (human vs commons), conflict resolution
 - [x] `docs/future-protocol-spec.md` — missing pieces before ARC can become a complete specification
 - [x] `docs/roadmap.md` — this document
 - [x] `CONTRIBUTING.md` — contribution guide including research contributions

@@ -1,0 +1,111 @@
+# ARC Protocol: Authority and Conflict
+
+> **Status:** Exploratory constitutional boundary draft
+>
+> **Purpose:** Define which signal prevails when ARC's trust signals conflict, by separating authority across resource domains.
+>
+> This document is intended to constrain later work — event type definitions and projection functions — so that the meaning of expulsion, challenge, revocation, warning, and override does not drift. It is not law, not an enforcement mechanism, and not a wire format.
+>
+> For governance process, see [governance.md](./governance.md). For legal and payment limits, see [liability-boundaries.md](./liability-boundaries.md). For reputation signals, see [reputation.md](./reputation.md). For adversarial pressure, see [threat-model.md](./threat-model.md).
+
+---
+
+## 1. Status and Scope
+
+ARC produces at least four trust-related signals: **human approval**, **event history**, **relationship projection**, and **community governance**. These signals can disagree. A user may approve a transaction that projection flags as risky and that a community has warned against. A user may want to transact with a merchant the community has expelled.
+
+When signals conflict, ARC needs a stable answer to one question: *who decides?*
+
+This document answers that question by defining **boundaries of authority**, not a hierarchy of power. It is an exploratory constitutional boundary, not a finalized rulebook. It does not claim that ARC can enforce any of this in production. Its job is narrow: fix the meaning of authority *before* the object model and projection design are specified, so those layers inherit a stable constitution rather than inventing one implicitly.
+
+## 2. No Single Final Authority
+
+ARC has no internal supreme authority.
+
+A single internal authority of last resort — whether a sovereign user who can command the network, or a sovereign community that can forbid a user — would reproduce the centralized control ARC exists to refuse. Concentrating final authority in one place is the failure mode, regardless of which place.
+
+Instead, authority is **separated by resource domain**. Different parties are final over different things. They meet at a boundary, not in a hierarchy. The absence of a single internal final authority is intentional, and is itself a core design commitment.
+
+## 3. Human Authority
+
+A human is the final authority over **their own actions and their own risk**.
+
+This is a **negative right**, not a positive one:
+
+- A human *may* act on their own behalf even against projection warnings or community signals.
+- A human *may not* compel the network to trust, host, endorse, or protect any party.
+
+Projection and governance may inform, warn, or add friction to a human's own action. They may not veto it.
+
+This authority is bounded. It covers the human's own resources and risk. It does not extend to shared resources, and it does not extend to other parties.
+
+## 4. Community Authority
+
+A community is the final authority over **its commons**:
+
+- shared discovery and directory surfacing
+- the shared reputation record
+- dispute and recovery support
+- membership in the community's protected space
+
+A community may withdraw any of these from a participant. A community may *not* reach past its commons to forbid a human's own action.
+
+Community authority is itself bounded — by appeal, transparency, proportionality, and anti-capture safeguards (see [governance.md](./governance.md)), and by external law (section 8). Authority over the commons is not authority over a person.
+
+## 5. Events and Projections Are Not Authorities
+
+Two of the four signals are not authorities at all.
+
+- **Events are evidence.** A signed event attributes a statement to a key at a point in time. It does not decide anything. It is the substrate other parties reason over.
+- **Projections are advisory.** A relationship or reputation projection is a computed risk signal. It must not automatically punish, veto, or expel.
+
+Projection signals may trigger human review or community review. Converting a projection *directly* into a penalty would make an algorithm the authority — the centralized agent bias ARC opposes ([philosophy.md](./philosophy.md) §3). Risk signals raise review and friction; they do not decide.
+
+## 6. Expulsion Means Commons Withdrawal
+
+Expulsion is the withdrawal of community commons, not the imprisonment of will.
+
+When a community expels a participant:
+
+- the participant is removed from community discovery, reputation endorsement, and dispute support
+- a human *may still* choose to transact with that participant
+- but they do so outside the commons: no discovery surfacing, no reputation backing, no dispute recourse, and with an explicit notice that the party is expelled
+
+Expulsion changes what the community offers. It does not seize the human's agency. (Compare a banned account on a hosting platform: the account may still self-host; the platform withdraws only its own commons.)
+
+Re-entry into the commons should require re-meeting the community's entry conditions, not silent return.
+
+## 7. Override Friction
+
+When a human's intent conflicts with community or projection warnings, ARC should neither silently block nor silently proceed.
+
+It should increase **explicit, understandable friction proportional to the divergence**:
+
+- show the conflicting signals and exactly what protection is being given up
+- make the override deliberate, slow, and clearly recorded
+- avoid one-tap continuation for high-divergence actions
+
+The danger is **warning fatigue and click-through sovereignty**: a human who clicks past a warning out of exhaustion is sovereign in name only. The unresolved problem is friction *quality*, not friction *quantity* (see approval fatigue in [threat-model.md](./threat-model.md) §9.1).
+
+Override friction is the boundary mechanism between human authority and community/projection signals. It is where the separation of authority in this document is actually exercised — and it is not yet solved.
+
+## 8. External Law
+
+ARC does not replace courts, consumer protection law, criminal law, professional regulation, or payment-network rules.
+
+Where external law or a payment provider's process applies, ARC defers to it. Community decisions are not legal judgments. A human's authority over their own action does not remove legal liability, and does not settle responsibility among the parties involved (see [liability-boundaries.md](./liability-boundaries.md)).
+
+External law is the only authority that sits above both human and community authority — and it sits outside ARC.
+
+## 9. Open Tensions
+
+- **Harmful self-directed choices.** A human's negative right to act may lead to self-harm, such as transacting with an expelled fraudster. ARC's response is friction and forfeited commons protection, not prohibition. Whether that is sufficient is unresolved.
+- **Captured communities.** Authority over the commons can be abused to exclude legitimate participants. Appeal, transparency, and replaceable backends mitigate but do not eliminate this ([threat-model.md](./threat-model.md) §7, [governance.md](./governance.md) §6.4).
+- **Warning fatigue.** The model relies on humans understanding warnings, but warnings degrade with repetition. Override friction quality remains unsolved.
+- **Misunderstanding commons withdrawal as veto.** A user may read "expelled" as "forbidden" and believe ARC blocked them, or conversely assume community protection still applies after they have stepped outside it. Communicating commons status clearly is an open UX and protocol problem.
+
+## 10. Current Status
+
+This is an exploratory constitutional boundary, not an enforced rule set. No implementation exists.
+
+Its purpose is to fix the meaning of authority before event types and projection functions are defined, so that expulsion, challenge, revocation, warning, and override carry stable meaning across later documents. The next useful work is to define the canonical event types and the projection function consistent with these boundaries.
