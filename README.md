@@ -598,6 +598,8 @@ ARC does not need to create a new payment system at the beginning.
 
 It should connect to existing trusted payment systems.
 
+ARC does not attempt to replace payment providers, card networks, wallets, or local smart-pay systems. It is payment-provider-agnostic and region-adaptive.
+
 Examples:
 
 - Google Pay

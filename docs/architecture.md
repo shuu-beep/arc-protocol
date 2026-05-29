@@ -170,6 +170,14 @@ Transactions are not binary. A transaction may move through several states:
 
 Refund and dispute rates are relevant reputation signals and should remain visible to users evaluating an offer.
 
+### 4.2 Payment Layer Boundary
+
+ARC does not prescribe a universal payment system, wallet, card rail, or settlement network. Payment infrastructure varies by country, regulation, market, merchant category, and user trust.
+
+ARC focuses on the approval, identity, reputation, governance, discovery, and interoperability context around payment execution. Actual payment execution should be delegated to existing or future payment providers appropriate to each region.
+
+Any agent-mediated payment should remain blocked until explicit human approval exists, or until a user-defined, auditable authorization rule applies. ARC should not treat payment automation as the default.
+
 ---
 
 ## 5. Communication Layer
