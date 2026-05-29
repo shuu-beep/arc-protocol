@@ -9,6 +9,8 @@
 
 → Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Bootstrap & Incentives](docs/bootstrap-and-incentives.md) · [Liability Boundaries](docs/liability-boundaries.md) · [Future Protocol Spec](docs/future-protocol-spec.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
 
+→ Adjacent ideas: [Economics of Agent Access](docs/adjacent-ideas/economics-of-agent-access.md)
+
 ## One-Sentence Summary
 
 ARC Protocol is an experimental open-source protocol for trusted, human-approved, AI-to-AI commerce.
