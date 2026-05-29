@@ -170,11 +170,13 @@ Transactions are not binary. A transaction may move through several states:
 
 Refund and dispute rates are relevant reputation signals and should remain visible to users evaluating an offer.
 
-### 4.2 Payment Layer Boundary
+### 4.2 Payment Boundary
 
-ARC does not prescribe a universal payment system, wallet, card rail, or settlement network. Payment infrastructure varies by country, regulation, market, merchant category, and user trust.
+ARC does not prescribe a universal payment provider. It is not a payment network, card network, wallet, banking system, or settlement rail.
 
-ARC focuses on the approval, identity, reputation, governance, discovery, and interoperability context around payment execution. Actual payment execution should be delegated to existing or future payment providers appropriate to each region.
+Payment infrastructure varies across countries, regulations, markets, and merchant categories. ARC is designed to interoperate with existing and future payment systems rather than replace them.
+
+ARC focuses on the trust and coordination layers around payment execution: approval, identity, reputation, governance, discovery, interoperability, and signed records. Actual payment execution remains the responsibility of payment providers.
 
 Any agent-mediated payment should remain blocked until explicit human approval exists, or until a user-defined, auditable authorization rule applies. ARC should not treat payment automation as the default.
 
