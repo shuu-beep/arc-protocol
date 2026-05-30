@@ -26,6 +26,8 @@ Completed baseline documents:
 - [x] `docs/bootstrap-and-incentives.md` — cold-start, platform-value, and sustainability limitations
 - [x] `docs/liability-boundaries.md` — payment, legal, and responsibility boundaries
 - [x] `docs/authority-and-conflict.md` — authority-of-last-resort boundaries (human vs commons), conflict resolution
+- [x] `docs/object-model.md` — Relationship / Event / Projection layers and the no-stored-profile constraint
+- [x] `docs/event-registry.md` — the closed canonical event set (KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE)
 - [x] `docs/future-protocol-spec.md` — missing pieces before ARC can become a complete specification
 - [x] `docs/roadmap.md` — this document
 - [x] `CONTRIBUTING.md` — contribution guide including research contributions
