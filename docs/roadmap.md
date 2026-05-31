@@ -28,6 +28,7 @@ Completed baseline documents:
 - [x] `docs/authority-and-conflict.md` — authority-of-last-resort boundaries (human vs commons), conflict resolution
 - [x] `docs/object-model.md` — Relationship / Event / Projection layers and the no-stored-profile constraint
 - [x] `docs/event-registry.md` — the closed canonical event set (KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE)
+- [x] `docs/delegation-and-spending-mandates.md` — how human approval and delegation coexist using only the Canon (AUTHORIZE + scope, revoked via nullifies)
 - [x] `docs/landscape-and-positioning.md` — where ARC sits among agent and commerce systems, and what it is not
 - [x] `docs/trust-model-tradeoffs.md` — the trust trade-offs consolidated into spatial and temporal axes
 - [x] `docs/future-protocol-spec.md` — missing pieces before ARC can become a complete specification
