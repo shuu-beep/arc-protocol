@@ -9,7 +9,7 @@
 
 → Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Bootstrap & Incentives](docs/bootstrap-and-incentives.md) · [Liability Boundaries](docs/liability-boundaries.md) · [Future Protocol Spec](docs/future-protocol-spec.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Authority & Conflict](docs/authority-and-conflict.md) · [Object Model](docs/object-model.md) · [Event Registry](docs/event-registry.md) · [Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md) · [Landscape & Positioning](docs/landscape-and-positioning.md) · [Trust Model Trade-offs](docs/trust-model-tradeoffs.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
 
-→ Adjacent ideas: [Economics of Agent Access](docs/adjacent-ideas/economics-of-agent-access.md)
+→ Adjacent ideas: [Economics of Agent Access](docs/adjacent-ideas/economics-of-agent-access.md) · [Intelligence Democratization](docs/adjacent-ideas/intelligence-democratization.md)
 
 ## One-Sentence Summary
 
