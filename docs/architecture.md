@@ -151,6 +151,8 @@ All agent communication uses typed, signed JSON messages.
 | `dispute_report` | Any party → Governance Layer | Report fraud or transaction failure |
 | `suspension_notice` | Governance → Agent | Notify agent of suspension decision |
 
+These are transport message types, not stored records. Under the canonical object model the records that persist are Events: `offer_response` and `reputation_event` are `ATTEST`, `dispute_report` is `CHALLENGE`, and `suspension_notice` is an `ADJUDICATE` (`gov.*`); requests, `payment_intent`, and similar notices are transport and are not stored. See [event-registry.md](./event-registry.md).
+
 For the full exploratory message type list and lifecycle flow, see [protocol.md](./protocol.md).
 
 ### 4.1 Transaction Lifecycle States
@@ -167,6 +169,8 @@ Transactions are not binary. A transaction may move through several states:
 | `refund_full` | Full refund issued after resolution |
 | `cancelled` | Transaction cancelled before fulfillment |
 | `expired` | Offer or approval window lapsed without action |
+
+These states are not stored fields. They are a projection over the transaction's events (see [object-model.md](./object-model.md) §4).
 
 Refund and dispute rates are relevant reputation signals and should remain visible to users evaluating an offer.
 
@@ -313,7 +317,6 @@ These are design intentions rather than finalized protocol requirements.
   "public_key": "ed25519:...",
   "community": "seoul-local-commerce",
   "status": "verified",
-  "reputation_score": 4.82,
   "created_at": "2026-01-01T00:00:00Z",
   "last_active": "2026-06-01T10:00:00Z"
 }
@@ -373,7 +376,9 @@ Every offer must be cryptographically signed:
 | `dispute_rate` | % of transactions escalated to dispute |
 | `on_time_rate` | % of deliveries within estimated time |
 | `response_speed` | Average time to respond to offer requests |
-| `community_trust_score` | Composite score from community governance |
+| `community_trust_score` | Composite signal projected from community governance events, not a stored universal score |
+
+These metrics are projection outputs computed on demand from reputation events, not fields stored on the agent. The reputation event in §8.1 is the stored record (an `ATTEST` of an outcome); the score is a fold over such events. See [object-model.md](./object-model.md) and [event-registry.md](./event-registry.md).
 
 ---
 
@@ -451,7 +456,7 @@ Any pre-authorized low-risk rule remains user-defined, reviewable, and subordina
 | Merchant Agent | Simulated responses from static data |
 | Logistics Agent | Simulated availability and timing |
 | Payment | Mock confirmation (no real money) |
-| Reputation | Basic score display |
+| Reputation | Contextual reputation summary (projected, not a stored score) |
 | Identity | Simple API key per agent |
 | Approval UI | Web button triggering mock payment |
 

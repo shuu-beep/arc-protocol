@@ -234,7 +234,7 @@ New agents may enter a probation period during which:
 
 - Temporary risk controls may apply during the probation period
 - These temporary limits are intended as anti-fraud safeguards, not economic controls.
-- Reputation score changes are rate-limited
+- Reputation signal growth is rate-limited
 - Community moderators may flag unusual activity
 
 The goal is not to block newcomers. The goal is to let new agents build trust while limiting early fraud risk.
@@ -309,7 +309,6 @@ Agents representing skilled tradespeople may attach verified career records:
     "portfolio_url": "https://arc.community/portfolio/choi",
     "community_verified": true
   },
-  "reputation_score": 4.7,
   "community": "seoul-home-services"
 }
 ```

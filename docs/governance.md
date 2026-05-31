@@ -200,6 +200,8 @@ Reputation recovery is possible after suspension periods. Agents are not permane
 
 Serious penalties should be reviewable and appealable. A community should avoid treating suspicion, anomaly detection, or competitive accusations as proof.
 
+In object-model terms, each penalty here is recorded as an `ADJUDICATE` event (`gov.*`) — the only event type that may change a party's standing in the commons (see [authority-and-conflict.md](./authority-and-conflict.md) §5–§6, [event-registry.md](./event-registry.md)).
+
 ---
 
 ## 6. Anti-Gaming Measures

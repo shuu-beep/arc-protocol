@@ -77,7 +77,7 @@ stateDiagram-v2
     cancelled --> [*]
 ```
 
-This lifecycle is a starting model. Particular communities or services may need additional states, especially around partial fulfillment, cancellation rights, refunds, and regulated transactions.
+This lifecycle is a starting model. Particular communities or services may need additional states, especially around partial fulfillment, cancellation rights, refunds, and regulated transactions. These states are a projected view over the transaction's events, not stored objects or event types (see [object-model.md](./object-model.md) §4).
 
 ## 5. Message Lifecycle
 
@@ -112,7 +112,7 @@ The diagram describes one successful-path conversation with an optional dispute 
 
 ## 6. Message Types
 
-The following message types describe intended roles, not a finalized schema.
+The following message types describe intended roles, not a finalized schema. They are transport roles, not stored records. The records that persist are Events ([event-registry.md](./event-registry.md)): `offer_response`, `logistics_response`, `fulfillment_update`, and `reputation_event` are `ATTEST`; `approval_confirmed` is `AUTHORIZE`; `dispute_report` is `CHALLENGE`; `governance_decision` is `ADJUDICATE` (`gov.*`); `payment_confirmed` and `payment_failed` are `ATTEST` (`commerce.payment_result`); requests and `*_intent` / `*_authorized` notices are transport and are not stored.
 
 | Type | Purpose | Notes |
 | --- | --- | --- |

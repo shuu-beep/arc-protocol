@@ -145,7 +145,7 @@ Example:
 }
 ```
 
-This schema is illustrative, not final.
+This schema is illustrative, not final. In object-model terms this record is an `ATTEST` with predicate `rep.outcome`; the reputation summary a user sees is a projection — a fold over such events scoped to context — never a stored score (see [object-model.md](./object-model.md), [event-registry.md](./event-registry.md)).
 
 ---
 

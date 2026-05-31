@@ -454,8 +454,7 @@ Example:
   "identity_provider": "google",
   "public_key": "...",
   "community": "seoul-local-commerce",
-  "status": "verified",
-  "reputation_score": 4.82
+  "status": "verified"
 }
 ```
 
