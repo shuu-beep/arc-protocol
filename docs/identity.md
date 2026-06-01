@@ -201,6 +201,8 @@ These levels are illustrative and may change as the design matures.
 
 These labels should be displayed with context. A single status word can mislead if users cannot see what was actually verified.
 
+Identity status is not a stored field. It is a projection — a fold over a key's `KEY` lifecycle events, credential `ATTEST`s, and any commons `ADJUDICATE` (`gov.*`) — recomputed on demand (see [object-model.md](./object-model.md) §4, [event-registry.md](./event-registry.md) §7).
+
 ---
 
 ## 5. Agent Identity Lifecycle

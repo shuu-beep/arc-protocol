@@ -456,7 +456,7 @@ This is more informative than:
 Trust score: 4.8
 ```
 
-ARC may still use summary scores internally, but user-facing reputation should preserve context where possible.
+ARC may still compute summary scores as projections, but user-facing reputation should preserve context where possible. The summary is a fold over outcome events, not a stored score (see [object-model.md](./object-model.md) §4).
 
 ---
 

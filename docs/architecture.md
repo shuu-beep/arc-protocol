@@ -322,6 +322,8 @@ These are design intentions rather than finalized protocol requirements.
 }
 ```
 
+Here `status` is shown inline for readability, but it is a projected view rather than a stored field: it is folded from the key's `KEY` lifecycle events, credential attestations, and any commons `ADJUDICATE`. The stored unit is the Event. See [object-model.md](./object-model.md) and [event-registry.md](./event-registry.md).
+
 ### 7.2 Signed Offers
 
 Every offer must be cryptographically signed:

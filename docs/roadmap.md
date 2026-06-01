@@ -115,7 +115,7 @@ No real money. No real delivery. No real identity verification. That is fine for
 
 **Status: Not started**
 
-Stage 2 implements the foundational identity and reputation concepts described in `docs/identity.md`, `docs/reputation.md`, and future specification work.
+Stage 2 implements the foundational identity and reputation concepts described in `docs/identity.md`, `docs/reputation.md`, and future specification work. Per the object model, the stored unit is the Event; identity status and reputation scores below are projections folded from those events on demand, not stored fields (see `docs/object-model.md`, `docs/event-registry.md`).
 
 ### Milestones
 
