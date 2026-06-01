@@ -74,6 +74,19 @@ the warning. The fold reports `override_detected = True` while the merchant's
 `governance standing` stays `in_good_standing` — the override accepted personal
 risk without touching the commons.
 
+A fourth scenario observes **event-set disagreement**. The *same* merchant is
+folded against two different subsets of the log: Community A holds the full log;
+Community B received everything except the suspension `ADJUDICATE`. Each subset
+replays correctly on its own (signatures and provenance check out), yet they
+disagree — A reads `suspended` / `suspended`, B reads `in_good_standing` /
+`verified`. The demo only observes the difference; it does not resolve it.
+
+Event-set disagreement is a property of locality, not necessarily a bug.
+"Verification is replay" guarantees agreement only over a *shared* event set; a
+different replay input is a different — but still valid — projection. Whether two
+divergent views should be reconciled, or are the expected consequence of local
+trust, is left open here (see `object-model.md` §10).
+
 ## What it found (the verdict)
 
 For this slice, the canon held:
@@ -100,9 +113,10 @@ This probe does **not** attempt, and should not be read as solving:
 - **Sybil resistance.** The fold includes a toy down-weight (trust counts only
   from *distinct* counterparties), gesturing at `object-model.md` §8. Real
   graph-shape heuristics (circularity, velocity, low diversity) are out of scope.
-- **Portability and caching.** The known tensions in `object-model.md` §10
-  (replay cost, event-set disagreement, caching re-introducing a profile) are
-  untouched here.
+- **Portability and caching.** Of the known tensions in `object-model.md` §10,
+  replay cost and caching re-introducing a profile are untouched here. Event-set
+  disagreement is now *observed* (fourth scenario) but not *resolved*: the demo
+  shows divergent-but-valid projections without proposing a reconciliation rule.
 
 The override-against-warning path *is* exercised (see the third scenario above);
 it is no longer a gap.

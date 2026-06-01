@@ -387,6 +387,40 @@ def show_override(events: list[Event]) -> None:
             print(f"    contrary_to {w['warning']}  (advisory={w['advisory']}, reason={w['reason']})")
 
 
+def community_view(events: list[Event], name: str) -> list[Event]:
+    """Two communities hold different subsets of the same log.
+
+    No new mechanism — just the observation that, under locality, not every
+    community receives every event. Community A holds the full log. Community B
+    received everything EXCEPT the suspension `ADJUDICATE` on the bibimbap
+    merchant (the commons ruling never propagated to it). The demo does not say
+    which subset is "right".
+    """
+    if name == "A":
+        return list(events)
+    if name == "B":
+        return [
+            e for e in events
+            if not (e.type == "ADJUDICATE" and e.predicate == "gov.suspension"
+                    and "k:merchant_bibimbap" in e.refs)
+        ]
+    raise ValueError(name)
+
+
+def show_event_set_disagreement(events: list[Event]) -> None:
+    merchant = "k:merchant_bibimbap"
+    print(f"\n{'=' * 66}\nEVENT-SET DISAGREEMENT — same merchant, two event subsets"
+          f"\n{'=' * 66}")
+    for name in ("A", "B"):
+        view = community_view(events, name)
+        verify_log(view)  # each subset replays correctly ON ITS OWN
+        st = project_merchant_standing(view, merchant, CTX)
+        ident = project_identity_status(view, merchant)
+        print(f"Community {name}: holds {len(view)} events")
+        print(f"  advisory={st['advisory_signal']}  "
+              f"governance={st['governance_standing']}  identity={ident}")
+
+
 def main() -> None:
     log = base_log()
     show("BEFORE — three clean transactions", log)
@@ -415,6 +449,19 @@ def main() -> None:
     print("    override grants no commons authority; only an ADJUDICATE could change it.")
     print("  * Re-folding later still surfaces override_detected=True from the immutable")
     print("    event, so the accepted-risk fact is auditable without any stored flag.")
+
+    show_event_set_disagreement(log)
+
+    print(f"\n{'-' * 66}")
+    print("What this disagreement shows (observation, not a verdict):")
+    print("  * Both communities replayed correctly: each subset passes signature and")
+    print("    provenance checks on its own. Neither view is corrupt or forged.")
+    print("  * They still disagree — B never received the suspension ADJUDICATE, so it")
+    print("    reads the merchant as in_good_standing / verified while A reads suspended.")
+    print("  * 'Verification is replay' guarantees agreement only over a SHARED event set;")
+    print("    a different replay input is a different — still valid — projection.")
+    print("  * The demo does not resolve this. Divergent views may be an error to")
+    print("    reconcile OR the expected result of locality. ARC does not force one here.")
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
     print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
