@@ -93,10 +93,17 @@ def verify_log(events: list[Event]) -> None:
         if ev.signature != expected:
             raise ValueError(f"bad signature on {ev.id}")
         is_key_root = ev.type == "KEY" and ev.predicate == "id.key_register"
+        is_rotation = ev.type == "KEY" and ev.predicate == "id.key_rotate"
         if not is_key_root and ev.signer not in registered:
             raise ValueError(f"signer {ev.signer} has no prior KEY register ({ev.id})")
         if is_key_root:
             registered.add(ev.payload["key"])
+        if is_rotation:
+            # A rotation is signed by the OLD key (so only the controlling holder
+            # can rotate) and anchors the NEW key. The new key's trust is carried
+            # forward by that signature, not by a fresh external cost gate. Same
+            # KEY type, new predicate — no sixth type (event-registry §4.1, §4.6).
+            registered.add(ev.payload["new_key"])
 
 
 def active(events: list[Event]) -> list[Event]:
@@ -155,6 +162,17 @@ def project_transaction_state(events: list[Event], tx_id: str) -> str:
     return state
 
 
+def _advisory_signal(positive: int, negative: int, disputes: int, distinct_raters: int) -> str:
+    """The advisory-signal thresholds, factored out so a single-key fold and a
+    lineage fold can share identical semantics. Behaviour is unchanged."""
+    sig = "trusted" if positive >= 3 and disputes == 0 else \
+          "limited"  if positive >= 1 and negative + disputes <= 2 else \
+          "unproven"
+    if distinct_raters < 2:
+        sig = "unproven"  # too few independent counterparties to rely on
+    return sig
+
+
 def project_merchant_standing(events: list[Event], merchant: str, context: str) -> dict:
     """Fold -> a CONTEXT-SCOPED standing view for one merchant.
 
@@ -182,11 +200,7 @@ def project_merchant_standing(events: list[Event], merchant: str, context: str) 
     # from *distinct* counterparties, so circular self-dealing does not inflate.
     distinct_raters = len({e.signer for e in outcomes})
 
-    advisory = "trusted" if positive >= 3 and disputes == 0 else \
-               "limited"  if positive >= 1 and negative + disputes <= 2 else \
-               "unproven"
-    if distinct_raters < 2:
-        advisory = "unproven"  # too few independent counterparties to rely on
+    advisory = _advisory_signal(positive, negative, disputes, distinct_raters)
 
     rulings = [
         e for e in evs
@@ -249,6 +263,81 @@ def project_overrides(events: list[Event], tx_id: str) -> dict:
         "tx": tx_id,
         "override_detected": bool(overrides),
         "approvals_contrary_to_warning": overrides,
+    }
+
+
+def _rotation_links(events: list[Event]) -> dict[str, str]:
+    """old_key -> new_key, read from KEY `id.key_rotate` events (no new type)."""
+    return {
+        e.payload["old_key"]: e.payload["new_key"]
+        for e in active(events)
+        if e.type == "KEY" and e.predicate == "id.key_rotate"
+    }
+
+
+def key_lineage(events: list[Event], key: str) -> set[str]:
+    """All keys that are the same identity as `key`, walking KEY rotation links
+    both directions. A lineage is just a chain of KEY events — no new primitive."""
+    nxt = _rotation_links(events)
+    prv = {v: k for k, v in nxt.items()}
+    lineage = {key}
+    cur = key
+    while cur in nxt:
+        cur = nxt[cur]; lineage.add(cur)
+    cur = key
+    while cur in prv:
+        cur = prv[cur]; lineage.add(cur)
+    return lineage
+
+
+def project_identity_lineage(events: list[Event], key: str) -> dict:
+    """Fold KEY `id.key_rotate` events into an ordered provenance chain.
+
+    Pure KEY events read as a chain (event-registry §4.1, §4.6). This is the
+    continuity record: it links old and new keys without a sixth type."""
+    nxt = _rotation_links(events)
+    prv = {v: k for k, v in nxt.items()}
+    root = key
+    while root in prv:
+        root = prv[root]
+    chain = [root]
+    while chain[-1] in nxt:
+        chain.append(nxt[chain[-1]])
+    return {"key": key, "chain": chain, "root": chain[0],
+            "current": chain[-1], "rotations": len(nxt)}
+
+
+def project_lineage_standing(events: list[Event], key: str, context: str) -> dict:
+    """ONE carry-forward reading: fold standing across the whole rotation lineage
+    (full inheritance). Shown to demonstrate that continuity is *expressible*.
+
+    Partial carry, standing-only, or no-auto-carry are equally expressible by
+    changing what this fold counts. The demo links the identities; it does NOT
+    declare which policy is correct.
+    """
+    evs = active(events)
+    lineage = key_lineage(events, key)
+    outcomes = [
+        e for e in evs
+        if e.type == "ATTEST" and e.predicate == "rep.outcome"
+        and (set(e.refs) & lineage) and e.payload.get("context") == context
+    ]
+    positive = sum(1 for e in outcomes if e.payload.get("result") == "positive")
+    negative = sum(1 for e in outcomes if e.payload.get("result") == "negative")
+    disputes = sum(
+        1 for e in evs
+        if e.type == "CHALLENGE" and e.predicate == "dispute.open" and (set(e.refs) & lineage)
+    )
+    distinct_raters = len({e.signer for e in outcomes})
+    root = project_identity_lineage(events, key)["root"]
+    return {
+        "lineage": sorted(lineage),
+        "advisory_signal": _advisory_signal(positive, negative, disputes, distinct_raters),
+        "identity_continuity": project_identity_status(events, root),
+        "evidence": {
+            "positive_outcomes": positive, "negative_outcomes": negative,
+            "open_disputes": disputes, "distinct_counterparties": distinct_raters,
+        },
     }
 
 
@@ -357,6 +446,46 @@ def override_against_warning(events: list[Event]) -> list[Event]:
     return events
 
 
+def rotate_merchant_key(events: list[Event]) -> list[Event]:
+    """A merchant rotates its signing key. Identity continuity and provenance
+    carry-forward are expressed with KEY + ATTEST only — no KEY_ROTATION sixth
+    type, no new primitive (event-registry §4.1, §4.6).
+
+    A clean cafe merchant builds standing under `k:cafe_old`, then rotates to
+    `k:cafe_new`. The rotation is a KEY `id.key_rotate` event signed by the OLD
+    key (proving control) that names the new key. Past events keep referencing
+    the old key and stay valid; the new key signs going forward.
+    """
+    old, new = "k:cafe_old", "k:cafe_new"
+    events.append(make("KEY", old, "id.key_register", "2026-04-01T00:00:00Z",
+                       payload={"key": old, "anchor": "business-registration"}))
+    for i in (1, 2, 3):
+        tx = f"tx_cafe_{i}"
+        events.append(make("ATTEST", old, "commerce.offer", f"2026-04-0{i}T10:00:00Z",
+                           refs=(tx, old),
+                           payload={"item": "drip coffee", "price_krw": 4500, "context": CTX}))
+        events.append(make("AUTHORIZE", f"k:consumer_{i}", "consent.approval", f"2026-04-0{i}T10:01:00Z",
+                           refs=(tx, old), scope={"max_total_krw": 15000},
+                           payload={"approved_total_krw": 4500}))
+        events.append(make("ATTEST", old, "commerce.fulfillment", f"2026-04-0{i}T10:20:00Z",
+                           refs=(tx,), payload={"status": "delivered"}))
+        events.append(make("ATTEST", f"k:consumer_{i}", "rep.outcome", f"2026-04-0{i}T11:00:00Z",
+                           refs=(tx, old), payload={"result": "positive", "context": CTX}))
+    # ROTATE: old key signs a KEY id.key_rotate naming the new key. This both
+    # proves control of the old key and anchors the new key (provenance carry).
+    # No `nullifies` here: past events stay valid so the chain remains walkable;
+    # revoking the old key going forward would be the KEY id.key_revoke /
+    # `nullifies` instance, deliberately not applied (event-registry §4.6).
+    events.append(make("KEY", old, "id.key_rotate", "2026-04-05T00:00:00Z",
+                       refs=(old, new),
+                       payload={"old_key": old, "new_key": new, "reason": "scheduled rotation"}))
+    # After rotation the NEW key signs going forward.
+    events.append(make("ATTEST", new, "commerce.offer", "2026-04-06T10:00:00Z",
+                       refs=("tx_cafe_4", new),
+                       payload={"item": "drip coffee", "price_krw": 4500, "context": CTX}))
+    return events
+
+
 # ---------------------------------------------------------------------------
 # 5. Run the probe: project before, then after the governed dispute.
 # ---------------------------------------------------------------------------
@@ -421,6 +550,27 @@ def show_event_set_disagreement(events: list[Event]) -> None:
               f"governance={st['governance_standing']}  identity={ident}")
 
 
+def show_key_rotation(events: list[Event]) -> None:
+    old, new = "k:cafe_old", "k:cafe_new"
+    verify_log(events)  # the rotated new key passes provenance via the old key
+    lin = project_identity_lineage(events, new)
+    print(f"\n{'=' * 66}\nKEY ROTATION / IDENTITY CONTINUITY — old key -> new key"
+          f"\n{'=' * 66}")
+    print("provenance chain        :", " -> ".join(lin["chain"]),
+          f"({lin['rotations']} rotation)")
+    # Existing single-key folds, UNCHANGED:
+    so = project_merchant_standing(events, old, CTX)
+    sn = project_merchant_standing(events, new, CTX)
+    print(f"existing fold, old key  : advisory={so['advisory_signal']:<8} "
+          f"identity={project_identity_status(events, old)}  (its history)")
+    print(f"existing fold, new key  : advisory={sn['advisory_signal']:<8} "
+          f"identity={project_identity_status(events, new)}  (a stranger if the link is ignored)")
+    # One carry-forward reading, via the rotation chain:
+    ls = project_lineage_standing(events, new, CTX)
+    print(f"lineage fold,  new key  : advisory={ls['advisory_signal']:<8} "
+          f"identity={ls['identity_continuity']}  (history carried forward via KEY id.key_rotate)")
+
+
 def main() -> None:
     log = base_log()
     show("BEFORE — three clean transactions", log)
@@ -462,11 +612,26 @@ def main() -> None:
     print("    a different replay input is a different — still valid — projection.")
     print("  * The demo does not resolve this. Divergent views may be an error to")
     print("    reconcile OR the expected result of locality. ARC does not force one here.")
+
+    log = rotate_merchant_key(log)
+    show_key_rotation(log)
+
+    print(f"\n{'-' * 66}")
+    print("What this rotation shows (continuity is expressible, policy is not forced):")
+    print("  * The new key is anchored by the old key's signed KEY id.key_rotate —")
+    print("    provenance carries forward with no external cost gate and no sixth type.")
+    print("  * Existing single-key folds are UNCHANGED: the old key still reads its")
+    print("    history; the new key alone reads as a stranger (unproven / unverified).")
+    print("  * Continuity is recovered by reading the KEY rotation chain. A lineage fold")
+    print("    then inherits the old standing — but that is ONE policy (full carry-forward).")
+    print("  * Partial carry, standing-only, or no auto-carry are all expressible by what")
+    print("    the lineage fold counts. The demo links the identities; it picks no policy.")
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
     print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
-    print("governance, AND override-against-warning (AUTHORIZE.contrary_to) — no sixth")
-    print("type. (See README for the verdict.)")
+    print("governance, override-against-warning (AUTHORIZE.contrary_to), AND key rotation /")
+    print("identity continuity (KEY id.key_rotate + the rotation chain) — no sixth type.")
+    print("(See README for the verdict.)")
 
 
 if __name__ == "__main__":

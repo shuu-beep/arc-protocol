@@ -37,6 +37,13 @@ Three claims from the canon, each made concrete:
    standing; re-folding later still surfaces that the approval was made against
    a warning. (`docs/event-registry.md` §4.3, `docs/authority-and-conflict.md` §7)
 
+5. **Identity continuity survives key rotation with no sixth type.** A key
+   rotation is a `KEY` event (`id.key_rotate`) signed by the old key, naming the
+   new key. Provenance carries forward, past events stay valid, and a lineage
+   read recovers the prior reputation, standing, and identity — all from `KEY`
+   (+ `ATTEST`, with `nullifies` available for the revoke case). No
+   `KEY_ROTATION` primitive is introduced. (`docs/event-registry.md` §4.1, §4.6)
+
 ## Run
 
 ```sh
@@ -87,6 +94,20 @@ different replay input is a different — but still valid — projection. Whethe
 divergent views should be reconciled, or are the expected consequence of local
 trust, is left open here (see `object-model.md` §10).
 
+A fifth scenario tests **key rotation / identity continuity**. A cafe merchant
+builds standing under `k:cafe_old`, then rotates to `k:cafe_new` via a `KEY`
+`id.key_rotate` event signed by the old key. Three readings are printed side by
+side: the old key still folds to `trusted` / `verified` (its history is intact);
+the new key *alone* folds to `unproven` / `unverified` (a stranger if the link
+is ignored); and a lineage fold — which reads the rotation chain — recovers
+`trusted` / `verified` for the new key. Continuity is carried forward with no
+external cost gate and no sixth type.
+
+The lineage fold shown is *one* policy (full carry-forward). Partial carry,
+standing-only, or no auto-carry are all expressible by changing what the lineage
+fold counts. The demo links the identities and observes the readings; it does
+not declare which carry-forward policy is correct.
+
 ## What it found (the verdict)
 
 For this slice, the canon held:
@@ -103,13 +124,18 @@ For this slice, the canon held:
 - Override needed no new type: an `AUTHORIZE` with `contrary_to` carried the
   "approved against a warning" fact, kept it auditable on re-fold, and left
   commons standing untouched — confirming override is a field, not a primitive.
+- Key rotation needed no sixth type: a `KEY` `id.key_rotate` anchored the new
+  key and the rotation chain carried reputation, standing, and identity forward.
+  The existing single-key folds ran unchanged; only a small lineage reader was
+  added. The five types passed this re-test of sufficiency.
 
 ## Deliberate limitations
 
 This probe does **not** attempt, and should not be read as solving:
 
-- **Real cryptography.** Signatures are a hash stub. Key rotation/revocation is
-  modeled only enough to show provenance.
+- **Real cryptography.** Signatures are a hash stub. Key *rotation* is exercised
+  (provenance carry-forward), but key *revocation* — the `nullifies` / `KEY`
+  `id.key_revoke` case — is described, not run, so the chain stays walkable.
 - **Sybil resistance.** The fold includes a toy down-weight (trust counts only
   from *distinct* counterparties), gesturing at `object-model.md` §8. Real
   graph-shape heuristics (circularity, velocity, low diversity) are out of scope.
