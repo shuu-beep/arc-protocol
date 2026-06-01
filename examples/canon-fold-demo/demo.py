@@ -216,6 +216,42 @@ def project_merchant_standing(events: list[Event], merchant: str, context: str) 
     }
 
 
+def project_overrides(events: list[Event], tx_id: str) -> dict:
+    """Fold a transaction's `AUTHORIZE`s -> which approvals were made against a
+    warning (event-registry §4.3, authority-and-conflict §7).
+
+    An override is NOT a new type. It is an ordinary `consent.approval`
+    `AUTHORIZE` carrying `contrary_to`, referencing the advisory it was made in
+    spite of. It records that a human accepted risk over *their own action*; it
+    grants no commons authority and changes no party's standing. Re-running this
+    fold later still shows "this approval was made against a warning" — the fact
+    is in the immutable event, not in any stored flag.
+    """
+    evs = active(events)
+    warnings = {
+        e.id: e for e in evs
+        if e.type == "ATTEST" and e.predicate == "risk.advisory"
+    }
+    overrides = []
+    for e in evs:
+        if e.type == "AUTHORIZE" and tx_id in e.refs and e.contrary_to:
+            overrides.append({
+                "approval": e.id,
+                "approver": e.signer,
+                "overridden_warnings": [
+                    {"warning": w,
+                     "advisory": warnings[w].payload.get("advisory") if w in warnings else "unknown",
+                     "reason": warnings[w].payload.get("reason") if w in warnings else "unknown"}
+                    for w in e.contrary_to
+                ],
+            })
+    return {
+        "tx": tx_id,
+        "override_detected": bool(overrides),
+        "approvals_contrary_to_warning": overrides,
+    }
+
+
 # ---------------------------------------------------------------------------
 # 4. A hand-built event log (mock data — KRW local-food scenario)
 # ---------------------------------------------------------------------------
@@ -284,6 +320,43 @@ def disputed_tx_4(events: list[Event]) -> list[Event]:
     return events
 
 
+def override_against_warning(events: list[Event]) -> list[Event]:
+    """Append a transaction where a projection raises a friction warning and the
+    human approves anyway — recorded as `AUTHORIZE.contrary_to`, not a new type.
+
+    Shows four canon points at once:
+      * a projection can raise an advisory warning / friction signal;
+      * a human may accept that risk over their *own* action and approve anyway;
+      * the record is the existing `AUTHORIZE` event's `contrary_to` field;
+      * this override changes NO commons standing — no `ADJUDICATE` is added, so
+        the new merchant's governance standing stays `in_good_standing`.
+    """
+    tx = "tx_5"
+    new_merchant = "k:merchant_new"
+    # A brand-new merchant with no track record. Anchored by a KEY (cost gate),
+    # so it is verifiable — but it has zero outcomes, so the standing fold yields
+    # `unproven`: a thin-history / new-entrant friction signal, not a verdict.
+    events.append(make("KEY", new_merchant, "id.key_register", "2026-03-10T00:00:00Z",
+                       payload={"key": new_merchant, "anchor": "business-registration"}))
+    events.append(make("ATTEST", new_merchant, "commerce.offer", "2026-03-10T10:00:00Z",
+                       refs=(tx, new_merchant),
+                       payload={"item": "vegetable bibimbap", "price_krw": 8900, "context": CTX}))
+    # The consumer's agent folds the merchant's standing and surfaces the
+    # friction to the human, recording what was shown as an ATTEST (evidence).
+    standing = project_merchant_standing(events, new_merchant, CTX)
+    warning = make("ATTEST", "k:consumer_1", "risk.advisory", "2026-03-10T10:00:30Z",
+                   refs=(tx, new_merchant),
+                   payload={"advisory": standing["advisory_signal"], "shown_to_human": True,
+                            "reason": "no outcomes from distinct counterparties yet"})
+    events.append(warning)
+    # The human sees the warning and approves ANYWAY, accepting their own risk.
+    # Override is not a type: it is this AUTHORIZE with `contrary_to` set.
+    events.append(make("AUTHORIZE", "k:consumer_1", "consent.approval", "2026-03-10T10:01:00Z",
+                       refs=(tx, new_merchant), contrary_to=(warning.id,),
+                       scope={"max_total_krw": 15000}, payload={"approved_total_krw": 11400}))
+    return events
+
+
 # ---------------------------------------------------------------------------
 # 5. Run the probe: project before, then after the governed dispute.
 # ---------------------------------------------------------------------------
@@ -297,6 +370,21 @@ def show(label: str, events: list[Event]) -> None:
     print("  governance standing:", standing["governance_standing"], "(commons fact — ADJUDICATE-only)")
     print("identity status     :", project_identity_status(events, "k:merchant_bibimbap"))
     print("tx_4 state          :", project_transaction_state(events, "tx_4"))
+
+
+def show_override(events: list[Event]) -> None:
+    verify_log(events)  # same replay discipline before folding
+    print(f"\n{'=' * 66}\nOVERRIDE — human approves a new merchant against a warning"
+          f"  ({len(events)} events in log)\n{'=' * 66}")
+    standing = project_merchant_standing(events, "k:merchant_new", CTX)
+    print("new merchant advisory   :", standing["advisory_signal"], "(friction signal shown to the human)")
+    print("new merchant governance :", standing["governance_standing"], "(unchanged — no ADJUDICATE was added)")
+    ov = project_overrides(events, "tx_5")
+    print("override_detected       :", ov["override_detected"])
+    for o in ov["approvals_contrary_to_warning"]:
+        print(f"  approval {o['approval']} by {o['approver']}")
+        for w in o["overridden_warnings"]:
+            print(f"    contrary_to {w['warning']}  (advisory={w['advisory']}, reason={w['reason']})")
 
 
 def main() -> None:
@@ -314,10 +402,24 @@ def main() -> None:
     print("    no projection and no ordinary key could have produced that effect.")
     print("  * identity status -> suspended, tx_4 state -> resolved: all recomputed,")
     print("    never stored. Verification was replay over signed events throughout.")
+
+    log = override_against_warning(log)
+    show_override(log)
+
+    print(f"\n{'-' * 66}")
+    print("What this override shows:")
+    print("  * The projection raised a friction signal (advisory=unproven); the human")
+    print("    saw it and approved anyway, over their OWN risk.")
+    print("  * That approval is a plain AUTHORIZE with contrary_to set — NOT a new type.")
+    print("  * The new merchant's governance standing stayed in_good_standing: an")
+    print("    override grants no commons authority; only an ADJUDICATE could change it.")
+    print("  * Re-folding later still surfaces override_detected=True from the immutable")
+    print("    event, so the accepted-risk fact is auditable without any stored flag.")
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
-    print("covered identity, offer, approval, payment, fulfillment, reputation,")
-    print("dispute, and governance with no sixth type. (See README for the verdict.)")
+    print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
+    print("governance, AND override-against-warning (AUTHORIZE.contrary_to) — no sixth")
+    print("type. (See README for the verdict.)")
 
 
 if __name__ == "__main__":

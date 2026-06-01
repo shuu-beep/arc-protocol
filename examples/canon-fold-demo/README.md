@@ -30,6 +30,13 @@ Three claims from the canon, each made concrete:
    *different* projection. Nothing already in the log is changed.
    (`docs/authority-and-conflict.md` §5)
 
+4. **Override is a field, not a type.** When a projection raises a friction
+   warning and a human approves anyway over their own risk, the record is an
+   ordinary `consent.approval` `AUTHORIZE` carrying `contrary_to` — not a new
+   event type. The override grants no commons authority and changes no party's
+   standing; re-folding later still surfaces that the approval was made against
+   a warning. (`docs/event-registry.md` §4.3, `docs/authority-and-conflict.md` §7)
+
 ## Run
 
 ```sh
@@ -60,6 +67,13 @@ The two halves of the standing view are kept deliberately separate:
 - **governance standing** is a commons fact that *only* an `ADJUDICATE` can
   change. No projection and no ordinary key can produce a suspension.
 
+A third scenario then exercises override-against-warning: a brand-new merchant
+folds to `advisory = unproven` (a friction signal), the human approves anyway,
+and the approval is recorded as an `AUTHORIZE` with `contrary_to` pointing at
+the warning. The fold reports `override_detected = True` while the merchant's
+`governance standing` stays `in_good_standing` — the override accepted personal
+risk without touching the commons.
+
 ## What it found (the verdict)
 
 For this slice, the canon held:
@@ -73,6 +87,9 @@ For this slice, the canon held:
   portion of the standing view without touching prior events, and demoting it
   to an `ATTEST` would have lost exactly the commons authority the canon
   reserves for it.
+- Override needed no new type: an `AUTHORIZE` with `contrary_to` carried the
+  "approved against a warning" fact, kept it auditable on re-fold, and left
+  commons standing untouched — confirming override is a field, not a primitive.
 
 ## Deliberate limitations
 
@@ -86,8 +103,9 @@ This probe does **not** attempt, and should not be read as solving:
 - **Portability and caching.** The known tensions in `object-model.md` §10
   (replay cost, event-set disagreement, caching re-introducing a profile) are
   untouched here.
-- **Override friction.** `AUTHORIZE.contrary_to` exists in the envelope but the
-  scenario does not exercise an override-against-warning path.
+
+The override-against-warning path *is* exercised (see the third scenario above);
+it is no longer a gap.
 
 A failed result would have been useful too; this one happens to pass for the
 slice it covers.
