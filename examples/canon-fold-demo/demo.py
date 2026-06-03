@@ -282,6 +282,56 @@ def project_merchant_standing(events: list[Event], merchant: str, context: str) 
     }
 
 
+def project_authority_context(events: list[Event], subject: str, authority: str) -> dict:
+    """Governance standing for `subject` UNDER ONE authority context — counting
+    only ADJUDICATE rulings signed by `authority` (authority-and-conflict §5).
+
+    There is no global authority and no central arbiter: a reader chooses which
+    community's rulings it honors, and this fold answers only "what does THAT
+    authority say?". Two readers honoring two authorities can get two answers."""
+    rulings = sorted(
+        (e for e in active(events)
+         if e.type == "ADJUDICATE" and e.predicate.startswith("gov.")
+         and subject in e.refs and e.signer == authority),
+        key=lambda e: e.timestamp,
+    )
+    standing = "in_good_standing"
+    for e in rulings:
+        standing = {
+            "gov.warning": "warned",
+            "gov.suspension": "suspended",
+            "gov.expulsion": "expelled",
+            "gov.reinstatement": "in_good_standing",
+        }.get(e.predicate, standing)
+    return {"subject": subject, "authority": authority,
+            "governance_standing": standing, "rulings": [e.predicate for e in rulings]}
+
+
+def project_conflicting_governance(events: list[Event], subject: str,
+                                   authorities: list[str]) -> dict:
+    """Read `subject`'s governance under EACH authority and report disagreement
+    WITHOUT choosing a winner (authority-and-conflict §5: no single final
+    authority by design).
+
+    The five event types REPRESENT the conflict (each ruling is an ordinary
+    ADJUDICATE, both valid, both replay). They cannot, by themselves, SELECT
+    which authority governs — that needs a policy (authority selection /
+    federation / bridge rule / human-community choice) OUTSIDE the event canon.
+    `canonical_winner` is deliberately None: ARC does not auto-resolve this."""
+    by_authority = {
+        a: project_authority_context(events, subject, a)["governance_standing"]
+        for a in authorities
+    }
+    return {
+        "subject": subject,
+        "by_authority": by_authority,
+        "conflict": len(set(by_authority.values())) > 1,
+        "canonical_winner": None,  # not expressible in the five types — left open
+        "resolution_requires": ("an authority-selection / federation / bridge rule "
+                                 "or human-community choice, outside the five event types"),
+    }
+
+
 def project_overrides(events: list[Event], tx_id: str) -> dict:
     """Fold a transaction's `AUTHORIZE`s -> which approvals were made against a
     warning (event-registry §4.3, authority-and-conflict §7).
@@ -659,6 +709,43 @@ def revoke_compromised_key(events: list[Event]) -> list[Event]:
     return events
 
 
+def conflicting_adjudication(events: list[Event]) -> list[Event]:
+    """Two valid communities issue CONFLICTING governance rulings about the same
+    subject. This is the adversarial probe: it may fail usefully.
+
+    Both KEY roots are valid, both ADJUDICATE events are validly signed, and BOTH
+    are present in the ONE shared log — so this is NOT the missing-event
+    disagreement of the locality scenario (#4). The information is complete; the
+    AUTHORITIES compete. Community A suspends the merchant; community B, reviewing
+    the same merchant, issues only a warning. Neither is forged; neither is wrong
+    in its own context.
+
+    The five types REPRESENT the conflict (two ADJUDICATE events). They do not
+    RESOLVE it: folding all gov.* together silently keeps the latest by timestamp
+    — an accident, not a principle. Selecting which authority governs needs a
+    policy outside the canon (authority-and-conflict §5: no single final authority
+    by design). No sixth type is added, because the gap is not a type gap.
+    """
+    subject = "k:merchant_contested"
+    a, b = "k:community_a", "k:community_b"
+    events.append(make("KEY", a, "id.key_register", "2026-06-01T00:00:00Z",
+                       payload={"key": a, "anchor": "community-charter"}))
+    events.append(make("KEY", b, "id.key_register", "2026-06-01T00:01:00Z",
+                       payload={"key": b, "anchor": "community-charter"}))
+    events.append(make("KEY", subject, "id.key_register", "2026-06-01T00:02:00Z",
+                       payload={"key": subject, "anchor": "business-registration"}))
+    # Community A reviews a dispute and SUSPENDS (its commons ruling).
+    events.append(make("ADJUDICATE", a, "gov.suspension", "2026-06-02T09:00:00Z",
+                       refs=(subject,),
+                       payload={"finding": "unresolved fulfillment complaints", "authority": a}))
+    # Community B reviews the SAME merchant and issues only a WARNING (later ts,
+    # so a naive whole-log fold would silently let B win — by accident).
+    events.append(make("ADJUDICATE", b, "gov.warning", "2026-06-02T15:00:00Z",
+                       refs=(subject,),
+                       payload={"finding": "minor, first offense", "authority": b}))
+    return events
+
+
 # ---------------------------------------------------------------------------
 # 5. Run the probe: project before, then after the governed dispute.
 # ---------------------------------------------------------------------------
@@ -828,6 +915,26 @@ def show_replay_cache(events: list[Event]) -> None:
     print("  cannot override the ADJUDICATE. Cache never changes commons standing.")
 
 
+def show_conflicting_adjudication(events: list[Event]) -> None:
+    """Adversarial probe: two valid authorities disagree on the same subject."""
+    subject = "k:merchant_contested"
+    a, b = "k:community_a", "k:community_b"
+    verify_log(events)  # both community roots valid; both rulings validly signed
+    print(f"\n{'=' * 66}\nCONFLICTING ADJUDICATE — two valid authorities, one subject"
+          f"\n{'=' * 66}")
+    # The naive whole-log fold folds ALL gov.* together -> last by timestamp wins.
+    naive = project_merchant_standing(events, subject, CTX)["governance_standing"]
+    print(f"naive whole-log fold : governance={naive}  (kept the latest ADJUDICATE by timestamp — an accident)")
+    # Authority-scoped folds: each community's ruling read on its own.
+    va = project_authority_context(events, subject, a)
+    vb = project_authority_context(events, subject, b)
+    print(f"under authority A    : governance={va['governance_standing']:<14} rulings={va['rulings']}  ({a})")
+    print(f"under authority B    : governance={vb['governance_standing']:<14} rulings={vb['rulings']}  ({b})")
+    conf = project_conflicting_governance(events, subject, [a, b])
+    print(f"conflict detected    : {conf['conflict']}   canonical_winner={conf['canonical_winner']}")
+    print(f"resolution requires  : {conf['resolution_requires']}")
+
+
 def main() -> None:
     log = base_log()
     show("BEFORE — three clean transactions", log)
@@ -914,6 +1021,24 @@ def main() -> None:
     print("    matches the live set; it self-invalidates the instant the events change.")
     print("  * No cache is authority: even the durable one asserting in_good_standing cannot")
     print("    override the ADJUDICATE — the authoritative fold still reads suspended.")
+
+    log = conflicting_adjudication(log)
+    show_conflicting_adjudication(log)
+
+    print(f"\n{'-' * 66}")
+    print("What this conflict shows (the probe finds a LIMIT — honestly):")
+    print("  * Not the locality case (#4): no event is missing. BOTH ADJUDICATE rulings are")
+    print("    in the one shared log, both validly signed, both replay. The issue is not")
+    print("    missing information — it is two communities claiming authority at once.")
+    print("  * The five types REPRESENT the conflict fine: each ruling is an ordinary")
+    print("    ADJUDICATE. No sixth type is needed (or added) to record competing rulings.")
+    print("  * But the five types do NOT RESOLVE it. The naive whole-log fold returns one")
+    print("    answer only by keeping the latest ruling by timestamp — an accident, not a")
+    print("    principle. Scope by authority and there are two valid, conflicting answers.")
+    print("  * ARC does not auto-pick a winner (canonical_winner=None). Choosing one needs")
+    print("    an authority-selection / federation / bridge rule or a human-community choice")
+    print("    — a policy OUTSIDE the event canon. This is an authority-policy gap, NOT an")
+    print("    event-type gap: adding a sixth type would not tell you which authority wins.")
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
     print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
@@ -922,6 +1047,9 @@ def main() -> None:
     print("(KEY id.key_revoke + `nullifies`, time-scoped) — no sixth type.")
     print("Caching adds no type but is only safe when scoped or event-bound and never")
     print("authoritative; otherwise it re-introduces the stored profile (object-model §10).")
+    print("Conflicting authorities are REPRESENTABLE in the five types but not RESOLVABLE by")
+    print("them: selecting the governing authority is a policy gap outside the canon, not a")
+    print("missing event type. The probe found a real limit — and did not paper it over.")
     print("(See README for the verdict.)")
 
 

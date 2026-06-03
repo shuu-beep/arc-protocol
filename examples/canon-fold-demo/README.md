@@ -10,7 +10,7 @@ prior is documentation.
 
 ## What it tests
 
-Seven claims from the canon, each made concrete:
+Eight claims from the canon, each made concrete — the eighth finds a limit:
 
 1. **A Relationship is a fold over a signed Event log** — not a stored object.
    Reputation, standing, identity status, and transaction state are all
@@ -62,6 +62,19 @@ Seven claims from the canon, each made concrete:
    the score/status object the model refuses to keep. No cache is authority:
    even one asserting good standing cannot override an `ADJUDICATE`.
    (`docs/object-model.md` §10)
+
+8. **Conflicting authorities are representable but not self-resolving** — the one
+   claim that finds a *limit*. When two valid communities issue contradictory
+   `ADJUDICATE` rulings about the same subject (A suspends, B warns), the five
+   types record both fine — each is an ordinary, validly-signed `ADJUDICATE`, and
+   both replay in the one shared log. No event is missing; this is not the
+   locality case. But the canon does **not** pick a winner: a naive whole-log
+   fold returns one answer only by keeping the latest ruling by timestamp (an
+   accident), while an authority-scoped fold shows two valid, conflicting answers.
+   Choosing the governing authority requires a selection / federation / bridge
+   rule or a human-community choice — a policy *outside* the five event types.
+   This is an authority-policy gap, not an event-type gap; a sixth type would not
+   tell you which authority wins. (`docs/authority-and-conflict.md` §5)
 
 ## Run
 
@@ -161,11 +174,30 @@ serves a stale answer. And no cache is authority: the durable one asserts
 the `ADJUDICATE` is in the log. Caching is allowed, but only when scoped or
 event-bound and never authoritative.
 
+An eighth scenario is the adversarial one, and it **finds a limit** — by design,
+the probe is allowed to fail usefully here. Two valid communities issue
+conflicting `ADJUDICATE` rulings about the same subject `k:merchant_contested`:
+community A `gov.suspension`, community B `gov.warning`. Both have valid `KEY`
+roots, both rulings are validly signed, and **both are in the one shared log** —
+so, unlike the locality scenario, no event is missing. The output shows three
+readings: the naive whole-log fold returns `warned` (it merely kept the
+later-timestamped ruling — an accident); `project_authority_context` under
+authority A returns `suspended`, under authority B returns `warned`; and
+`project_conflicting_governance` reports `conflict = True`, `canonical_winner =
+None`. The five types *represent* the conflict without strain, but they do not
+*resolve* it. "Verification is replay" guarantees both rulings are genuine; it
+does **not** imply global agreement on which authority governs. Picking a winner
+needs an authority-selection / federation / bridge rule or a human-community
+choice — a policy outside the canon. ARC, by design, has no single final
+authority, so the demo surfaces the conflict and stops there.
+
 ## What it found (the verdict)
 
-For this slice, the canon held:
+For this slice, the canon largely held — with one honest limit (the eighth):
 
-- The five types were sufficient; no capability in the scenario forced a sixth.
+- The five types were sufficient to *represent* every scenario; no capability
+  forced a sixth type. (Resolving competing authority is a separate matter — see
+  the last bullet.)
 - Projection-on-demand worked with no stored profile or score.
 - "Verification is replay" was real: every run re-checks signatures and key
   provenance before folding, and any party folding the same events gets the
@@ -195,6 +227,18 @@ For this slice, the canon held:
   data. So the §10 replay-cost tension resolves to a discipline, not a primitive:
   scope it, bind it to the event set, and never let it be authoritative. The
   `ADJUDICATE`-only rule for commons standing held even with a cache present.
+- Conflicting authority is where the canon's reach ends — usefully. Two valid
+  communities can issue contradictory `ADJUDICATE` rulings about one subject, and
+  the five types *represent* the conflict without strain (both are ordinary,
+  validly-signed `ADJUDICATE` events that replay). What they cannot do by
+  themselves is *choose* which authority governs: a naive fold "resolves" the
+  conflict only by timestamp accident, and the canon offers no principled winner
+  (`canonical_winner = None`). The missing piece is an authority-selection /
+  federation / bridge policy or a human-community choice — deliberately outside
+  the event set, because ARC's design refuses a single final authority. **This is
+  an authority-policy gap, not an event-type gap.** Adding a sixth type would let
+  you *store* a verdict but still would not tell you whose verdict is right; the
+  honest move is to surface the conflict, not to invent a primitive that hides it.
 
 ## Deliberate limitations
 
@@ -217,6 +261,13 @@ This probe does **not** attempt, and should not be read as solving:
   not enforced by storage. Event-set disagreement is *observed* (fourth scenario)
   but not *resolved*: the demo shows divergent-but-valid projections without
   proposing a reconciliation rule. Cross-community portability is still open.
+- **Authority selection / federation.** The conflicting-`ADJUDICATE` scenario
+  (eighth) *surfaces* competing authority but does not resolve it. No
+  authority-selection policy, federation protocol, bridge rule, weighting, or
+  precedence order is implemented or endorsed — `project_conflicting_governance`
+  reports the disagreement and returns `canonical_winner = None` on purpose.
+  Which authority a reader should honor, and how communities federate or bridge
+  their rulings, is left entirely to policy outside the five event types.
 
 The override-against-warning path *is* exercised (see the third scenario above);
 it is no longer a gap.
