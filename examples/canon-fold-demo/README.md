@@ -10,7 +10,8 @@ prior is documentation.
 
 ## What it tests
 
-Eight claims from the canon, each made concrete — the eighth finds a limit:
+Nine claims from the canon, each made concrete — the eighth finds a limit, the
+ninth shows where that limit belongs:
 
 1. **A Relationship is a fold over a signed Event log** — not a stored object.
    Reputation, standing, identity status, and transaction state are all
@@ -75,6 +76,19 @@ Eight claims from the canon, each made concrete — the eighth finds a limit:
    rule or a human-community choice — a policy *outside* the five event types.
    This is an authority-policy gap, not an event-type gap; a sixth type would not
    tell you which authority wins. (`docs/authority-and-conflict.md` §5)
+
+9. **The resolution gap belongs to policy, not to the event canon.** Building on
+   the eighth, three *illustrative* reader policies resolve the very same
+   conflicting log — `subscriber-choice` (honor the authority you subscribe to),
+   `most-restrictive-wins` (a safety-biased order: expelled > suspended > warned
+   > in_good_standing), and `explicit-precedence` (a reader-supplied ordering).
+   The same log yields different valid standings under different policies; the
+   resolution happens entirely in a layer *above* the canon, reading the
+   per-authority projections without adding or changing any event. ARC endorses
+   **none** of these — they only show the choice is a reader / community /
+   federation / bridge concern. This does not dissolve the eighth's limit: the
+   canon still cannot pick a winner, and a sixth event type still would not.
+   (`docs/authority-and-conflict.md` §5)
 
 ## Run
 
@@ -191,6 +205,19 @@ needs an authority-selection / federation / bridge rule or a human-community
 choice — a policy outside the canon. ARC, by design, has no single final
 authority, so the demo surfaces the conflict and stops there.
 
+A ninth scenario then shows *where* that resolution lives — in a policy layer
+above the canon, not in a new event type. The same conflicting log is run through
+three illustrative reader policies: `subscriber-choice` (subscribe to A →
+`suspended`; subscribe to B → `warned`), `most-restrictive-wins` (a safety-biased
+ordering → `suspended`), and `explicit-precedence` (order A>B → `suspended`;
+order B>A → `warned`). Five resolutions, two distinct valid outcomes, all from the
+*same* untouched events — only the selection rule differs. The point is narrow and
+deliberate: the gap from scenario 8 is fillable by a reader / community /
+federation / bridge choice, **not** by adding a sixth event type, and ARC
+endorses none of the three policies. This is shown the same way the rotation
+scenario showed carry-forward as one policy among several: the demo demonstrates
+that the choice is *expressible* as policy, and declines to pick one.
+
 ## What it found (the verdict)
 
 For this slice, the canon largely held — with one honest limit (the eighth):
@@ -239,6 +266,14 @@ For this slice, the canon largely held — with one honest limit (the eighth):
   an authority-policy gap, not an event-type gap.** Adding a sixth type would let
   you *store* a verdict but still would not tell you whose verdict is right; the
   honest move is to surface the conflict, not to invent a primitive that hides it.
+- The resolution gap is policy-shaped, and that is demonstrable. Three
+  illustrative reader policies (`subscriber-choice`, `most-restrictive-wins`,
+  `explicit-precedence`) resolved the same conflicting log to different valid
+  standings, entirely in a layer above the canon, reading the per-authority
+  projections and adding no event. This *confirms* the eighth's diagnosis without
+  softening it: the choice lives with the reader / community / federation, ARC
+  picks none, and no sixth type was needed to express any of the policies. The
+  canon represents the facts; the policy layer chooses which authority to honor.
 
 ## Deliberate limitations
 
@@ -262,12 +297,15 @@ This probe does **not** attempt, and should not be read as solving:
   but not *resolved*: the demo shows divergent-but-valid projections without
   proposing a reconciliation rule. Cross-community portability is still open.
 - **Authority selection / federation.** The conflicting-`ADJUDICATE` scenario
-  (eighth) *surfaces* competing authority but does not resolve it. No
-  authority-selection policy, federation protocol, bridge rule, weighting, or
-  precedence order is implemented or endorsed — `project_conflicting_governance`
-  reports the disagreement and returns `canonical_winner = None` on purpose.
-  Which authority a reader should honor, and how communities federate or bridge
-  their rulings, is left entirely to policy outside the five event types.
+  (eighth) *surfaces* competing authority; the ninth *illustrates* three reader
+  policies that could resolve it (`subscriber-choice`, `most-restrictive-wins`,
+  `explicit-precedence`). Those are toy examples, none endorsed:
+  `project_conflicting_governance` still returns `canonical_winner = None` on
+  purpose, and ARC selects no canonical policy. A real federation protocol,
+  bridge / weighting scheme, trust-graph between communities, or governance for
+  *how readers agree on a policy* is **not** modeled — the demo only shows the
+  choice is expressible in a layer above the canon. Which authority a reader
+  should honor remains a policy/community decision outside the five event types.
 
 The override-against-warning path *is* exercised (see the third scenario above);
 it is no longer a gap.

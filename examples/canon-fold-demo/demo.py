@@ -332,6 +332,52 @@ def project_conflicting_governance(events: list[Event], subject: str,
     }
 
 
+# --- policy layer: OUTSIDE the event canon; ARC endorses NO single policy ----
+# Scenario 8 showed the five types REPRESENT a conflict but do not RESOLVE it.
+# These readers resolve it — but they are POLICY, not canon. Each consumes the
+# per-authority projections (which ARE folded from events) and applies a choice
+# the reader / community / federation makes. None is canonical: a different
+# reader may pick a different policy and get a different — equally valid —
+# answer. No event is added or changed; only the selection rule differs. A sixth
+# event type would not help here, because the question is "whose ruling wins?",
+# which is a choice, not a fact (authority-and-conflict §5).
+
+_GOV_SEVERITY = {"in_good_standing": 0, "warned": 1, "suspended": 2, "expelled": 3}
+
+
+def resolve_by_subscriber_choice(events: list[Event], subject: str,
+                                 subscribed_authority: str) -> dict:
+    """Policy: the reader honors the one authority it subscribes to / trusts."""
+    v = project_authority_context(events, subject, subscribed_authority)
+    return {"policy": "subscriber-choice", "honored_authority": subscribed_authority,
+            "resolved_standing": v["governance_standing"]}
+
+
+def resolve_by_most_restrictive(events: list[Event], subject: str,
+                                authorities: list[str]) -> dict:
+    """Policy: among valid rulings, the MORE RESTRICTIVE wins
+    (expelled > suspended > warned > in_good_standing). A safety-biased reader
+    policy — explicitly NOT ARC's recommendation, just one conservative choice."""
+    views = {a: project_authority_context(events, subject, a)["governance_standing"]
+             for a in authorities}
+    winner = max(authorities, key=lambda a: _GOV_SEVERITY.get(views[a], 0))
+    return {"policy": "most-restrictive-wins", "honored_authority": winner,
+            "resolved_standing": views[winner]}
+
+
+def resolve_by_explicit_precedence(events: list[Event], subject: str,
+                                   precedence: list[str]) -> dict:
+    """Policy: the reader supplies an ordered authority list; the first authority
+    that has actually ruled on the subject wins."""
+    for a in precedence:
+        v = project_authority_context(events, subject, a)
+        if v["rulings"]:  # this authority has issued a ruling
+            return {"policy": "explicit-precedence", "honored_authority": a,
+                    "resolved_standing": v["governance_standing"]}
+    return {"policy": "explicit-precedence", "honored_authority": None,
+            "resolved_standing": "in_good_standing"}
+
+
 def project_overrides(events: list[Event], tx_id: str) -> dict:
     """Fold a transaction's `AUTHORIZE`s -> which approvals were made against a
     warning (event-registry §4.3, authority-and-conflict §7).
@@ -935,6 +981,31 @@ def show_conflicting_adjudication(events: list[Event]) -> None:
     print(f"resolution requires  : {conf['resolution_requires']}")
 
 
+def show_resolution_policies(events: list[Event]) -> None:
+    """The same scenario-8 conflict, resolved by several illustrative reader
+    policies — all OUTSIDE the canon, none endorsed by ARC."""
+    subject = "k:merchant_contested"
+    a, b = "k:community_a", "k:community_b"
+    short = {a: "A", b: "B"}
+    verify_log(events)  # same valid, replaying log as scenario 8 — nothing added
+    print(f"\n{'=' * 66}\nILLUSTRATIVE RESOLUTION POLICIES — same conflict, reader's choice"
+          f"\n{'=' * 66}")
+    conf = project_conflicting_governance(events, subject, [a, b])
+    print(f"unresolved (canon)   : by_authority={conf['by_authority']}  canonical_winner={conf['canonical_winner']}")
+    print("\nillustrative reader policies (EXAMPLES ONLY — ARC endorses none):")
+    rows = []
+    for sub in (a, b):
+        rows.append((f"subscriber-choice (subscribes to {sub})",
+                     resolve_by_subscriber_choice(events, subject, sub)))
+    rows.append(("most-restrictive-wins (safety-biased)",
+                 resolve_by_most_restrictive(events, subject, [a, b])))
+    for order in ([a, b], [b, a]):
+        rows.append((f"explicit-precedence (order {'>'.join(short[x] for x in order)})",
+                     resolve_by_explicit_precedence(events, subject, order)))
+    for label, r in rows:
+        print(f"  {label:<47} -> {r['resolved_standing']:<14} honors {r['honored_authority']}")
+
+
 def main() -> None:
     log = base_log()
     show("BEFORE — three clean transactions", log)
@@ -1039,6 +1110,20 @@ def main() -> None:
     print("    an authority-selection / federation / bridge rule or a human-community choice")
     print("    — a policy OUTSIDE the event canon. This is an authority-policy gap, NOT an")
     print("    event-type gap: adding a sixth type would not tell you which authority wins.")
+
+    show_resolution_policies(log)
+
+    print(f"\n{'-' * 66}")
+    print("What these policies show (the gap is real; it just isn't an event-type gap):")
+    print("  * The SAME conflicting log resolves to different standings under different")
+    print("    reader policies — suspended under one, warned under another — all valid.")
+    print("  * Resolution happened entirely in the POLICY layer, reading the per-authority")
+    print("    projections; the events were untouched and NO sixth type was added.")
+    print("  * ARC endorses none of them. subscriber-choice, most-restrictive-wins, and")
+    print("    explicit-precedence just illustrate that the choice belongs to a reader /")
+    print("    community / federation / bridge rule — not to the canon.")
+    print("  * This does NOT dissolve scenario 8's limit: the canon still cannot pick a")
+    print("    winner, and a sixth event type still would not say whose ruling is right.")
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
     print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
@@ -1050,6 +1135,9 @@ def main() -> None:
     print("Conflicting authorities are REPRESENTABLE in the five types but not RESOLVABLE by")
     print("them: selecting the governing authority is a policy gap outside the canon, not a")
     print("missing event type. The probe found a real limit — and did not paper it over.")
+    print("That gap is fillable by an OUT-OF-CANON policy layer (illustrated: subscriber-")
+    print("choice / most-restrictive-wins / explicit-precedence), ARC endorsing none — which")
+    print("confirms it is a policy/federation choice, not a missing event type.")
     print("(See README for the verdict.)")
 
 
