@@ -97,14 +97,31 @@ Where external law or a payment provider's process applies, ARC defers to it. Co
 
 External law is the only authority that sits above both human and community authority — and it sits outside ARC.
 
-## 9. Open Tensions
+## 9. Event Layer and Policy Layer
+
+Sections 2 and 5 establish that there is no single final authority and that events are evidence, not verdicts. One case makes that boundary concrete: what happens when two *legitimate* community authorities — each final over its own commons (section 4) — reach **conflicting** decisions about the same subject?
+
+Suppose community A suspends a merchant while community B, reviewing the same merchant, only warns it. Both are valid authorities, both rulings are validly signed, and both are recorded as ordinary adjudication events. The conflict is **representable**: the event vocabulary holds two opposed rulings without strain. But it is **not canonically resolvable**. No event decides which authority governs; folding "the latest ruling" would resolve the conflict only by accident of timestamp, not by any principle.
+
+This separates two layers:
+
+- **The Event Layer records facts** — signed claims, approvals, and adjudications. It is shared, replayable, and deterministic: any party folding the same events sees the same rulings. It can represent a conflict faithfully, but it cannot, by itself, choose a winner.
+- **The Policy Layer chooses which authority to honor.** It is plural and local: a reader, a community, or a federation decides whose ruling it accepts, and different readers may legitimately choose differently and reach different — equally valid — answers. This choice lives *outside* the event canon.
+
+**Event Layer = facts. Policy Layer = choice.** ARC fixes the first and deliberately declines to fix the second. There is no canonical winner — the resolution is left open — because selecting one would reinstate the single final authority that section 2 refuses.
+
+A new event type would not close this gap. One could *record* a "final" ruling in some additional event, but that only relocates the question: who has the authority to issue that final event? The authority-selection problem sits upstream of the event vocabulary, not inside it. This reinforces the no-single-final-authority principle rather than weakening it: the conflict is real, it is surfaced honestly, and its resolution is returned to local choice.
+
+Resolution policies can still be layered on top — *illustratively*, not canonically. The executable probe in [`examples/canon-fold-demo`](../examples/canon-fold-demo/) demonstrates conflicting adjudication events resolving to `canonical_winner = None`, then applies example reader policies such as **subscriber choice** (honor the authority you subscribe to), **most-restrictive-wins** (a safety-biased ordering), and **explicit precedence** (a reader-supplied order). These are illustrations of *where* resolution can live, not recommendations. ARC endorses none of them, defines no federation or bridge rule here, and leaves the choice of policy — and of who agrees on a policy — to communities and readers.
+
+## 10. Open Tensions
 
 - **Harmful self-directed choices.** A human's negative right to act may lead to self-harm, such as transacting with an expelled fraudster. ARC's response is friction and forfeited commons protection, not prohibition. Whether that is sufficient is unresolved.
 - **Captured communities.** Authority over the commons can be abused to exclude legitimate participants. Appeal, transparency, and replaceable backends mitigate but do not eliminate this ([threat-model.md](./threat-model.md) §7, [governance.md](./governance.md) §6.4).
 - **Warning fatigue.** The model relies on humans understanding warnings, but warnings degrade with repetition. Override friction quality remains unsolved.
 - **Misunderstanding commons withdrawal as veto.** A user may read "expelled" as "forbidden" and believe ARC blocked them, or conversely assume community protection still applies after they have stepped outside it. Communicating commons status clearly is an open UX and protocol problem.
 
-## 10. Current Status
+## 11. Current Status
 
 This is an exploratory constitutional boundary, not an enforced rule set. No implementation exists.
 
