@@ -155,6 +155,15 @@ def active(events: list[Event]) -> list[Event]:
     return kept
 
 
+def event_set_hash(events: list[Event]) -> str:
+    """Stable digest of an ACTIVE event set — the identity of a replay input.
+
+    A cached projection keyed by this hash is valid only while the *same* events
+    replay; the moment the active set changes, the hash changes and the cache is
+    stale. This is what lets a cache be event-bound instead of profile-like."""
+    return "es:" + hashlib.sha256("\n".join(sorted(e.id for e in events)).encode()).hexdigest()[:16]
+
+
 # ---------------------------------------------------------------------------
 # 3. Projections — deterministic folds, NOTHING stored (object-model §4)
 # ---------------------------------------------------------------------------
@@ -333,6 +342,40 @@ def project_key_authority(events: list[Event], key: str) -> dict:
         "revoked": revoked_at is not None,
         "revoked_at": revoked_at,
         "honored_going_forward": registered and revoked_at is None,
+    }
+
+
+def project_cache_safety(entry: dict, live_hash: str) -> dict:
+    """Classify a projection-CACHE entry by SHAPE, not by trust (object-model §10).
+
+    A cache is a derived convenience. The risk is that it quietly becomes the
+    stored profile / score / status object the model refuses to keep. The shape
+    decides which it is — no event type is involved, this is about derived data:
+
+      * not durable (scoped to one replay run)      -> safe optimization
+      * durable, no event_set_hash binding          -> profile-like reintroduction
+      * durable, event_set_hash, hint-only          -> conditionally safe
+
+    A cache is *never* authority: whatever it stores, the authoritative answer is
+    still the fold over the log, where an ADJUDICATE alone moves commons standing.
+    """
+    durable = entry.get("durable", False)
+    bound = entry.get("event_set_hash")
+    if not durable:
+        classification = "safe optimization"
+    elif bound is None:
+        classification = "profile-like reintroduction"
+    else:
+        classification = "conditionally safe"
+    matches_live = bound is not None and bound == live_hash
+    return {
+        "cache": entry.get("name"),
+        "classification": classification,
+        "event_bound": bound is not None,
+        "matches_live_event_set": matches_live,
+        "authoritative": entry.get("authoritative", False),  # must stay False
+        # An event-bound cache may be reused only as a HINT, only while fresh:
+        "reusable_as_hint": classification == "conditionally safe" and matches_live,
     }
 
 
@@ -729,6 +772,62 @@ def show_key_revocation(events: list[Event]) -> None:
           f"(advisory={ls['advisory_signal']}, identity={ls['identity_continuity']} — history carried)")
 
 
+def show_replay_cache(events: list[Event]) -> None:
+    """Caching is not in the canon — it is a derived-data hazard. This probe asks
+    whether caching a projection re-introduces the stored profile/score/status
+    object the model refuses to keep (object-model §10). No event is added."""
+    subject, ctx = "k:merchant_bibimbap", CTX
+    print(f"\n{'=' * 66}\nREPLAY COST / PROJECTION CACHE — does caching re-create a profile?"
+          f"\n{'=' * 66}")
+    act = active(events)
+    live_hash = event_set_hash(act)
+    # The authoritative answer: a fold computed by replay, kept by nobody.
+    standing = project_merchant_standing(events, subject, ctx)
+    result = {"advisory_signal": standing["advisory_signal"],
+              "governance_standing": standing["governance_standing"]}
+    print(f"live event set      : {live_hash}  ({len(act)} active events)")
+    print(f"authoritative fold  : advisory={result['advisory_signal']} "
+          f"governance={result['governance_standing']}  (recomputed, not stored)")
+
+    # Three cache shapes wrapping that same result.
+    ephemeral = {"name": "ephemeral", "durable": False, "event_set_hash": live_hash,
+                 "authoritative": False, "computed_at": "2026-06-04T00:00:00Z", "result": result}
+    durable_unbound = {"name": "durable-unbound", "durable": True, "event_set_hash": None,
+                       "authoritative": True, "computed_at": "2026-06-04T00:00:00Z",
+                       "result": {"advisory_signal": "trusted", "governance_standing": "in_good_standing"}}
+    receipt = {"name": "event-bound-receipt", "durable": True, "event_set_hash": live_hash,
+               "authoritative": False, "projection_name": "merchant_standing", "subject": subject,
+               "context": ctx, "computed_at": "2026-06-04T00:00:00Z", "result": result}
+    shapes = (ephemeral, durable_unbound, receipt)
+
+    print("\nclassification (against the live event set):")
+    for c in shapes:
+        s = project_cache_safety(c, live_hash)
+        print(f"  {s['cache']:<20} -> {s['classification']:<26} "
+              f"event_bound={str(s['event_bound']):<5} reusable_as_hint={s['reusable_as_hint']}")
+
+    # CHANGED event set: drop the suspension ADJUDICATE (locality view B). Its
+    # hash differs, so any event-bound cache must self-invalidate.
+    changed = active(community_view(events, "B"))
+    changed_hash = event_set_hash(changed)
+    print(f"\nchanged event set   : {changed_hash}  ({len(changed)} active; suspension ADJUDICATE absent)")
+    print("re-check against the CHANGED set:")
+    for c in shapes:
+        s = project_cache_safety(c, changed_hash)
+        verdict = ("self-invalidates -> recompute" if s["event_bound"]
+                   else "cannot detect the change -> serves stale")
+        print(f"  {s['cache']:<20} -> event_bound={str(s['event_bound']):<5} "
+              f"matches_live={str(s['matches_live_event_set']):<5} {verdict}")
+
+    # The hazard, made explicit: the durable-unbound cache cannot even notice the
+    # change, and it is never authority over an ADJUDICATE.
+    print("\ndurable-unbound read WITHOUT replay (the hazard):")
+    print(f"  it serves its stored {durable_unbound['result']} to ANY caller,")
+    print("  detached from the event set — a profile/score object by another name.")
+    print(f"  yet the authoritative fold says governance={result['governance_standing']}: the cache")
+    print("  cannot override the ADJUDICATE. Cache never changes commons standing.")
+
+
 def main() -> None:
     log = base_log()
     show("BEFORE — three clean transactions", log)
@@ -798,12 +897,31 @@ def main() -> None:
     print("  * The new key keeps its lineage because the rotation preceded the revoke —")
     print("    revoking the old key did not orphan the new one. Had the rotation come after,")
     print("    the old key's rotation event would itself fall after the cutoff and drop out.")
+
+    show_replay_cache(log)
+
+    print(f"\n{'-' * 66}")
+    print("What this cache probe shows (caching is allowed, but only one shape is safe):")
+    print("  * Caching is NOT in the canon and adds no event type — it is derived data.")
+    print("    The question is whether a cache quietly becomes the stored profile/score/")
+    print("    status object the model refuses to keep (object-model §10).")
+    print("  * An ephemeral cache (scoped to one replay, discarded) is a safe optimization.")
+    print("  * A durable cache with NO event_set_hash is profile-like reintroduction: it is")
+    print("    read without replay, cannot notice the event set change, and detaches from")
+    print("    the log — a score/status store by another name.")
+    print("  * An event-bound receipt (event_set_hash + projection + subject + context +")
+    print("    computed_at) is conditionally safe: reusable only as a HINT while its hash")
+    print("    matches the live set; it self-invalidates the instant the events change.")
+    print("  * No cache is authority: even the durable one asserting in_good_standing cannot")
+    print("    override the ADJUDICATE — the authoritative fold still reads suspended.")
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
     print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
     print("governance, override-against-warning (AUTHORIZE.contrary_to), key rotation /")
     print("identity continuity (KEY id.key_rotate + the rotation chain), AND key revocation")
     print("(KEY id.key_revoke + `nullifies`, time-scoped) — no sixth type.")
+    print("Caching adds no type but is only safe when scoped or event-bound and never")
+    print("authoritative; otherwise it re-introduces the stored profile (object-model §10).")
     print("(See README for the verdict.)")
 
 

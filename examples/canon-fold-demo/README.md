@@ -10,7 +10,7 @@ prior is documentation.
 
 ## What it tests
 
-Six claims from the canon, each made concrete:
+Seven claims from the canon, each made concrete:
 
 1. **A Relationship is a fold over a signed Event log** — not a stored object.
    Reputation, standing, identity status, and transaction state are all
@@ -52,6 +52,16 @@ Six claims from the canon, each made concrete:
    new key anchored by a rotation that preceded the revoke keeps its lineage. No
    `KEY_REVOKE` primitive is introduced — same field, read "going forward."
    (`docs/event-registry.md` §4.6)
+
+7. **Caching a projection must not become a stored profile.** Caching is not in
+   the canon and adds no event type; it is derived data. A cache is safe only if
+   it is *ephemeral* (scoped to one replay, discarded) or *event-bound* (carries
+   the `event_set_hash` it was computed over and is reused only as a hint while
+   that hash matches). A *durable, unbound* cache is read without replay, cannot
+   notice the event set change, and detaches from the log — it quietly becomes
+   the score/status object the model refuses to keep. No cache is authority:
+   even one asserting good standing cannot override an `ADJUDICATE`.
+   (`docs/object-model.md` §10)
 
 ## Run
 
@@ -135,6 +145,22 @@ ordinary withdrawal voids its target outright (timeless), while a key revoke is
 time-scoped against the revoke timestamp. That distinction is the one notable
 finding — it is a fold-policy nuance, not a missing primitive.
 
+A seventh scenario probes **replay cost / projection caching** — a different
+axis: not "is the event canon enough?" but "does an optimization on *derived*
+data smuggle back the stored profile?" It takes one real projection (the
+bibimbap merchant standing) and wraps the result in three cache shapes, then
+classifies each by shape: an **ephemeral** cache (not durable) is a *safe
+optimization*; a **durable, unbound** cache (no `event_set_hash`) is *profile-
+like reintroduction*; an **event-bound receipt** (`event_set_hash` +
+`projection_name` + `subject` + `context` + `computed_at`) is *conditionally
+safe*. Re-checked against a changed event set (the suspension `ADJUDICATE`
+dropped, so the hash differs), the receipt self-invalidates and forces a
+recompute, while the durable-unbound cache cannot even detect the change and
+serves a stale answer. And no cache is authority: the durable one asserts
+`in_good_standing`, yet the authoritative fold still reads `suspended` because
+the `ADJUDICATE` is in the log. Caching is allowed, but only when scoped or
+event-bound and never authoritative.
+
 ## What it found (the verdict)
 
 For this slice, the canon held:
@@ -162,6 +188,13 @@ For this slice, the canon held:
   revoke, dropped at/after) versus *timeless* for an ordinary withdrawal — a
   fold-policy distinction, not a missing primitive. Holder authority over one's
   own key stayed separate from commons `ADJUDICATE`.
+- Caching was nuanced, not free: it adds no event type, but it is only safe when
+  the cache is ephemeral, or event-bound (`event_set_hash`) and treated as a
+  hint. A durable, unbound cache *is* the stored profile/score/status the model
+  refuses to keep — it just relocates the storage one layer out into derived
+  data. So the §10 replay-cost tension resolves to a discipline, not a primitive:
+  scope it, bind it to the event set, and never let it be authoritative. The
+  `ADJUDICATE`-only rule for commons standing held even with a cache present.
 
 ## Deliberate limitations
 
@@ -176,10 +209,14 @@ This probe does **not** attempt, and should not be read as solving:
 - **Sybil resistance.** The fold includes a toy down-weight (trust counts only
   from *distinct* counterparties), gesturing at `object-model.md` §8. Real
   graph-shape heuristics (circularity, velocity, low diversity) are out of scope.
-- **Portability and caching.** Of the known tensions in `object-model.md` §10,
-  replay cost and caching re-introducing a profile are untouched here. Event-set
-  disagreement is now *observed* (fourth scenario) but not *resolved*: the demo
-  shows divergent-but-valid projections without proposing a reconciliation rule.
+- **Portability, and the limits of the cache model.** Caching is now *probed*
+  (seventh scenario), but only as a shape classifier: it labels a cache safe /
+  conditionally safe / profile-like and shows event-bound self-invalidation. It
+  does **not** implement a real cache layer, a propagation or eviction protocol,
+  or measure actual replay cost; "durable vs ephemeral" is asserted by a flag,
+  not enforced by storage. Event-set disagreement is *observed* (fourth scenario)
+  but not *resolved*: the demo shows divergent-but-valid projections without
+  proposing a reconciliation rule. Cross-community portability is still open.
 
 The override-against-warning path *is* exercised (see the third scenario above);
 it is no longer a gap.
