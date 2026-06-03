@@ -10,7 +10,7 @@ prior is documentation.
 
 ## What it tests
 
-Three claims from the canon, each made concrete:
+Six claims from the canon, each made concrete:
 
 1. **A Relationship is a fold over a signed Event log** — not a stored object.
    Reputation, standing, identity status, and transaction state are all
@@ -41,8 +41,17 @@ Three claims from the canon, each made concrete:
    rotation is a `KEY` event (`id.key_rotate`) signed by the old key, naming the
    new key. Provenance carries forward, past events stay valid, and a lineage
    read recovers the prior reputation, standing, and identity — all from `KEY`
-   (+ `ATTEST`, with `nullifies` available for the revoke case). No
-   `KEY_ROTATION` primitive is introduced. (`docs/event-registry.md` §4.1, §4.6)
+   (+ `ATTEST`). No `KEY_ROTATION` primitive is introduced.
+   (`docs/event-registry.md` §4.1, §4.6)
+
+6. **Key revocation is `nullifies`, not a new type.** A compromised key is
+   withdrawn by a `KEY` `id.key_revoke` event whose `nullifies` names the old
+   key's register. Withdrawal is *time-scoped*: the key's past events stay
+   readable, but anything it signs at/after the revoke timestamp drops out of
+   the fold, so forged post-revocation events verify yet are never honored. A
+   new key anchored by a rotation that preceded the revoke keeps its lineage. No
+   `KEY_REVOKE` primitive is introduced — same field, read "going forward."
+   (`docs/event-registry.md` §4.6)
 
 ## Run
 
@@ -108,6 +117,24 @@ standing-only, or no auto-carry are all expressible by changing what the lineage
 fold counts. The demo links the identities and observes the readings; it does
 not declare which carry-forward policy is correct.
 
+A sixth scenario tests **key revocation**. A bakery merchant builds history
+under `k:bakery_old`, rotates to `k:bakery_new`, then the old key is found
+compromised and is withdrawn by a `KEY` `id.key_revoke` event whose `nullifies`
+names the old key's register. The fold then reports: the old key's authority is
+`honored_going_forward = False`; its *past* history still folds (the register
+and pre-revoke events are kept); two **forged** events signed by the old key
+*after* the revoke pass `verify_log` (the signature is valid) yet are dropped by
+the fold, so their transaction never leaves `intent`; and the new key — anchored
+by a rotation that *preceded* the revoke — keeps its lineage and carried-forward
+standing. Revoke the key *before* rotating and the rotation event would itself
+fall after the cutoff, orphaning the new key; ordering is the policy lever, not a
+new type.
+
+`nullifies` carries two readings of "going forward" from the same field: an
+ordinary withdrawal voids its target outright (timeless), while a key revoke is
+time-scoped against the revoke timestamp. That distinction is the one notable
+finding — it is a fold-policy nuance, not a missing primitive.
+
 ## What it found (the verdict)
 
 For this slice, the canon held:
@@ -128,14 +155,24 @@ For this slice, the canon held:
   key and the rotation chain carried reputation, standing, and identity forward.
   The existing single-key folds ran unchanged; only a small lineage reader was
   added. The five types passed this re-test of sufficiency.
+- Key revocation needed no sixth type: a `KEY` `id.key_revoke` using the
+  existing `nullifies` field withdrew the old key's forward authority without
+  mutating any prior event or erasing its history. The one nuance worth naming:
+  `nullifies` had to be read *time-scoped* for a key revoke (honored before the
+  revoke, dropped at/after) versus *timeless* for an ordinary withdrawal — a
+  fold-policy distinction, not a missing primitive. Holder authority over one's
+  own key stayed separate from commons `ADJUDICATE`.
 
 ## Deliberate limitations
 
 This probe does **not** attempt, and should not be read as solving:
 
-- **Real cryptography.** Signatures are a hash stub. Key *rotation* is exercised
-  (provenance carry-forward), but key *revocation* — the `nullifies` / `KEY`
-  `id.key_revoke` case — is described, not run, so the chain stays walkable.
+- **Real cryptography.** Signatures are a hash stub, so "revoked key cannot
+  sign" is enforced as a *toy fold policy* (drop events at/after the revoke
+  timestamp), not by real key invalidation. A real deployment needs actual
+  signature verification, trustworthy timestamps, and a propagation story for
+  the revoke event itself; none of that is modeled here. Both key *rotation* and
+  key *revocation* are now exercised in code.
 - **Sybil resistance.** The fold includes a toy down-weight (trust counts only
   from *distinct* counterparties), gesturing at `object-model.md` §8. Real
   graph-shape heuristics (circularity, velocity, low diversity) are out of scope.

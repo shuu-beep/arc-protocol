@@ -106,10 +106,53 @@ def verify_log(events: list[Event]) -> None:
             registered.add(ev.payload["new_key"])
 
 
+def _revocations(events: list[Event]) -> dict[str, str]:
+    """Revoked keys -> earliest revoke timestamp.
+
+    A revocation is a `KEY` `id.key_revoke` whose `nullifies` names the key's
+    register event — same KEY type, the existing `nullifies` field, no sixth
+    type (event-registry §4.6). The revoked key is read from that register, and
+    the revoke's timestamp is kept because withdrawal is *time-scoped*: "going
+    forward" from the revoke, not retroactively over the key's whole history."""
+    by_id = {ev.id: ev for ev in events}
+    revs: dict[str, str] = {}
+    for ev in events:
+        if ev.type == "KEY" and ev.predicate == "id.key_revoke":
+            for reg_id in ev.nullifies:
+                reg = by_id.get(reg_id)
+                if reg is not None and reg.type == "KEY" and "key" in reg.payload:
+                    k = reg.payload["key"]
+                    revs[k] = ev.timestamp if k not in revs else min(revs[k], ev.timestamp)
+    return revs
+
+
 def active(events: list[Event]) -> list[Event]:
-    """Drop any event withdrawn by a later `nullifies` (event-registry §4.6)."""
-    withdrawn = {ref for ev in events for ref in ev.nullifies}
-    return [ev for ev in events if ev.id not in withdrawn]
+    """Drop events withdrawn by a later `nullifies` (event-registry §4.6).
+
+    `nullifies` means "withdrawn going forward", read two ways from the SAME
+    field:
+      * an ordinary withdrawal (a void approval, a superseded offer) removes its
+        target outright — withdrawal is timeless;
+      * a `KEY` `id.key_revoke` is time-scoped: the revoked key's register and
+        everything it signed BEFORE the revoke stay readable, but anything it
+        signs AT/AFTER the revoke timestamp is dropped. The register is kept, so
+        the key's past history and its rotation lineage remain walkable.
+    """
+    revs = _revocations(events)
+    timeless = {
+        ref for ev in events for ref in ev.nullifies
+        if not (ev.type == "KEY" and ev.predicate == "id.key_revoke")
+    }
+    kept: list[Event] = []
+    for ev in events:
+        if ev.id in timeless:
+            continue
+        is_revoke = ev.type == "KEY" and ev.predicate == "id.key_revoke"
+        rt = revs.get(ev.signer)
+        if rt is not None and not is_revoke and ev.timestamp >= rt:
+            continue  # signed by a revoked key, at/after revocation -> not honored
+        kept.append(ev)
+    return kept
 
 
 # ---------------------------------------------------------------------------
@@ -263,6 +306,33 @@ def project_overrides(events: list[Event], tx_id: str) -> dict:
         "tx": tx_id,
         "override_detected": bool(overrides),
         "approvals_contrary_to_warning": overrides,
+    }
+
+
+def project_key_authority(events: list[Event], key: str) -> dict:
+    """Fold KEY events -> may this key sign GOING FORWARD? (event-registry §4.6)
+
+    Two separable facts, neither stored:
+      * the key's PAST events stay valid and readable (the register is kept);
+      * a `KEY` `id.key_revoke` withdraws the key's FORWARD authority from its
+        timestamp on. This is the holder's authority over their own key (a
+        rotation/revoke they signed), not a commons ADJUDICATE.
+    Recomputed on demand; there is no stored key-status field.
+    """
+    evs = active(events)
+    # Anchored either directly (id.key_register) or by a rotation that named it
+    # (id.key_rotate, new_key) — the same provenance notion verify_log enforces.
+    registered = any(
+        e.type == "KEY" and (e.payload.get("key") == key or e.payload.get("new_key") == key)
+        for e in evs
+    )
+    revoked_at = _revocations(events).get(key)
+    return {
+        "key": key,
+        "registered": registered,
+        "revoked": revoked_at is not None,
+        "revoked_at": revoked_at,
+        "honored_going_forward": registered and revoked_at is None,
     }
 
 
@@ -486,6 +556,66 @@ def rotate_merchant_key(events: list[Event]) -> list[Event]:
     return events
 
 
+def revoke_compromised_key(events: list[Event]) -> list[Event]:
+    """A bakery merchant's signing key is compromised. The holder had already
+    rotated to a fresh key; now the OLD key is revoked so nothing it signs
+    *after* the revocation is honored. Revocation is a `KEY` `id.key_revoke`
+    whose `nullifies` names the old key's register event — the same KEY type and
+    the existing `nullifies` field, no `KEY_REVOKE` sixth type (event-registry
+    §4.6).
+
+    Three canon points:
+      * revocation is APPENDED, never mutating a prior event;
+      * "going forward" is time-scoped: past events by the old key stay readable,
+        but anything it signs at/after the revoke timestamp drops out of the fold;
+      * the new key, anchored by a rotation that happened BEFORE the revoke, keeps
+        its lineage — revoking the old key does not orphan the new one.
+    """
+    old, new = "k:bakery_old", "k:bakery_new"
+    reg = make("KEY", old, "id.key_register", "2026-05-01T00:00:00Z",
+               payload={"key": old, "anchor": "business-registration"})
+    events.append(reg)
+    # Two clean transactions build a little history under the old key.
+    for i in (1, 2):
+        tx = f"tx_bakery_{i}"
+        events.append(make("ATTEST", old, "commerce.offer", f"2026-05-0{i}T09:00:00Z",
+                           refs=(tx, old),
+                           payload={"item": "sourdough loaf", "price_krw": 7000, "context": CTX}))
+        events.append(make("AUTHORIZE", f"k:consumer_{i}", "consent.approval", f"2026-05-0{i}T09:01:00Z",
+                           refs=(tx, old), scope={"max_total_krw": 15000},
+                           payload={"approved_total_krw": 7000}))
+        events.append(make("ATTEST", old, "commerce.fulfillment", f"2026-05-0{i}T09:20:00Z",
+                           refs=(tx,), payload={"status": "delivered"}))
+        events.append(make("ATTEST", f"k:consumer_{i}", "rep.outcome", f"2026-05-0{i}T10:00:00Z",
+                           refs=(tx, old), payload={"result": "positive", "context": CTX}))
+    # ROTATE first, while the holder still controls the old key, anchoring `new`.
+    events.append(make("KEY", old, "id.key_rotate", "2026-05-04T00:00:00Z",
+                       refs=(old, new),
+                       payload={"old_key": old, "new_key": new, "reason": "pre-emptive rotation"}))
+    # The new key signs going forward — a legitimate post-rotation offer.
+    events.append(make("ATTEST", new, "commerce.offer", "2026-05-05T09:00:00Z",
+                       refs=("tx_bakery_3", new),
+                       payload={"item": "sourdough loaf", "price_krw": 7000, "context": CTX}))
+    # REVOKE: the old key is found compromised. The holder, now via the NEW key,
+    # appends a KEY id.key_revoke that `nullifies` the old key's register event.
+    # Same KEY type + `nullifies`; no sixth type. This is the holder's authority
+    # over their own key, not a commons ADJUDICATE (authority-and-conflict §5).
+    events.append(make("KEY", new, "id.key_revoke", "2026-05-07T00:00:00Z",
+                       refs=(old,), nullifies=(reg.id,),
+                       payload={"key": old, "reason": "old key compromised; withdraw forward authority"}))
+    # FORGED attempts: whoever holds the leaked old key signs AFTER revocation.
+    # verify_log still passes them (valid signature, key was once registered) —
+    # the defense is that the FOLD no longer honors them.
+    events.append(make("ATTEST", old, "commerce.offer", "2026-05-09T09:00:00Z",
+                       refs=("tx_bakery_forged", old),
+                       payload={"item": "sourdough loaf", "price_krw": 1000, "context": CTX,
+                                "note": "post-revocation; must not be honored"}))
+    events.append(make("AUTHORIZE", old, "consent.approval", "2026-05-09T09:01:00Z",
+                       refs=("tx_bakery_forged", old), scope={"max_total_krw": 99999},
+                       payload={"approved_total_krw": 99999, "note": "post-revocation forgery"}))
+    return events
+
+
 # ---------------------------------------------------------------------------
 # 5. Run the probe: project before, then after the governed dispute.
 # ---------------------------------------------------------------------------
@@ -571,6 +701,34 @@ def show_key_rotation(events: list[Event]) -> None:
           f"identity={ls['identity_continuity']}  (history carried forward via KEY id.key_rotate)")
 
 
+def show_key_revocation(events: list[Event]) -> None:
+    old, new = "k:bakery_old", "k:bakery_new"
+    verify_log(events)  # the full log still verifies; revocation is a fold policy
+    print(f"\n{'=' * 66}\nKEY REVOCATION — a compromised old key withdrawn going forward"
+          f"\n{'=' * 66}")
+    a_old = project_key_authority(events, old)
+    a_new = project_key_authority(events, new)
+    print(f"old key authority   : registered={a_old['registered']} revoked={a_old['revoked']} "
+          f"(at {a_old['revoked_at']})  honored_going_forward={a_old['honored_going_forward']}")
+    print(f"new key authority   : registered={a_new['registered']} revoked={a_new['revoked']}"
+          f"                       honored_going_forward={a_new['honored_going_forward']}")
+    # Past history of the old key is still readable (events before the revoke):
+    st_old = project_merchant_standing(events, old, CTX)
+    print("old key past history:", json.dumps(st_old["evidence"]), "(pre-revoke events still fold)")
+    # Forged post-revocation events are present in the log but NOT honored:
+    act = active(events)
+    forged = [e for e in events if "tx_bakery_forged" in e.refs]
+    honored = [e for e in forged if e in act]
+    print(f"forged post-revoke  : {len(forged)} in log, {len(honored)} honored by the fold")
+    print("  tx_bakery_forged state:", project_transaction_state(events, "tx_bakery_forged"),
+          "(its forged offer/approval were dropped -> never leaves intent)")
+    # The new key lineage is intact because the rotation preceded the revoke:
+    lin = project_identity_lineage(events, new)
+    ls = project_lineage_standing(events, new, CTX)
+    print("new key lineage     :", " -> ".join(lin["chain"]),
+          f"(advisory={ls['advisory_signal']}, identity={ls['identity_continuity']} — history carried)")
+
+
 def main() -> None:
     log = base_log()
     show("BEFORE — three clean transactions", log)
@@ -626,11 +784,26 @@ def main() -> None:
     print("    then inherits the old standing — but that is ONE policy (full carry-forward).")
     print("  * Partial carry, standing-only, or no auto-carry are all expressible by what")
     print("    the lineage fold counts. The demo links the identities; it picks no policy.")
+
+    log = revoke_compromised_key(log)
+    show_key_revocation(log)
+
+    print(f"\n{'-' * 66}")
+    print("What this revocation shows (no sixth type; same `nullifies` field):")
+    print("  * Revocation is a KEY id.key_revoke whose `nullifies` names the old key's")
+    print("    register event — appended, never mutating any prior event.")
+    print("  * 'Going forward' is time-scoped: the old key's past events stay readable, but")
+    print("    anything it signs AT/AFTER the revoke timestamp drops out of the fold. The")
+    print("    two forged post-revoke events verify (valid signature) yet are not honored.")
+    print("  * The new key keeps its lineage because the rotation preceded the revoke —")
+    print("    revoking the old key did not orphan the new one. Had the rotation come after,")
+    print("    the old key's rotation event would itself fall after the cutoff and drop out.")
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
     print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
-    print("governance, override-against-warning (AUTHORIZE.contrary_to), AND key rotation /")
-    print("identity continuity (KEY id.key_rotate + the rotation chain) — no sixth type.")
+    print("governance, override-against-warning (AUTHORIZE.contrary_to), key rotation /")
+    print("identity continuity (KEY id.key_rotate + the rotation chain), AND key revocation")
+    print("(KEY id.key_revoke + `nullifies`, time-scoped) — no sixth type.")
     print("(See README for the verdict.)")
 
 
