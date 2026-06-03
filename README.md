@@ -89,6 +89,10 @@ ARC Protocol is based on five beliefs:
 4. Local communities should control fraud, disputes, and expulsion.
 5. Blockchain should be used minimally, only where proof and transparency matter.
 
+**Core design — one idea underneath all of it:** ARC stores only signed **Events**. Trust, reputation, identity, and authority are never stored as records; they are **Projections** — deterministic folds recomputed on demand over the event log, then discarded. There is no stored score, profile, or status anywhere. Not storing the relationship is the structural defense against turning ARC into a social-credit database. (See [Object Model](docs/object-model.md) and [Event Registry](docs/event-registry.md).)
+
+This is not only a claim on paper. [`examples/canon-fold-demo`](examples/canon-fold-demo/) is a small executable probe that folds a signed event log into these projections across nine scenarios — governed disputes, key rotation and revocation, projection caching, and conflicting authority — testing whether five event types (`KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE`) plus a `nullifies` field are enough. They held. Where the probe found a limit — two valid communities issuing *conflicting* rulings about one subject — it reports it honestly: the conflict is *representable* by the canon but not *resolvable* by it, because choosing a winner is an authority-policy question, not a missing event type.
+
 ---
 
 ## 2. The Problem
