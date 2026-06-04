@@ -115,7 +115,12 @@ The authority model already speaks in this vocabulary — "event history," "rela
 
 ## 10. Known Tensions
 
-- **Replay cost.** Computing Relationships on demand avoids stored profiles but pushes work to query time. Caching a projection result re-introduces a profile-shaped artifact; cache scope, lifetime, and visibility are unresolved.
+- **Replay cost.** Computing Relationships on demand avoids stored profiles but pushes work to query time. Caching a projection result *can* re-introduce a profile-shaped artifact — but the canon-fold demo (`examples/canon-fold-demo`) shows caching is a **discipline question, not a new primitive or a missing type**: the Event / Projection split is untouched, and what matters is the *shape* of the cache, not whether one exists. No cache is ever authoritative — the authoritative answer is always the fold recomputed by replay (§5); a cache is at most a hint. Three shapes:
+  - **ephemeral** — scoped to a single replay run and discarded after use. A safe optimization; it never outlives the computation, so it cannot become a stored profile.
+  - **event-bound** — durable but keyed by an `event_set_hash` (plus projection name, subject, and context), reused only as a hint and only while that hash matches the live active set. **Conditionally safe**: because the hash changes the instant the active Event set changes, an event-bound cache *self-invalidates and forces a recompute* rather than serving a stale view.
+  - **durable, unbound** — persisted with no `event_set_hash` binding. **Unsafe**: it is read without replay, cannot notice the Event set changing, and detaches from the log — which is exactly a profile / status / score stored under another name, the object ARC refuses to hold (§6).
+
+  The remaining open questions are the discipline's parameters — cache lifetime, visibility, and who may hold one — not whether the object model needs a cache primitive.
 - **Event set disagreement.** Verifiable replay only guarantees agreement when parties hold the same Events. Communities holding different Event subsets will project different Relationships — the same mechanism that makes reputation local also makes it non-portable (see [reputation.md](./reputation.md) §10).
 - **Selective disclosure.** Sharing a Relationship across contexts means sharing an Event subset, which is exactly where laundering and weak-import risks live ([threat-model.md](./threat-model.md) §13).
 - **The anchor is the equity dial.** A stronger cost gate resists Sybil better but excludes poor-but-honest entrants; cold-start and Sybil resistance are the same dial, not two problems.
