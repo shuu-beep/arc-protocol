@@ -95,6 +95,8 @@ This is not only a claim on paper. [`examples/canon-fold-demo`](examples/canon-f
 
 Where the probe hit a limit — conflicting community rulings, or whether a completed act survives a revoked delegation — the canon still *represented* the situation faithfully. What it left open was a **policy** choice, not a missing event type. That is the recurring result: what leaks out of the five types is always policy or discipline, never a new primitive.
 
+A companion probe, [`examples/canon-ts`](examples/canon-ts/), takes the closed set one step further: it encodes the five types as a TypeScript discriminated union so the *compiler itself* rejects a sixth type — turning "no sixth event type" from a claim in prose into a rule the type-checker enforces on every build.
+
 ---
 
 ## 2. The Problem
