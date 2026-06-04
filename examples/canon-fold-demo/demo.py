@@ -164,6 +164,14 @@ def event_set_hash(events: list[Event]) -> str:
     return "es:" + hashlib.sha256("\n".join(sorted(e.id for e in events)).encode()).hexdigest()[:16]
 
 
+def as_of(events: list[Event], t: str) -> list[Event]:
+    """Replay input restricted to events recorded at or before `t` — a
+    point-in-time fold. Used to contrast 'as the log stood then' with the current
+    log (e.g. whether revoking a delegation cascades over already-completed acts).
+    No new mechanism: a fold is over whatever event subset the reader holds (§5)."""
+    return [e for e in events if e.timestamp <= t]
+
+
 # ---------------------------------------------------------------------------
 # 3. Projections — deterministic folds, NOTHING stored (object-model §4)
 # ---------------------------------------------------------------------------
@@ -550,6 +558,68 @@ def project_lineage_standing(events: list[Event], key: str, context: str) -> dic
     }
 
 
+def _scope_covers(outer: dict | None, needed: dict) -> bool:
+    """Does a mandate `outer` scope cover a `needed` {category, max_total_krw}?
+    A sub-grant may only NARROW: same category (or "*" wildcard) and no more
+    budget. Expiry is checked separately as a time-bound, not here."""
+    if outer is None:
+        return False
+    cat_ok = outer.get("category") in (needed.get("category"), "*")
+    amt_ok = needed.get("max_total_krw", 0) <= outer.get("max_total_krw", 0)
+    return cat_ok and amt_ok
+
+
+def _delegation_mandates_to(events: list[Event], grantee: str) -> list[Event]:
+    """Active AUTHORIZE consent.mandate events that name `grantee` as the delegate.
+    Revoked mandates are already gone — `active()` honors `nullifies` (§4.6)."""
+    return [
+        e for e in active(events)
+        if e.type == "AUTHORIZE" and e.predicate == "consent.mandate"
+        and e.payload.get("delegate") == grantee
+    ]
+
+
+def project_delegated_authority(events: list[Event], agent: str, needed: dict,
+                                at_time: str, principal: str,
+                                _seen: frozenset[str] = frozenset()) -> dict:
+    """Fold the AUTHORIZE consent.mandate chain -> may `agent` authorize an action
+    needing `needed` {category, max_total_krw} at `at_time`? (event-registry §4.3)
+
+    Delegation is NOT a new type: it is AUTHORIZE + `scope` (+ expiry carried in
+    scope) + `nullifies`. The chain bottoms out at the human principal, whose
+    authority over their own action is inherent (authority-and-conflict §3) and
+    needs no upstream grant. Scope-bounds, time-bounds, and the no-redelegation
+    flag are all enforced HERE in the fold; nothing about authority is stored.
+    Returns the validating chain, or the reason the request fails.
+    """
+    if agent == principal:
+        return {"authorized": True, "chain": [principal], "via": None,
+                "reason": "principal: inherent authority over own action"}
+    if agent in _seen:
+        return {"authorized": False, "chain": [], "via": None, "reason": "delegation cycle"}
+    reason = "no mandate grants this agent the action"
+    for m in _delegation_mandates_to(events, agent):
+        sc = m.scope or {}
+        if at_time > sc.get("expires_at", "9999-12-31T00:00:00Z"):
+            reason = "mandate expired at query time"; continue
+        if not _scope_covers(sc, needed):
+            reason = "requested action not within granted scope"; continue
+        grantor = m.payload.get("delegator")
+        up = project_delegated_authority(events, grantor, needed, at_time,
+                                         principal, _seen | {agent})
+        if not up["authorized"]:
+            reason = f"upstream authority broken ({up['reason']})"; continue
+        # no-redelegation: if the grantor is not the principal, the mandate that
+        # gave the GRANTOR its authority must itself have permitted redelegation.
+        if grantor != principal:
+            gm = up["via"]
+            if gm is None or not (gm.scope or {}).get("redelegatable", False):
+                reason = "grantor was not permitted to redelegate"; continue
+        return {"authorized": True, "chain": up["chain"] + [agent], "via": m,
+                "reason": "valid delegation chain"}
+    return {"authorized": False, "chain": [], "via": None, "reason": reason}
+
+
 # ---------------------------------------------------------------------------
 # 4. A hand-built event log (mock data — KRW local-food scenario)
 # ---------------------------------------------------------------------------
@@ -792,6 +862,60 @@ def conflicting_adjudication(events: list[Event]) -> list[Event]:
     return events
 
 
+def delegate_authority(events: list[Event]) -> list[Event]:
+    """Probe: express DELEGATED authority with the existing canon only —
+    AUTHORIZE `consent.mandate` + `scope` (+ expiry in scope) + `nullifies` — with
+    no sixth type (CANONICAL_TYPES is untouched; no CAPABILITY / DELEGATE /
+    AUTHORITY_TOKEN). A human delegates a scoped, time-bounded mandate to Agent A;
+    A sub-delegates a narrower mandate to Agent B; B then attempts to grant Agent C.
+
+    event-registry §4.3 already calls a mandate the SAME AUTHORIZE primitive with a
+    wider scope. Redelegation is a scope flag; revocation is the existing
+    `nullifies` field (§4.6). Each agent has its own anchored KEY (it can sign);
+    the mandate is the separate grant of authority to act on the human's behalf.
+    """
+    P, A, B, C = "k:human_principal", "k:agent_a", "k:agent_b", "k:agent_c"
+    for k, anchor, ts in ((P, "payment-account", "2026-06-10T00:00:00Z"),
+                          (A, "agent-key", "2026-06-10T00:01:00Z"),
+                          (B, "agent-key", "2026-06-10T00:02:00Z"),
+                          (C, "agent-key", "2026-06-10T00:03:00Z")):
+        events.append(make("KEY", k, "id.key_register", ts, payload={"key": k, "anchor": anchor}))
+    # human -> A: a scoped, time-bounded, REDELEGATABLE food mandate.
+    m1 = make("AUTHORIZE", P, "consent.mandate", "2026-06-11T00:00:00Z",
+              refs=(A, P), scope={"category": "food", "max_total_krw": 50000,
+                                  "expires_at": "2026-09-01T00:00:00Z", "redelegatable": True},
+              payload={"delegator": P, "delegate": A})
+    # human -> A: a SECOND, separate mandate (stationery) — for partial revocation.
+    m_st = make("AUTHORIZE", P, "consent.mandate", "2026-06-11T00:05:00Z",
+                refs=(A, P), scope={"category": "stationery", "max_total_krw": 10000,
+                                    "expires_at": "2026-09-01T00:00:00Z", "redelegatable": False},
+                payload={"delegator": P, "delegate": A})
+    # A -> B: a NARROWER, NON-redelegatable sub-mandate (within A's food grant).
+    m2 = make("AUTHORIZE", A, "consent.mandate", "2026-06-12T00:00:00Z",
+              refs=(B, A), scope={"category": "food", "max_total_krw": 20000,
+                                  "expires_at": "2026-09-01T00:00:00Z", "redelegatable": False},
+              payload={"delegator": A, "delegate": B})
+    # B -> C: the ATTEMPT. A validly signed AUTHORIZE, but B's mandate forbade
+    # redelegation — so the fold REPRESENTS this event yet will not HONOR it.
+    m3 = make("AUTHORIZE", B, "consent.mandate", "2026-06-13T00:00:00Z",
+              refs=(C, B), scope={"category": "food", "max_total_krw": 10000,
+                                  "expires_at": "2026-09-01T00:00:00Z", "redelegatable": False},
+              payload={"delegator": B, "delegate": C})
+    events += [m1, m_st, m2, m3]
+    # PARTIAL revocation: withdraw ONLY the stationery mandate (its id in
+    # `nullifies`). An ordinary AUTHORIZE carrying the FIELD, not a revoke type
+    # (§4.6); `consent.withdraw` is an open-namespace predicate (§2.1, §6).
+    events.append(make("AUTHORIZE", P, "consent.withdraw", "2026-08-05T00:00:00Z",
+                       refs=(A, P), nullifies=(m_st.id,),
+                       payload={"reason": "no longer delegating stationery purchases"}))
+    # DOWNSTREAM revocation: later, withdraw A's food mandate (nullifies m1). This
+    # is what collapses B's sub-authority, since B's chain ran through m1.
+    events.append(make("AUTHORIZE", P, "consent.withdraw", "2026-08-10T00:00:00Z",
+                       refs=(A, P), nullifies=(m1.id,),
+                       payload={"reason": "revoke Agent A's food authority"}))
+    return events
+
+
 # ---------------------------------------------------------------------------
 # 5. Run the probe: project before, then after the governed dispute.
 # ---------------------------------------------------------------------------
@@ -1006,6 +1130,50 @@ def show_resolution_policies(events: list[Event]) -> None:
         print(f"  {label:<47} -> {r['resolved_standing']:<14} honors {r['honored_authority']}")
 
 
+def show_delegated_authority(events: list[Event]) -> None:
+    """Probe: can delegated authority live in AUTHORIZE + scope + expiry +
+    `nullifies`, with no sixth type? Human -> Agent A -> Agent B (-> Agent C?)."""
+    P, A, B, C = "k:human_principal", "k:agent_a", "k:agent_b", "k:agent_c"
+    verify_log(events)  # all agent keys anchored; every mandate validly signed
+    print(f"\n{'=' * 66}\nDELEGATED AUTHORITY — human -> Agent A -> Agent B (-> Agent C?)"
+          f"\n{'=' * 66}")
+    food = lambda amt: {"category": "food", "max_total_krw": amt}
+    stat = lambda amt: {"category": "stationery", "max_total_krw": amt}
+    t0, after_r1, after_r2 = ("2026-07-01T00:00:00Z", "2026-08-07T00:00:00Z",
+                              "2026-08-15T00:00:00Z")
+    base = as_of(events, t0)         # before any revocation
+    mid = as_of(events, after_r1)    # stationery mandate revoked
+    final = as_of(events, after_r2)  # A's food mandate revoked too
+
+    def q(label: str, agent: str, needed: dict, at_time: str, evset: list[Event]) -> None:
+        r = project_delegated_authority(evset, agent, needed, at_time, P)
+        chain = " -> ".join(s.split(":", 1)[1] for s in r["chain"]) if r["chain"] else "—"
+        print(f"  {label:<52} {'AUTHORIZED' if r['authorized'] else 'denied':<10} "
+              f"[{chain}]  {r['reason']}")
+
+    print("scope-bounded (human -> A: food <= 50000):")
+    q("A food 30000 (within scope)", A, food(30000), t0, base)
+    q("A food 80000 (over budget)", A, food(80000), t0, base)
+    q("A electronics 30000 (wrong category)", A,
+      {"category": "electronics", "max_total_krw": 30000}, t0, base)
+    print("time-bounded (mandate expires 2026-09-01):")
+    q("A food 30000 at 2026-10-01 (expired)", A, food(30000), "2026-10-01T00:00:00Z", base)
+    print("sub-delegation (A -> B: food <= 20000, redelegatable=False):")
+    q("B food 15000 (within sub-scope)", B, food(15000), t0, base)
+    q("B food 30000 (over A's grant to B)", B, food(30000), t0, base)
+    print("no-redelegation (B tries to grant C):")
+    q("C food 10000 via B's grant", C, food(10000), t0, base)
+    print("partial revocation (human withdraws ONLY the stationery mandate):")
+    q("A food 30000 (food mandate intact)", A, food(30000), after_r1, mid)
+    q("A stationery 5000 (mandate withdrawn)", A, stat(5000), after_r1, mid)
+    print("downstream authority after revocation (human withdraws A's food mandate):")
+    q("A food 30000 (mandate withdrawn)", A, food(30000), after_r2, final)
+    q("B food 15000 (upstream chain broken)", B, food(15000), after_r2, final)
+    print("same act, two readings of the revoke (the finding):")
+    q("B food 15000 acted@2026-07-01, log AS-OF act-time", B, food(15000), t0, base)
+    q("B food 15000 acted@2026-07-01, CURRENT log post-revoke", B, food(15000), t0, final)
+
+
 def main() -> None:
     log = base_log()
     show("BEFORE — three clean transactions", log)
@@ -1124,6 +1292,31 @@ def main() -> None:
     print("    community / federation / bridge rule — not to the canon.")
     print("  * This does NOT dissolve scenario 8's limit: the canon still cannot pick a")
     print("    winner, and a sixth event type still would not say whose ruling is right.")
+
+    log = delegate_authority(log)
+    show_delegated_authority(log)
+
+    print(f"\n{'-' * 66}")
+    print("What this delegation probe shows (no sixth type; AUTHORIZE + scope + `nullifies`):")
+    print("  * Delegation is an ordinary AUTHORIZE consent.mandate carrying a scope (category")
+    print("    + budget), an expiry, and a redelegatable flag — event-registry §4.3 already")
+    print("    calls a mandate the same AUTHORIZE primitive with a wider scope. CANONICAL_TYPES")
+    print("    is unchanged; no CAPABILITY / DELEGATE / AUTHORITY_TOKEN was added.")
+    print("  * The fold walks the mandate chain back to the human principal, whose authority")
+    print("    over their own action is inherent (authority-and-conflict §3) and needs no")
+    print("    upstream grant. Scope- and time-bounds are ENFORCED in the fold: over-budget,")
+    print("    wrong-category, and expired requests are denied; a sub-grant may only narrow.")
+    print("  * No-redelegation is just a scope flag: A->B was issued redelegatable=False, so")
+    print("    B's attempt to grant C is REPRESENTED (a valid AUTHORIZE) but NOT HONORED.")
+    print("  * Revocation is the existing `nullifies` field: withdrawing ONE of A's mandates")
+    print("    leaves the others intact (partial revocation), and withdrawing A's food mandate")
+    print("    collapses B's downstream authority — B's chain no longer reaches the principal.")
+    print("  * The honest LIMIT: the canon REPRESENTS the revoke, but whether B's act that")
+    print("    completed BEFORE the revoke stays valid is a fold reading — as-of-act-time")
+    print("    (preserve) vs current-log (retroactive cascade), shown to diverge above. Both")
+    print("    are expressible; the canon picks neither. As in scenarios 8-9, the residue is a")
+    print("    fold-POLICY choice (revocation-cascade semantics), NOT a missing event type.")
+
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
     print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
@@ -1138,6 +1331,10 @@ def main() -> None:
     print("That gap is fillable by an OUT-OF-CANON policy layer (illustrated: subscriber-")
     print("choice / most-restrictive-wins / explicit-precedence), ARC endorsing none — which")
     print("confirms it is a policy/federation choice, not a missing event type.")
+    print("Delegated authority is REPRESENTABLE on the same canon: AUTHORIZE + scope + expiry")
+    print("+ `nullifies` give scoped, time-bounded, non-redelegable, revocable delegation with")
+    print("no sixth type; what stays open (revocation-cascade semantics) is once more a")
+    print("fold-policy choice, not a missing event type.")
     print("(See README for the verdict.)")
 
 
