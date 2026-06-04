@@ -93,6 +93,13 @@ Subsumes: **warning, suspension, expulsion, reinstatement, appeal ruling, sponso
 
 Any `ATTEST` or `AUTHORIZE` may reference a prior event and withdraw it going forward: **cancel an offer, revoke a mandate, retract a rating**. Modeling withdrawal as a field rather than as per-domain revoke types (`offer_cancel`, `mandate_revoke`, `rating_retract`) is what prevents the most common form of event explosion. `KEY` rotation and revocation are the key-typed instance of the same idea.
 
+**Two readings of `nullifies`.** The same field is read two ways depending on what it withdraws, and the difference is in the fold, not in the type:
+
+- **Ordinary withdrawal — timeless.** When `nullifies` names a specific `ATTEST` or `AUTHORIZE` (cancel an offer, retract a rating, revoke a mandate), that referenced event is withdrawn outright. The fold drops it regardless of when it was signed.
+- **Key revocation — time-scoped.** A compromised key is withdrawn with a `KEY` event carrying the `id.key_revoke` predicate, whose `nullifies` names the key's own register event. Here "going forward" is read against the revoke timestamp: the key's register and everything it signed **before** the revoke stay readable, but anything it signs **at or after** the revoke timestamp is not honored by the fold. The register is deliberately kept so the chain remains walkable and past events still verify.
+
+The canon-fold demo (`examples/canon-fold-demo`) exercises this: a compromised key is revoked with `KEY` `id.key_revoke` + `nullifies` — no `KEY_REVOKE` or other sixth type — and two forged post-revoke events verify cryptographically yet drop out of the fold, while the key's pre-revoke history continues to fold normally. What differs between the two readings is **fold-policy semantics**, not the event vocabulary; revocation needs no new primitive.
+
 ## 5. The Event Envelope
 
 ```txt
@@ -186,7 +193,7 @@ No capability requires a sixth type. That is the irreducibility result.
 ## 10. Known Tensions and Open Questions
 
 - **`CHALLENGE` is the most reducible.** It is close to `ATTEST(harm) + invoke-review`, and "invoke review" could be a projection rule on a predicate. It is kept as a primitive only because it is the constitutional act of crossing from the human domain into the commons ([authority-and-conflict.md](./authority-and-conflict.md) §7). Demoting it to four types is defensible.
-- **Revocation: field vs type.** Modeling withdrawal as `nullifies` avoids explosion but spreads withdrawal semantics across types. Elevating it to a primitive is a reasonable alternative.
+- **Revocation: field vs type.** Modeling withdrawal as `nullifies` avoids explosion but spreads withdrawal semantics across types. Elevating it to a primitive is a reasonable alternative. The canon-fold demo confirms revocation needs no sixth type — a compromised key is withdrawn with `KEY` `id.key_revoke` + `nullifies` — but it surfaces that `nullifies` carries two readings (timeless ordinary withdrawal vs time-scoped key revocation; see §4.6). The remaining issue is **fold-policy semantics** — how the projection interprets "going forward" — not an event-type gap.
 - **`intent.canonical` as an event.** Recording parsed intent has a cost (it captures user data), but omitted-constraint attacks (`compromised-consumer-agent.json`) are only detectable if intent is attested. The trade-off is unresolved.
 - **No native commitment/offer type.** An offer is an `ATTEST`; its acceptance-and-expiry semantics are handled by an `AUTHORIZE` referencing the offer within its validity window, checked by projection. Some protocols elevate commitments to a primitive; ARC does not, for now.
 - **No native transfer.** If a future ARC-compatible system ever *holds* value (escrow), a real transfer primitive could re-emerge. For v0.1 it stays an `ATTEST` about an external fact.
