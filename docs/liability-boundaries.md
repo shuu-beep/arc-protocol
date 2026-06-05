@@ -114,7 +114,17 @@ Potential risks include:
 
 A future governance system should treat serious penalties as reviewable, appealable, and limited to the scope of the ARC-compatible community unless legal authority exists outside the protocol.
 
-## 8. Current Position
+## 8. Divergent Projections and Real Harm
+
+Because ARC stores events and computes relationships as on-demand projections, two communities holding different event subsets can produce opposite projections for the same merchant — one reading `suspended`, another `in_good_standing`. This is not a bug; it is the expected result of locality. The cost is documented as a spatial trade-off in [trust-model-tradeoffs.md](./trust-model-tradeoffs.md) §4, and the divergence is exercised directly in [`examples/canon-fold-demo`](../examples/canon-fold-demo/) as the event-set-disagreement scenario.
+
+ARC's answer here is consistent with its authority model: a projection is advisory, not authoritative. A human is the final authority over their own action and their own risk ([authority-and-conflict.md](./authority-and-conflict.md) §3). ARC gives no guarantee that a user's community holds a complete event set, and makes no representation about what another community's projection will show — a user reading `in_good_standing` may simply be missing the events another community holds.
+
+If a user is harmed because their community's event set was incomplete or stale, ARC cannot adjudicate that harm — it has no global view to adjudicate from, by design. The appropriate remedies are the same as in any commerce failure: a payment-provider dispute, consumer protection law, or a local governance process — not the ARC protocol. ARC's role is to make the divergence inspectable (which event set, and which authority, produced which projection), not to resolve it.
+
+This is a known limitation, not a design oversight.
+
+## 9. Current Position
 
 ARC should remain honest about this boundary:
 
