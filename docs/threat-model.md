@@ -759,6 +759,12 @@ The protocol should be judged by whether it makes manipulation harder to hide, e
 * how to prevent reputation from drifting into social credit infrastructure
 * how to support regulated domains without unauthorized practice risks
 
+### 18.1 The Adoption Frontier
+
+Why a rational counterparty would choose to honor a particular community's authority — rather than ignore, fork, or defect — remains an open question. It is the first frontier that ARC's executable-probe methodology cannot reach: adoption incentives are off-ledger and do not fold. The canon can *represent* a sanction and *select* who honors it, but it cannot model the *incentive* to honor.
+
+The question belongs to coordination economics: switching costs, network effects, legitimacy signals, trust markets. ARC intentionally leaves it unresolved. The right entry point is "why might a party *not* honor this authority" — not a confident adoption model. Asserting one prematurely would misrepresent ARC's current state.
+
 ---
 
 ## 19. Current Status

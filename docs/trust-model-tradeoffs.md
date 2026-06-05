@@ -34,6 +34,8 @@ ARC favors local, contextual, non-transferable reputation ([reputation.md](./rep
 
 This is a legitimate choice, but it does not dissolve the trilemma. It **relocates** it — to the boundary between communities (spatial axis, §4) — and it leaves one face of the problem entirely untouched (temporal axis, §5).
 
+Locality is also ARC's scaling stance: by reducing the global negotiation surface, it lowers scaling pressure. This is not a claim that ARC solves internet-scale coordination — it is a claim that ARC tries to need less of it.
+
 ## 4. The Spatial Axis: Portability ↔ Sybil-resistance ↔ Privacy
 
 Locality relaxes this axis *inside* a single community: within one bounded context, trust is local, cheap to keep contextual, and needs no global score.

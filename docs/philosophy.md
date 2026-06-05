@@ -164,6 +164,8 @@ Speed lives in databases and APIs.
 Trust lives in cryptographic signatures and community records.
 Sovereignty lives with humans.
 
+ARC is closer to an **evidence-projection system** than a reputation-score system: there is no number to optimize or game. Standing is a contextual, reviewable, fallible fold over signed evidence — completion records, credentials, dispute outcomes, counterparty diversity — recomputed on demand and never stored.
+
 ---
 
 ## 7. What We Are Not Claiming
