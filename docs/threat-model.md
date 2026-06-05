@@ -107,6 +107,38 @@ Open question:
 How can ARC preserve open participation without allowing cheap fake identity creation to dominate trust signals?
 ```
 
+#### 4.1.1 Agent Multiplication and the Event Horizon
+
+Agent multiplication is the agent-granularity form of Sybil amplification: one
+actor runs many agents, so many signatures need not mean many independent
+counterparties. The standing fold's distinct-signer down-weight (`object-model.md`
+§8) is defeated when one actor holds many keys, and the canon can collapse those
+keys to a single principal only when the shared root is *voluntarily disclosed*.
+This makes voluntary disclosure incentive-incompatible — it correctly collapses
+disclosed sibling agents, but an adversary simply omits the linkage and avoids
+the same correction. The asymmetry is exercised in
+[`examples/canon-fold-demo`](../examples/canon-fold-demo/) (scenario 11).
+
+A few boundaries follow, stated as limitations rather than guarantees:
+
+* ARC only observes agents once their activity crosses the commons boundary.
+* Pure local workflow agents — agents that never sign a commons-visible event —
+  are outside ARC's event horizon.
+* This boundary is not a safety guarantee; it is a structural limitation. ARC is
+  structurally near-sighted about how many sibling agents stand behind any single
+  commons-crossing signature.
+* Undisclosed sibling agents cannot be certainly collapsed without a stored
+  identity graph or an external cost gate — and both are constitutional
+  trade-offs ARC does not take (the first against the no-stored-relationship /
+  anti-social-credit discipline, the second against value-neutrality).
+* Therefore ARC treats this as local, probabilistic, review-triggered risk rather
+  than automatic punishment: behavioral-correlation review may *suggest* scrutiny
+  of a suspicious cluster, but it does not impose a penalty, and it is fallible.
+
+Deployment topology (for example, agents running on a personal device versus a
+hosted node) is implementation-specific and is **not** part of the Canon; it does
+not change what ARC observes, which is only the commons-crossing events.
+
 ### 4.2 Fake Merchants
 
 A fake merchant may publish attractive offers, collect payment, and disappear.
