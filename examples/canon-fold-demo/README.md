@@ -10,8 +10,9 @@ prior is documentation.
 
 ## What it tests
 
-Nine claims from the canon, each made concrete — the eighth finds a limit, the
-ninth shows where that limit belongs:
+Eleven claims from the canon, each made concrete — the eighth finds a limit, the
+ninth shows where that limit belongs, and the eleventh sharpens a limit into a
+constitutional trade-off:
 
 1. **A Relationship is a fold over a signed Event log** — not a stored object.
    Reputation, standing, identity status, and transaction state are all
@@ -89,6 +90,33 @@ ninth shows where that limit belongs:
    federation / bridge concern. This does not dissolve the eighth's limit: the
    canon still cannot pick a winner, and a sixth event type still would not.
    (`docs/authority-and-conflict.md` §5)
+
+10. **Delegated authority needs no sixth type.** A human delegates a scoped,
+    time-bounded mandate with an ordinary `AUTHORIZE` (`consent.mandate`)
+    carrying `scope` (category + budget + expiry + a `redelegatable` flag); an
+    agent sub-delegates a *narrower* mandate; revocation is the existing
+    `nullifies` field. The fold walks each mandate chain back to the human
+    principal — whose authority over their own action is inherent — and enforces
+    scope-, time-, and redelegation-bounds: over-budget, wrong-category, and
+    expired requests are denied, a sub-grant may only narrow, and a forbidden
+    re-grant is *represented* yet not *honored*. No `CAPABILITY` / `DELEGATE` /
+    `AUTHORITY_TOKEN` primitive. The one open question — does an act completed
+    *before* a revoke survive it? — is a fold-policy choice (as-of-act-time vs
+    current-log), not a missing type.
+    (`docs/delegation-and-spending-mandates.md`, `docs/event-registry.md` §4.3)
+
+11. **Agent multiplication exposes a trade-off, not a missing type.** One actor
+    can run many agents, so many signatures need not mean many independent
+    counterparties. The standing fold down-weights by distinct signer
+    (`object-model.md` §8), but that is defeated by one actor holding many keys —
+    unless the keys can be collapsed to a principal, which the canon learns only
+    from a *voluntary* `ATTEST` `id.controls`. So the collapse is asymmetric: an
+    honest cluster that discloses is deflated (`trusted` → `unproven`); a hidden
+    cluster that discloses nothing keeps its inflated signal. Voluntary root
+    disclosure is incentive-incompatible. Certain global collapse would require a
+    stored identity graph or an external cost gate — both constitutional
+    trade-offs; ARC instead takes local, probabilistic, review-only resistance.
+    No sixth type. (`object-model.md` §8, `docs/threat-model.md`)
 
 ## Run
 
@@ -218,9 +246,44 @@ endorses none of the three policies. This is shown the same way the rotation
 scenario showed carry-forward as one policy among several: the demo demonstrates
 that the choice is *expressible* as policy, and declines to pick one.
 
+A tenth scenario probes **delegated authority**. A human principal issues a
+scoped, time-bounded `AUTHORIZE` `consent.mandate` (category `food`, a budget, an
+expiry, `redelegatable = True`) to Agent A; A sub-delegates a narrower,
+non-redelegatable mandate to Agent B; B then tries to grant Agent C. The fold
+walks each mandate chain back to the principal — whose authority over their own
+action is inherent — and enforces the bounds: over-budget, wrong-category, and
+expired requests are denied, a sub-grant may only narrow, and B's attempt to
+grant C is *represented* (a valid `AUTHORIZE`) but not *honored*, because B's
+mandate forbade redelegation. Revocation is the existing `nullifies` field:
+withdrawing one of A's mandates leaves the others intact, and withdrawing A's
+food mandate collapses B's downstream authority. The one open question — does an
+act B completed *before* the revoke stay valid? — is shown to diverge between an
+as-of-act-time fold and a current-log fold; the canon represents both and picks
+neither. No `CAPABILITY` / `DELEGATE` primitive is added.
+
+An eleventh scenario is adversarial again: **agent multiplication / Sybil
+amplification**. One actor can run many agents, and the standing fold's
+distinct-signer down-weight (`object-model.md` §8) is defeated when one actor
+holds many keys. Two clusters each post three positive `rep.outcome` ATTESTs to
+inflate a target merchant, and a naive fold reads *both* targets as `trusted`
+(three distinct signers each). But one cluster's root has **voluntarily
+disclosed** control of its agents via an `ATTEST` `id.controls`, so a root-aware
+fold collapses those three raters to one principal and the signal deflates to
+`unproven`; the other cluster discloses nothing, cannot be collapsed, and stays
+`trusted`. The asymmetry is the finding: **voluntary root disclosure is
+incentive-incompatible — it correctly collapses disclosed sibling agents, but
+adversarial siblings can simply omit the linkage and avoid the same correction.**
+A third reading shows the local, probabilistic review trigger (a tight burst of
+undisclosed raters) firing on the hidden cluster only — and it changes no
+standing and is fallible by design (a genuinely popular merchant trips it too).
+ARC's event horizon is the commons boundary: an agent doing only local work signs
+no commons event and is invisible here; it enters the model only when it crosses
+that boundary.
+
 ## What it found (the verdict)
 
-For this slice, the canon largely held — with one honest limit (the eighth):
+For this slice, the canon largely held — with two honest limits (the eighth, and
+the eleventh, which is sharper):
 
 - The five types were sufficient to *represent* every scenario; no capability
   forced a sixth type. (Resolving competing authority is a separate matter — see
@@ -274,6 +337,24 @@ For this slice, the canon largely held — with one honest limit (the eighth):
   softening it: the choice lives with the reader / community / federation, ARC
   picks none, and no sixth type was needed to express any of the policies. The
   canon represents the facts; the policy layer chooses which authority to honor.
+- Delegated authority needed no sixth type: an `AUTHORIZE` `consent.mandate` with
+  `scope` + expiry + a `redelegatable` flag, revoked through `nullifies`,
+  expressed scoped, time-bounded, non-redelegable, revocable delegation, with the
+  fold enforcing every bound back to the human principal. What stayed open —
+  whether an act completed *before* a revoke survives it — is a fold-policy choice
+  (as-of-act-time vs current-log), not a missing primitive.
+- Agent multiplication revealed the sharpest edge so far — and still no sixth
+  type. The canon can collapse many agents to one principal *only* when the
+  shared root is voluntarily disclosed (`ATTEST` `id.controls`), so the collapse
+  penalizes honest disclosers while a hidden actor evades it: voluntary
+  disclosure is incentive-incompatible. **Scenario 11 does not reveal a missing
+  event type. It reveals that certain global agent-level Sybil resistance would
+  require either a stored identity graph, an external cost gate, or acceptance of
+  local, probabilistic, fallible review. ARC's current position is the third:
+  local and probabilistic resistance, with review triggers rather than automatic
+  penalties.** Unlike the earlier limits, this residue is not merely a policy
+  choice — it is a trade-off among anti-social-credit, value-neutrality, and
+  Sybil resistance, and the three cannot all hold at once.
 
 ## Deliberate limitations
 
@@ -286,8 +367,14 @@ This probe does **not** attempt, and should not be read as solving:
   the revoke event itself; none of that is modeled here. Both key *rotation* and
   key *revocation* are now exercised in code.
 - **Sybil resistance.** The fold includes a toy down-weight (trust counts only
-  from *distinct* counterparties), gesturing at `object-model.md` §8. Real
-  graph-shape heuristics (circularity, velocity, low diversity) are out of scope.
+  from *distinct* counterparties), gesturing at `object-model.md` §8. The
+  eleventh scenario now *probes* its agent-granularity limit — many agents under
+  one actor defeat the distinct-signer count unless their shared root is
+  voluntarily disclosed — and shows the collapse is asymmetric and the review
+  trigger heuristic. It does **not** implement real graph-shape heuristics
+  (circularity, velocity, low diversity), a stored identity graph, or a cost
+  gate; certain agent-level Sybil resistance is explicitly out of scope, treated
+  as a constitutional trade-off rather than a solved problem.
 - **Portability, and the limits of the cache model.** Caching is now *probed*
   (seventh scenario), but only as a shape classifier: it labels a cache safe /
   conditionally safe / profile-like and shows event-bound self-invalidation. It

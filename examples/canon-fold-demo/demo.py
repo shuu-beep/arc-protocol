@@ -28,6 +28,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field, asdict
+from datetime import datetime
 from typing import Any, Callable
 
 # ---------------------------------------------------------------------------
@@ -620,6 +621,127 @@ def project_delegated_authority(events: list[Event], agent: str, needed: dict,
     return {"authorized": False, "chain": [], "via": None, "reason": reason}
 
 
+def _parse_ts(ts: str) -> datetime:
+    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+
+
+# ---------------------------------------------------------------------------
+#   Agent multiplication / root collapse (object-model §8 Sybil down-weight)
+# ---------------------------------------------------------------------------
+# ARC's event horizon is the commons boundary: an agent that only does local
+# work — never signing a commons-visible event — is invisible to ARC and out of
+# scope. The instant an agent signs a commons event (here a `rep.outcome`
+# ATTEST) it becomes visible. That raises the probe's question: one actor can
+# run many agents, so many signatures need not mean many independent
+# counterparties. The standing fold already down-weights by DISTINCT signer
+# (object-model §8); this asks whether that distinctness can be trusted when one
+# actor holds many keys. Collapsing keys to a principal requires KNOWING the keys
+# share a root — and the canon learns that only if the root DISCLOSES it. No new
+# type: disclosure is `id.controls`, an open-namespace predicate (event-registry
+# §6); nothing is stored, the link is re-read from the log each fold.
+
+def _disclosed_control(events: list[Event]) -> dict[str, str]:
+    """agent_key -> disclosed root_key, from ATTEST `id.controls` events.
+
+    A root VOLUNTARILY discloses the agent keys it controls by signing an ATTEST
+    `id.controls` naming those keys in `refs`. Nothing forces this: an attacker
+    simply omits it. Undisclosed keys never appear here — which is the whole
+    point of the probe."""
+    control: dict[str, str] = {}
+    for e in active(events):
+        if e.type == "ATTEST" and e.predicate == "id.controls":
+            for agent in e.refs:
+                control[agent] = e.signer
+    return control
+
+
+def _principal_of(control: dict[str, str], key: str) -> str:
+    """The disclosed root for a key, or the key itself if no disclosure links it.
+    An undisclosed Sybil agent is therefore counted as its own principal."""
+    return control.get(key, key)
+
+
+def project_merchant_standing_root_aware(events: list[Event], merchant: str,
+                                         context: str) -> dict:
+    """The standing fold (object-model §8) with raters COLLAPSED to their
+    disclosed root before counting distinct counterparties. Disclosed sibling
+    agents count as ONE principal; undisclosed agents count as themselves. This
+    is the only Sybil collapse the canon can do from events alone — and it bites
+    exactly the actors who chose to disclose."""
+    control = _disclosed_control(events)
+    evs = active(events)
+    outcomes = [e for e in evs if e.type == "ATTEST" and e.predicate == "rep.outcome"
+                and merchant in e.refs and e.payload.get("context") == context]
+    positive = sum(1 for e in outcomes if e.payload.get("result") == "positive")
+    negative = sum(1 for e in outcomes if e.payload.get("result") == "negative")
+    disputes = sum(1 for e in evs if e.type == "CHALLENGE"
+                   and e.predicate == "dispute.open" and merchant in e.refs)
+    raw_raters = len({e.signer for e in outcomes})
+    principals = len({_principal_of(control, e.signer) for e in outcomes})
+    return {
+        "merchant": merchant,
+        "advisory_signal": _advisory_signal(positive, negative, disputes, principals),
+        "distinct_raters_raw": raw_raters,
+        "distinct_principals": principals,
+        "collapsed": raw_raters - principals,
+    }
+
+
+def project_correlation_suspicion(events: list[Event], merchant: str, context: str,
+                                  window_minutes: int = 30, threshold: int = 3) -> dict:
+    """Exit C made concrete: a LOCAL, PROBABILISTIC review trigger — not a verdict.
+
+    It flags when `threshold`+ UNDISCLOSED raters endorse the same subject in the
+    same context inside a `window_minutes` burst — a behavioral smell of one actor
+    behind many keys. It changes NO standing and imposes NO penalty; it only
+    suggests human/community review. It is fallible BY DESIGN: a genuinely popular
+    merchant rated by real independent people in a burst trips it too (a false
+    positive). This is the closest thing to ARC's actual Sybil stance: local,
+    probabilistic, review-only — never automatic global dedup."""
+    control = _disclosed_control(events)
+    evs = active(events)
+    undisclosed = sorted(
+        (e for e in evs if e.type == "ATTEST" and e.predicate == "rep.outcome"
+         and merchant in e.refs and e.payload.get("context") == context
+         and e.signer not in control),
+        key=lambda e: e.timestamp,
+    )
+    times = [_parse_ts(e.timestamp) for e in undisclosed]
+    burst = 0
+    for i, t0 in enumerate(times):  # tightest window holding the most raters
+        n = sum(1 for t in times[i:] if (t - t0).total_seconds() <= window_minutes * 60)
+        burst = max(burst, n)
+    return {
+        "merchant": merchant,
+        "undisclosed_raters": len(undisclosed),
+        "max_burst_in_window": burst,
+        "review_suggested": burst >= threshold,
+        "changes_standing": False,   # invariant: a trigger, never a penalty
+        "fallible": True,            # would also flag a real popularity burst
+    }
+
+
+def project_root_collapse_summary(events: list[Event], disclosed_subject: str,
+                                  hidden_subject: str, context: str) -> dict:
+    """Make the disclosed/undisclosed ASYMMETRY explicit in one view. The honest
+    cluster is deflated by the collapse; the hidden cluster is untouched, because
+    the canon cannot prove undisclosed keys share a root without a stored identity
+    graph or an external cost gate — both constitutional trade-offs."""
+    d_raw = project_merchant_standing(events, disclosed_subject, context)
+    d_col = project_merchant_standing_root_aware(events, disclosed_subject, context)
+    h_raw = project_merchant_standing(events, hidden_subject, context)
+    h_col = project_merchant_standing_root_aware(events, hidden_subject, context)
+    return {
+        "disclosed_root_detected": d_col["collapsed"] > 0,
+        "local_collapse_possible": d_col["collapsed"] > 0,
+        "hidden_root_detected": h_col["collapsed"] > 0,        # False: never disclosed
+        "certain_global_dedup_possible": False,                # needs graph or cost gate
+        "voluntary_disclosure_penalizes_honest_participants":
+            d_col["advisory_signal"] != d_raw["advisory_signal"]
+            and h_col["advisory_signal"] == h_raw["advisory_signal"],
+    }
+
+
 # ---------------------------------------------------------------------------
 # 4. A hand-built event log (mock data — KRW local-food scenario)
 # ---------------------------------------------------------------------------
@@ -916,6 +1038,56 @@ def delegate_authority(events: list[Event]) -> list[Event]:
     return events
 
 
+def agent_multiplication(events: list[Event]) -> list[Event]:
+    """Probe: agent multiplication / root collapse / agent-level Sybil
+    amplification. One actor can run many agents; many signatures need not mean
+    many independent counterparties. Adds NO new type, NO agent type, NO global
+    one-human-one-agent rule, NO stored identity graph, NO cost gate.
+
+    Two clusters each post three inflating `rep.outcome` ATTESTs at a target:
+      * HONEST cluster — three agents whose root VOLUNTARILY discloses control of
+        them via an ATTEST `id.controls`. The root-aware fold collapses them to
+        one principal, deflating the inflated signal.
+      * SYBIL cluster — three agents held by one HIDDEN actor that discloses
+        nothing. The canon cannot prove they share a root, so the collapse never
+        fires and the inflated signal stands.
+
+    The asymmetry IS the finding: voluntary disclosure penalizes the honest and is
+    simply omitted by the attacker.
+    """
+    root, da1, da2, da3 = "k:root_owner", "k:agent_d1", "k:agent_d2", "k:agent_d3"
+    ha1, ha2, ha3 = "k:agent_h1", "k:agent_h2", "k:agent_h3"
+    shop_d, shop_h = "k:shop_disclosed", "k:shop_hidden"
+    # KEY registers. ARC enforces NO cost here, so spinning up keys is free —
+    # that freeness is exactly what makes the farm cheap (the absent cost gate).
+    for k, anchor, ts in (
+        (root, "payment-account", "2026-06-15T00:00:00Z"),
+        (da1, "agent-key", "2026-06-15T00:01:00Z"),
+        (da2, "agent-key", "2026-06-15T00:02:00Z"),
+        (da3, "agent-key", "2026-06-15T00:03:00Z"),
+        (ha1, "agent-key", "2026-06-15T00:04:00Z"),
+        (ha2, "agent-key", "2026-06-15T00:05:00Z"),
+        (ha3, "agent-key", "2026-06-15T00:06:00Z"),
+    ):
+        events.append(make("KEY", k, "id.key_register", ts, payload={"key": k, "anchor": anchor}))
+    # HONEST disclosure: the root signs ONE ATTEST id.controls naming its agents.
+    # Open-namespace predicate (event-registry §6); no new type. This is the
+    # moment the actor crosses ARC's event horizon and becomes collapsible.
+    events.append(make("ATTEST", root, "id.controls", "2026-06-15T01:00:00Z",
+                       refs=(da1, da2, da3),
+                       payload={"note": "voluntary disclosure of common control"}))
+    # Both clusters pump three positive outcomes at their target, in a tight burst.
+    for agent, ts in ((da1, "2026-06-20T10:00:00Z"), (da2, "2026-06-20T10:05:00Z"),
+                      (da3, "2026-06-20T10:10:00Z")):
+        events.append(make("ATTEST", agent, "rep.outcome", ts, refs=("tx_pump_d", shop_d),
+                           payload={"result": "positive", "context": CTX}))
+    for agent, ts in ((ha1, "2026-06-21T10:00:00Z"), (ha2, "2026-06-21T10:05:00Z"),
+                      (ha3, "2026-06-21T10:10:00Z")):
+        events.append(make("ATTEST", agent, "rep.outcome", ts, refs=("tx_pump_h", shop_h),
+                           payload={"result": "positive", "context": CTX}))
+    return events
+
+
 # ---------------------------------------------------------------------------
 # 5. Run the probe: project before, then after the governed dispute.
 # ---------------------------------------------------------------------------
@@ -1174,6 +1346,38 @@ def show_delegated_authority(events: list[Event]) -> None:
     q("B food 15000 acted@2026-07-01, CURRENT log post-revoke", B, food(15000), t0, final)
 
 
+def show_agent_multiplication(events: list[Event]) -> None:
+    """Probe: many agents, one actor — can the canon collapse the influence?"""
+    shop_d, shop_h = "k:shop_disclosed", "k:shop_hidden"
+    verify_log(events)  # every agent key anchored; every outcome validly signed
+    print(f"\n{'=' * 66}\nAGENT MULTIPLICATION — many agents, one actor (Sybil amplification)"
+          f"\n{'=' * 66}")
+    dr = project_merchant_standing(events, shop_d, CTX)
+    hr = project_merchant_standing(events, shop_h, CTX)
+    print("naive fold (distinct signers, no root awareness):")
+    print(f"  disclosed-cluster target : advisory={dr['advisory_signal']:<8} "
+          f"raters={dr['evidence']['distinct_counterparties']}  (3 agents -> looks trusted)")
+    print(f"  hidden-cluster   target  : advisory={hr['advisory_signal']:<8} "
+          f"raters={hr['evidence']['distinct_counterparties']}  (3 agents -> looks trusted)")
+    dc = project_merchant_standing_root_aware(events, shop_d, CTX)
+    hc = project_merchant_standing_root_aware(events, shop_h, CTX)
+    print("root-aware fold (collapse raters to their DISCLOSED root):")
+    print(f"  disclosed-cluster target : advisory={dc['advisory_signal']:<8} "
+          f"principals={dc['distinct_principals']} (collapsed {dc['collapsed']})  -> influence DEFLATED")
+    print(f"  hidden-cluster   target  : advisory={hc['advisory_signal']:<8} "
+          f"principals={hc['distinct_principals']} (collapsed {hc['collapsed']})  -> NOT deflated")
+    print("asymmetry:")
+    for k, v in project_root_collapse_summary(events, shop_d, shop_h, CTX).items():
+        print(f"  {k:<52} = {v}")
+    sd = project_correlation_suspicion(events, shop_d, CTX)
+    sh = project_correlation_suspicion(events, shop_h, CTX)
+    print("exit C — local probabilistic review trigger (no penalty, fallible):")
+    print(f"  disclosed-cluster target : undisclosed_raters={sd['undisclosed_raters']} "
+          f"review_suggested={sd['review_suggested']}  (disclosed -> not a hidden burst)")
+    print(f"  hidden-cluster   target  : undisclosed_raters={sh['undisclosed_raters']} "
+          f"review_suggested={sh['review_suggested']}  (burst smell -> review, not a verdict)")
+
+
 def main() -> None:
     log = base_log()
     show("BEFORE — three clean transactions", log)
@@ -1317,6 +1521,38 @@ def main() -> None:
     print("    are expressible; the canon picks neither. As in scenarios 8-9, the residue is a")
     print("    fold-POLICY choice (revocation-cascade semantics), NOT a missing event type.")
 
+    log = agent_multiplication(log)
+    show_agent_multiplication(log)
+
+    print(f"\n{'-' * 66}")
+    print("What this multiplication probe shows (event horizon + an honest asymmetry):")
+    print("  * ARC's event horizon is the commons boundary. Agents doing only local work")
+    print("    sign no commons event and are invisible to ARC; they enter the model only")
+    print("    when they sign a commons-visible event (here a rep.outcome ATTEST). The")
+    print("    problem is not multiple agents existing — it is unbounded active influence")
+    print("    crossing that boundary.")
+    print("  * Many signatures need not mean many independent counterparties. The standing")
+    print("    fold already down-weights by distinct signer (object-model §8) — but one")
+    print("    actor holding many keys defeats that unless the keys can be collapsed.")
+    print("  * Collapse needs to KNOW the keys share a root. The canon learns that only")
+    print("    from a VOLUNTARY ATTEST id.controls — no new type, no stored identity graph.")
+    print("  * So the collapse is asymmetric: the honest cluster that discloses is deflated")
+    print("    (trusted -> unproven); the hidden cluster that discloses nothing keeps its")
+    print("    inflated signal. Voluntary disclosure penalizes the honest and is simply")
+    print("    omitted by the attacker — it is NOT a sufficient Sybil defense.")
+    print("  * Three design exits, each a constitutional trade-off OUTSIDE the canon:")
+    print("      A. global+certain dedup via a STORED identity graph — stronger collapse,")
+    print("         but violates the no-stored-relationship / anti-social-credit discipline.")
+    print("      B. global+certain dedup via an external COST GATE on keys — stronger Sybil")
+    print("         resistance, but introduces economic exclusion / value or provider")
+    print("         dependency (event-registry §10: ARC custodies no value).")
+    print("      C. local + PROBABILISTIC behavioral review — fallible, local, review-only,")
+    print("         no automatic penalty. This is closest to ARC's existing position.")
+    print("  * Honest verdict: ARC does NOT solve agent-level Sybil resistance absolutely.")
+    print("    Its position is local + probabilistic + fallible resistance, not global")
+    print("    certain dedup. Agent multiplication is REPRESENTABLE; certain resolution")
+    print("    would require a constitutional trade-off (A or B) outside the canon.")
+
     print(f"{'-' * 66}")
     print("Sufficiency: KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE + `nullifies`")
     print("covered identity, offer, approval, payment, fulfillment, reputation, dispute,")
@@ -1335,6 +1571,13 @@ def main() -> None:
     print("+ `nullifies` give scoped, time-bounded, non-redelegable, revocable delegation with")
     print("no sixth type; what stays open (revocation-cascade semantics) is once more a")
     print("fold-policy choice, not a missing event type.")
+    print("Agent multiplication is REPRESENTABLE too, but exposes a sharper edge: the canon")
+    print("can collapse many agents to one principal ONLY when their shared root is")
+    print("voluntarily disclosed (ATTEST id.controls), so the collapse penalizes honest")
+    print("disclosers while a hidden actor evades it. Certain agent-level Sybil resistance")
+    print("would need a stored identity graph or an external cost gate — both constitutional")
+    print("trade-offs outside the canon. ARC's honest position is local + probabilistic +")
+    print("fallible resistance, not global certain dedup — still no sixth event type.")
     print("(See README for the verdict.)")
 
 
