@@ -6,7 +6,7 @@
 >
 > This document depends on two others and should not be read alone. For what an Event *is* and why nothing derived is stored, see [object-model.md](./object-model.md). For who holds authority when signals conflict, see [authority-and-conflict.md](./authority-and-conflict.md).
 >
-> This is a protocol-layer vocabulary, not a wire format and not a message-type list. The exploratory message types in [protocol.md](./protocol.md) §6 and [architecture.md](./architecture.md) §4 are application-level and are **not** reconciled here; that is deferred future work.
+> This is a protocol-layer vocabulary, not a wire format and not a message-type list. The exploratory message types in [protocol.md](./protocol.md) §6 and [architecture.md](./architecture.md) §4 are application-level; those documents have since been aligned with this registry. This registry remains the vocabulary, not the normative wire format.
 
 ---
 
@@ -151,11 +151,11 @@ Projections are defined in [object-model.md](./object-model.md) §4 and are not 
 - **transaction state** consumes a transaction's `ATTEST` / `AUTHORIZE` / `nullifies` references.
 - **discovery ranking** consumes `ATTEST{commerce.offer}` plus the reputation projection plus disclosed sponsorship attestations.
 
-A reputation score, an identity badge, and a transaction state are therefore outputs of projections — not stored objects and not events. Existing documents that present a stored `reputation_score` predate this model; they are intentionally left unchanged in this patch.
+A reputation score, an identity badge, and a transaction state are therefore outputs of projections — not stored objects and not events. Earlier documents that presented a stored `reputation_score` have since been reconciled to this projection model (README §8, architecture §7.1, identity §8.1).
 
 ## 8. Illustrative Mapping (Non-Binding)
 
-How existing exploratory message types and states would relate to this set, for orientation only. This is **not** a reconciliation of [protocol.md](./protocol.md) or [architecture.md](./architecture.md); those documents are unchanged.
+How the exploratory message types and states relate to this set, for orientation. The mapping below is an orientation aid, not the normative wire format; [protocol.md](./protocol.md) and [architecture.md](./architecture.md) have since been aligned with this registry.
 
 | Existing name | Canonical | Note |
 | --- | --- | --- |
@@ -203,4 +203,4 @@ No capability requires a sixth type. That is the irreducibility result.
 
 This is an exploratory canonical draft. No implementation exists.
 
-It proposes the irreducible event vocabulary implied by [object-model.md](./object-model.md) and [authority-and-conflict.md](./authority-and-conflict.md). It does not modify the existing message-type or state documents; reconciling [protocol.md](./protocol.md), [architecture.md](./architecture.md), and the stored-score fields against this registry is the next useful step and is intentionally out of scope for this additive draft.
+It proposes the irreducible event vocabulary implied by [object-model.md](./object-model.md) and [authority-and-conflict.md](./authority-and-conflict.md). The earlier message-type, state, and stored-score language in [protocol.md](./protocol.md) and [architecture.md](./architecture.md) has since been reconciled against this registry; what remains exploratory is that no implementation or finalized wire format exists.
