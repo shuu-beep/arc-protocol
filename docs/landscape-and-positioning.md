@@ -90,9 +90,27 @@ ARC is DB-first and blockchain-minimal ([philosophy.md](./philosophy.md) belief 
 
 This is a design difference, not a verdict. Where some systems bet that trust can be *computed* on shared infrastructure, ARC explores trust as *governed* — a community process over evidence, with no stored universal score. "Computed" and "governed" are used here only as positioning language, not as ARC protocol primitives. Both bets are unproven, and ARC does not claim its choice is the better one.
 
-## 10. Why These Systems Can Coexist
+## 10. ARC vs Closed Agent Commerce
 
-The systems above mostly occupy different layers:
+Sections §4–§9 contrast ARC with neighboring *layers* it composes with. This contrast is different in kind. A closed agent-commerce platform is not a layer ARC sits beside; it is an alternative way the whole stack could be organized. Both could exist, but they embody opposite bets about where coordination lives.
+
+The likely shape is familiar: a large marketplace or super-app (an Amazon- or Coupang-style operator) extends into agent commerce by running the buyer's agent, discovery, ranking, advertising, and checkout as one closed loop. This is the agentic evolution of the marketplace contrast in §7, and it carries §7's real advantages further: demand is aggregated, fraud is handled centrally, the experience is convenient, and — crucially — adoption is immediate, because the operator already has the users, the merchants, and the payment relationship. In the FOMO-driven rush described in [bootstrap-and-incentives.md](./bootstrap-and-incentives.md), the closed path has the structural head start. ARC does not.
+
+What such a structure concentrates is a real question, not a moral one. When the operator owns both the buyer's agent and the seller's storefront, the buyer's agent is also the seller's gatekeeper — a standing conflict of interest. The recurring tensions are:
+
+| Closed agent commerce | ARC's contrasting bet |
+| --- | --- |
+| Opaque ranking under one operator | Replaceable, inspectable discovery backends (§7) |
+| Operator-computed trust score | Governed trust — community process over evidence, no stored universal score (§9) |
+| Captive merchants, hard to exit | Local portability of identity and reputation, with a known inter-community cost ([trust-model-tradeoffs.md](./trust-model-tradeoffs.md)) |
+| Advertising blended into results | Disclosed sponsorship as a recorded event (`discovery-bias.json`; [event-registry.md](./event-registry.md)) |
+| Operator-owned agent acts for the platform | Human approval as a hard constraint; the agent acts for its principal ([philosophy.md](./philosophy.md)) |
+
+None of this is a claim that closed platforms are illegitimate or should disappear. They provide value many users will rationally prefer, and ARC has no demand to offer against theirs ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md)). The honest position is that the closed path is the path of least resistance, and ARC's bet — that agent commerce can be coordinated so the buyer's agent is not owned by the seller's platform — is the harder, unproven one. Whether anyone adopts a more inspectable, less concentrated alternative when a frictionless closed one exists is the same open problem named in [threat-model.md](./threat-model.md) §18.1: ARC can describe the structure, but not manufacture the reasons to choose it.
+
+## 11. Why These Systems Can Coexist
+
+The layered systems in §4–§9 mostly occupy different layers:
 
 | Layer | Example concern | ARC's relation |
 | --- | --- | --- |
@@ -107,7 +125,7 @@ ARC occupies the human-approval and trust-coordination layer above commerce. A s
 
 ARC's stance is overlay, not replacement. It is most useful when these other layers exist and work; it tries to add a missing layer, not substitute an existing one.
 
-## 11. Current ARC Scope
+## 12. Current ARC Scope
 
 ARC today is a Stage 0 documentation baseline plus a small mock artifact set, not a running system ([roadmap.md](./roadmap.md), [README](../README.md) §26). The Canon (Relationship → Event → Projection → Authority) and the canonical event set (`KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE`) are exploratory drafts, not an implemented protocol or a finalized wire format ([future-protocol-spec.md](./future-protocol-spec.md)).
 
