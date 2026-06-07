@@ -99,6 +99,8 @@ The eleventh scenario (agent multiplication) sharpened even that. One actor can 
 
 A companion probe, [`examples/canon-ts`](examples/canon-ts/), takes the closed set one step further: it encodes the five types as a TypeScript discriminated union so the *compiler itself* rejects a sixth type — turning "no sixth event type" from a claim in prose into a rule the type-checker enforces on every build.
 
+A third probe, [`examples/end-to-end-demo`](examples/end-to-end-demo/), closes the loop from the other direction. Where the fold demo reads a hand-built log, this one *generates* the log: a human, a consumer agent, a merchant agent, and a community run one full interaction — offer, human approval, payment claim, fulfillment, dispute, adjudication — and each emits its own signed events. The same standing projection, recomputed at three points, shows governance moving only when an `ADJUDICATE` is added, never by mutating stored state. Nothing in the resulting log is written by hand.
+
 ---
 
 ## 2. The Problem
