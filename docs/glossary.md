@@ -39,6 +39,11 @@ In ARC, an agent is always owned by or accountable to a human or legal entity.
 
 An agent cannot be more trusted than the human behind it.
 
+Two observational distinctions cut across the role-based kinds below (consumer, merchant, logistics). They describe what ARC can see, not new agent types in the Canon:
+
+- **Principal (root identity) vs the agents acting under it.** The human or legal entity an agent is accountable to is its principal. One principal may run many agents, so many signatures need not mean many independent actors. ARC observes signed events, not principals; it cannot certainly count the principals behind a set of agents unless the shared root is voluntarily disclosed — a limitation explored in [threat-model.md](./threat-model.md) §4.1.1 and [`examples/canon-fold-demo`](../examples/canon-fold-demo/) (scenario 11).
+- **Market-visible vs pure local workflow agent.** An agent becomes visible to ARC only when it signs a commons-visible event. An agent that never signs such an event — a purely local workflow agent — is outside ARC's event horizon. This is an observational boundary, not a guarantee and not a new type: ARC sees activity that crosses into the commons, not agents as such ([threat-model.md](./threat-model.md) §4.1.1).
+
 ---
 
 ## 3. Human Approval
