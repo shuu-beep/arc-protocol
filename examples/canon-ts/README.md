@@ -8,6 +8,11 @@ TypeScript compiler — not a convention — enforces. It locks two so far:
 2. **Governance is ADJUDICATE-only** — a probe finding (finding E): commons
    standing moves only by an `ADJUDICATE`, so a `CHALLENGE` or `ATTEST` cannot
    occupy a verdict slot.
+3. **Revocation/delegation add no type** — findings A and G: withdrawal, key
+   revocation, delegation, and capability are expressed through the `nullifies`
+   *field*, a *predicate*, and the reader's *fold policy* — never a new
+   canonical type. The forbidden pseudo-types (`REVOKE`, `KEY_REVOKE`,
+   `DELEGATE`, `CAPABILITY`) are proven non-members of `CanonicalType`.
 
 ## What this is (and is not)
 
@@ -62,6 +67,17 @@ into a rule the type-checker enforces on every build.
    either makes `tsc --noEmit` fail (`ChallengeEvent` / `AttestEvent` is not
    assignable to `AdjudicateEvent`); only the `ADJUDICATE` line compiles.
 
+## How the field-discipline invariant is enforced
+
+1. **Forbidden pseudo-types are proven non-members.** `canon.ts` §9 asserts that
+   `Extract<CanonicalType, "REVOKE" | "KEY_REVOKE" | "DELEGATE" | "CAPABILITY">`
+   resolves to `never` — each tempting "sixth type" is absent from the alphabet.
+   Adding any of them to `CanonicalType` makes those assertions fail to compile.
+2. **A commented-out proof.** §9 also shows that a key withdrawal needs no new
+   type: it is a `KEY` event with predicate `id.key_revoke` carrying `nullifies`.
+   The neighboring `const revokeType: CanonicalType = "REVOKE"` line is commented;
+   uncommenting it fails (`"REVOKE"` is not assignable to `CanonicalType`).
+
 ## Run it
 
 No install or `package.json` required; `npx` fetches TypeScript on demand:
@@ -75,8 +91,9 @@ package (a bare `npx tsc` resolves to an unrelated, squatted `tsc` package).
 
 Expected: **no output, exit 0** (the canon compiles). To see the guarantees bite,
 uncomment a block in `canon.ts` §6 (closedness — fails on `CanonicalType` or
-`never`) or §8 (governance — fails because a `CHALLENGE`/`ATTEST` is not an
-`AdjudicateEvent`) and run again.
+`never`), §8 (governance — fails because a `CHALLENGE`/`ATTEST` is not an
+`AdjudicateEvent`), or §9 (field discipline — fails because `"REVOKE"` is not a
+`CanonicalType`) and run again.
 
 ## The point
 

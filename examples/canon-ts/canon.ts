@@ -5,16 +5,20 @@
 // disputes, approval, commerce, and delegation? (Answer so far: yes.)
 //
 // This file tests something narrower and stronger: COMPILER-ENFORCED invariants.
-// It locks two of them as type-checker rules rather than conventions we promise
+// It locks three of them as type-checker rules rather than conventions we promise
 // to honor:
 //   * closedness (§5–§6) — the five-type canon is a closed discriminated union,
 //     so "no sixth event type" breaks the build the moment a sixth is added;
 //   * governance is ADJUDICATE-only (§7–§8) — a probe finding (finding E, shown
 //     at runtime in ../end-to-end-demo): commons standing moves only by an
 //     ADJUDICATE, so the compiler refuses to let a CHALLENGE or ATTEST occupy a
-//     verdict slot.
+//     verdict slot;
+//   * revocation/delegation add no type (§9) — findings A and G: withdrawal,
+//     key revocation, delegation, and capability are expressed through the
+//     `nullifies` FIELD, a predicate, and the reader's fold policy — never a new
+//     canonical type. The forbidden "sixth types" are proven non-members.
 // `npx tsc --noEmit` is the whole test: it must PASS as written, and must FAIL
-// the moment either invariant is violated.
+// the moment any invariant is violated.
 //
 // Nothing here executes. There is no signing, no fold, no I/O — only type-level
 // constructs and `declare`d signatures the compiler checks but never runs.
@@ -349,3 +353,49 @@ type _NonVerdictsAreNotGovernance = Assert<
 //
 // The lesson, as in §6: the invariant stops being prose. "Governance moves only
 // by ADJUDICATE" becomes something the build refuses to let you violate.
+
+// ---------------------------------------------------------------------------
+// 9. Revocation/delegation add no type — field discipline (findings A, G)
+// ---------------------------------------------------------------------------
+// The recurring temptation, every time the canon meets a hard case, is to add a
+// "sixth type" — REVOKE, KEY_REVOKE, DELEGATE, CAPABILITY. The probes found this
+// is never needed: withdrawal is the `nullifies` FIELD on an ordinary event
+// (event-registry §4.6); a key revocation is a KEY event with predicate
+// `id.key_revoke` carrying `nullifies`; a delegation/mandate is an AUTHORIZE with
+// a wider `scope` (§4 `mandate`); and whether a revoke cascades over a completed
+// act is a fold POLICY, not a type (finding G / ../authority-revocation-demo).
+// So these "types" must NOT exist in the alphabet. Each is proven to be a
+// non-member of CanonicalType — extracting it yields the empty type `never`.
+// (Reuses the §7 `Assert` / `Equals` helpers.)
+
+type _RevokeIsNotAType = Assert<Equals<Extract<CanonicalType, "REVOKE">, never>>;
+type _KeyRevokeIsNotAType = Assert<Equals<Extract<CanonicalType, "KEY_REVOKE">, never>>;
+type _DelegateIsNotAType = Assert<Equals<Extract<CanonicalType, "DELEGATE">, never>>;
+type _CapabilityIsNotAType = Assert<Equals<Extract<CanonicalType, "CAPABILITY">, never>>;
+
+// And collectively: none of the forbidden alphabet intersects the canon.
+type ForbiddenType = "REVOKE" | "KEY_REVOKE" | "DELEGATE" | "CAPABILITY";
+type _NoForbiddenTypeInCanon = Assert<Equals<Extract<CanonicalType, ForbiddenType>, never>>;
+
+// A commented-out proof (parallel to §6/§8): treating a forbidden pseudo-type as
+// canonical must fail to compile. As shipped it is commented, so the file builds.
+//
+// const revokeType: CanonicalType = "REVOKE";
+//   ❌ Type '"REVOKE"' is not assignable to type 'CanonicalType'.
+//
+// The withdrawal it gropes for already exists without a new type — a KEY event
+// whose predicate is `id.key_revoke` and whose `nullifies` names the register it
+// withdraws:
+//
+// const keyRevoke: KeyEvent = {
+//   type: "KEY",
+//   id: "ev:r1",
+//   signer: "k:merchant",
+//   predicate: "id.key_revoke",
+//   timestamp: "2026-08-01T00:00:00Z",
+//   nullifies: ["ev:0001"], // the register from §4 — withdrawn going forward
+//   signature: "stub:r1",
+// };
+//
+// The lesson: revocation, delegation, and capability are predicate/field/policy
+// concerns. The canonical type alphabet stays exactly five.
