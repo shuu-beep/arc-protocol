@@ -4,13 +4,20 @@
 // scenarios, can five event types express identity, reputation, governance,
 // disputes, approval, commerce, and delegation? (Answer so far: yes.)
 //
-// This file tests something narrower and stronger: COMPILER-ENFORCED closedness.
-// The five-type canon is written as a closed TypeScript discriminated union, so
-// that "no sixth event type" stops being a convention we promise to honor and
-// becomes a rule the type-checker enforces. `npx tsc --noEmit` is the whole test:
-// it must PASS as written, and must FAIL the moment a sixth type is introduced.
+// This file tests something narrower and stronger: COMPILER-ENFORCED invariants.
+// It locks two of them as type-checker rules rather than conventions we promise
+// to honor:
+//   * closedness (§5–§6) — the five-type canon is a closed discriminated union,
+//     so "no sixth event type" breaks the build the moment a sixth is added;
+//   * governance is ADJUDICATE-only (§7–§8) — a probe finding (finding E, shown
+//     at runtime in ../end-to-end-demo): commons standing moves only by an
+//     ADJUDICATE, so the compiler refuses to let a CHALLENGE or ATTEST occupy a
+//     verdict slot.
+// `npx tsc --noEmit` is the whole test: it must PASS as written, and must FAIL
+// the moment either invariant is violated.
 //
-// Nothing here executes. There is no signing, no fold, no I/O.
+// Nothing here executes. There is no signing, no fold, no I/O — only type-level
+// constructs and `declare`d signatures the compiler checks but never runs.
 
 // ---------------------------------------------------------------------------
 // 1. The closed canonical type set
@@ -266,3 +273,79 @@ export function describe(e: Event): string {
 // The lesson: closedness is no longer a promise in prose. Widening the canon
 // breaks the build in at least two places. That is the graduation from
 // philosophical closedness to language-level enforcement.
+
+// ---------------------------------------------------------------------------
+// 7. Governance is ADJUDICATE-only — enforced by the type system (finding E)
+// ---------------------------------------------------------------------------
+// ARC's authority invariant: commons governance standing moves ONLY when an
+// ADJUDICATE is added. A CHALLENGE opens a dispute and an ATTEST records an
+// outcome — neither is a verdict, and neither may change standing. The
+// end-to-end probe (../end-to-end-demo) shows this holding at runtime, where the
+// SAME standing projection is unmoved by a dispute and moves only on a ruling.
+// Here the compiler refuses to let anything but an ADJUDICATE be a verdict.
+
+// The governance-moving event type, extracted from the closed union. It is
+// exactly AdjudicateEvent — by construction, not by promise. Narrow the union
+// to "ADJUDICATE" and nothing else can stand in for a verdict.
+export type GovernanceEvent = Extract<Event, { type: "ADJUDICATE" }>;
+
+// The standings governance can hold. Vocabulary only: this names the possible
+// RESULTS of a projection; ARC stores no standing field (object-model §4).
+export type Standing =
+  | "in_good_standing"
+  | "warned"
+  | "suspended"
+  | "expelled";
+
+// The one slot through which standing may change. `declare` means NO body and
+// NO emitted code — this is a type signature, not a fold (folds live in the
+// Python probe). Its only job is to make the compiler check what may be passed:
+// the verdict parameter is a GovernanceEvent, so a non-ADJUDICATE event is
+// rejected at the call site (see §8).
+export declare function applyVerdict(
+  current: Standing,
+  verdict: GovernanceEvent,
+): Standing;
+
+// Static proofs (must compile). These resolve purely at the type level; if the
+// governance-moving type ever drifted from "ADJUDICATE and only ADJUDICATE",
+// the file would fail to compile.
+type Assert<T extends true> = T;
+type Equals<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2)
+    ? true
+    : false;
+
+// (i) the verdict type is EXACTLY AdjudicateEvent — no wider, no narrower:
+type _VerdictIsExactlyAdjudicate = Assert<Equals<GovernanceEvent, AdjudicateEvent>>;
+
+// (ii) no non-verdict event qualifies as a GovernanceEvent (KEY/ATTEST/
+//      AUTHORIZE/CHALLENGE are all excluded from the verdict slot):
+type _NonVerdictsAreNotGovernance = Assert<
+  Exclude<Event, AdjudicateEvent> extends GovernanceEvent ? false : true
+>;
+
+// ---------------------------------------------------------------------------
+// 8. The governance PROOF (commented out on purpose)
+// ---------------------------------------------------------------------------
+// As written (commented) the file compiles. Uncommenting ANY block must make
+// `npx tsc --noEmit -p tsconfig.json` fail — the compiler, not a convention, is
+// what enforces that only an ADJUDICATE moves governance.
+//
+// (a) A CHALLENGE is not a verdict — it cannot move standing:
+//
+// applyVerdict("in_good_standing", dispute);
+//   ❌ Argument of type 'ChallengeEvent' is not assignable to parameter of type
+//      'AdjudicateEvent'. Types of property 'type' are incompatible.
+//
+// (b) Neither can an ATTEST outcome:
+//
+// applyVerdict("in_good_standing", offer);
+//   ❌ Argument of type 'AttestEvent' is not assignable to 'AdjudicateEvent'.
+//
+// (c) Only an ADJUDICATE compiles in the verdict slot:
+//
+// const next: Standing = applyVerdict("in_good_standing", ruling); // ✅ ADJUDICATE
+//
+// The lesson, as in §6: the invariant stops being prose. "Governance moves only
+// by ADJUDICATE" becomes something the build refuses to let you violate.
