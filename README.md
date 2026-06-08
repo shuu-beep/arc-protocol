@@ -101,6 +101,8 @@ A companion probe, [`examples/canon-ts`](examples/canon-ts/), takes the closed s
 
 A third probe, [`examples/end-to-end-demo`](examples/end-to-end-demo/), closes the loop from the other direction. Where the fold demo reads a hand-built log, this one *generates* the log: a human, a consumer agent, a merchant agent, and a community run one full interaction — offer, human approval, payment claim, fulfillment, dispute, adjudication — and each emits its own signed events. The same standing projection, recomputed at three points, shows governance moving only when an `ADJUDICATE` is added, never by mutating stored state. Nothing in the resulting log is written by hand.
 
+A fourth probe, [`examples/authority-revocation-demo`](examples/authority-revocation-demo/), isolates one open policy question: when a delegation is revoked, does an act that already *completed* under it survive? It shows the same signed revoke event yielding different answers under an as-of-act-time fold versus a current-log fold — a fold-policy choice, not a missing event type. A probe, not doctrine.
+
 ---
 
 ## 2. The Problem
