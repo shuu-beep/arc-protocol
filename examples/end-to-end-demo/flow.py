@@ -205,7 +205,7 @@ def snapshot(ledger: Ledger, label: str) -> None:
           f"outcomes=+{s['positive_outcomes']}/-{s['negative_outcomes']}")
 
 
-def run() -> None:
+def run() -> Ledger:
     led = Ledger()
     community = Party(led, "community", "k:community")
     human = Party(led, "human", "k:human")
@@ -258,6 +258,7 @@ def run() -> None:
 
     print(f"\nGenerated log: {len(led.events)} signed events, none hand-written.")
     print("verify_log passed at every recompute; the projection is never stored.")
+    return led  # so a reader (e.g. the reference-client viewer) can reuse the log
 
 
 if __name__ == "__main__":

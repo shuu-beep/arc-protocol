@@ -1,0 +1,82 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARC reference client (viewer)</title><style>
+:root{--ink:#1d2330;--mut:#6b7280;--line:#e3e6ee;--bg:#f7f8fb;--card:#fff;
+--ok:#15803d;--warn:#b45309;--verdict:#6d28d9;--accent:#1f4ed8}
+*{box-sizing:border-box}body{margin:0;font:13px/1.5 ui-monospace,SFMono-Regular,
+Menlo,Consolas,monospace;color:var(--ink);background:var(--bg)}
+header{padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{margin:0;font-size:15px;letter-spacing:.02em}
+header .sub{color:var(--mut);font-size:12px;margin-top:3px}
+.grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;padding:14px}
+.col{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;
+overflow:hidden}
+.card>h2{margin:0;padding:9px 12px;font-size:12px;letter-spacing:.04em;
+text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);
+background:#fbfcfe}
+.card>.in{padding:12px}
+.note{color:var(--mut);font-size:11.5px;margin:10px 0 0;line-height:1.45}
+code{background:#f0f2f7;padding:1px 5px;border-radius:4px;font-size:12px}
+.who{font-weight:600}.kid{color:var(--mut);margin-left:8px;font-size:11px}
+.node{padding:3px 0}.edge{padding:3px 0 3px 16px;color:#374151}
+.edge .scope{display:block;color:var(--mut);font-size:11px;padding-left:18px}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:4px 0;
+border-bottom:1px dashed var(--line)}.kv:last-child{border:0}
+.kv span{color:var(--mut)}.kv.big code{font-size:13px}
+.approval,.commit,.challenge,.adjudication{border:1px solid var(--line);
+border-radius:6px;padding:9px;margin-bottom:8px}
+.approval .head,.commit .head{font-weight:600;margin-bottom:4px}
+.body{color:#374151}.evid{color:var(--mut);font-size:11px}
+.tag{font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;
+letter-spacing:.05em}.tag.ok{background:#dcfce7;color:var(--ok)}
+.tag.warn{background:#fef3c7;color:var(--warn)}
+.tag.verdict{background:#ede9fe;color:var(--verdict)}
+.snapnav{color:var(--mut);margin-bottom:10px}
+.snapbtn{font:inherit;border:1px solid var(--line);background:#fff;width:26px;
+height:26px;border-radius:6px;margin-left:5px;cursor:pointer}
+.snapbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.snap{display:none}.snap.active{display:block}
+.snaplabel{font-size:11.5px;color:var(--mut);margin-bottom:6px;font-style:italic}
+.gov-in_good_standing{color:var(--ok)}.gov-warned{color:var(--warn)}
+.full{padding:0 14px 18px}
+table.log{width:100%;border-collapse:collapse;background:var(--card);
+border:1px solid var(--line);border-radius:8px;overflow:hidden}
+table.log th,table.log td{text-align:left;padding:6px 10px;
+border-bottom:1px solid var(--line);font-size:12px}
+table.log th{color:var(--mut);text-transform:uppercase;font-size:10.5px;
+letter-spacing:.04em;background:#fbfcfe}
+table.log tbody tr{cursor:pointer}table.log tbody tr:hover{background:#f3f6ff}
+table.log tbody tr.sel{background:#e8efff}
+.t-KEY{color:#475569}.t-ATTEST{color:#0369a1}.t-AUTHORIZE{color:#15803d}
+.t-CHALLENGE{color:#b45309}.t-ADJUDICATE{color:#6d28d9}
+#inspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
+padding:12px;font-size:11.5px;white-space:pre;overflow:auto;max-height:280px}
+.ins-empty{color:#64748b}
+</style></head><body>
+<header><h1>ARC reference client — read-only viewer</h1>
+<div class="sub">11 signed events from <code>end-to-end-demo</code> ·
+every panel below is a projection over the one log · no keys, no runtime</div></header>
+<div class="grid">
+<div class="col"><div class="card"><h2>delegation tree</h2><div class="in"><div class="node"><span class="who">community</span><span class="kid">k:community</span></div><div class="node"><span class="who">human</span><span class="kid">k:human</span></div><div class="edge">└─ AUTHORIZE <code>consent.approval</code> → <span class="who">consumer-agent</span><span class="scope">scope: max_total_krw=8000, context=lunch</span></div><div class="node"><span class="who">consumer-agent</span><span class="kid">k:consumer_agent</span></div><div class="node"><span class="who">merchant-agent</span><span class="kid">k:merchant</span></div><p class="note">Four independently key-rooted participants. The only delegation edge in this log is one per-purchase AUTHORIZE — single-level by design of this probe.</p></div></div><div class="card"><h2>mandate viewer</h2><div class="in"><div class="mandate"><div class="kv"><span>granted by</span><code>human</code></div><div class="kv"><span>predicate</span><code>consent.approval</code></div><div class="kv"><span>max_total_krw</span><code>8000</code></div><div class="kv"><span>context</span><code>lunch</code></div><div class="kv"><span>refs</span><code>ev:d81ffa40f16c, k:merchant</code></div></div><p class="note">This is the boundary between what an agent may sign <em>without re-asking</em> (in scope) and what must escalate.</p></div></div></div>
+<div class="col"><div class="card"><h2>approval inbox</h2><div class="in"><div class="approval resolved"><div class="head"><span class="tag ok">RESOLVED</span> consumer-agent requested approval for an offer</div><div class="body">the consumer agent could not approve; the human reviewed and signed <code>AUTHORIZE consent.approval</code> <span class="evid">[ev:a89647c6a733]</span></div></div><p class="note">The request itself is transport (a message), not a stored event. Only the human's AUTHORIZE is on the log.</p></div></div><div class="card"><h2>signed commitments</h2><div class="in"><div class="commit"><div class="head"><span class="who">merchant-agent</span> <code>commerce.offer</code> <span class="evid">[ev:d81ffa40f16c]</span></div><div class="body">item=gimbap_set, price_krw=8000, expires=2026-06-08T10:40:00Z</div></div><div class="commit"><div class="head"><span class="who">consumer-agent</span> <code>commerce.payment_result</code> <span class="evid">[ev:ac4c5dae9be8]</span></div><div class="body">result=confirmed, amount_krw=8000, provider=mock_pay</div></div><div class="commit"><div class="head"><span class="who">merchant-agent</span> <code>commerce.fulfillment</code> <span class="evid">[ev:53c98eee190f]</span></div><div class="body">status=delivered</div></div></div></div></div>
+<div class="col"><div class="card"><h2>projection viewer</h2><div class="in"><div class="snapnav">snapshot <button class="snapbtn active" data-snap="0">1</button><button class="snapbtn" data-snap="1">2</button><button class="snapbtn" data-snap="2">3</button></div><div class="snap active" data-snap="0"><div class="snaplabel">after fulfillment</div><div class="kv big"><span>governance_standing</span><code class="gov-in_good_standing">in_good_standing</code></div><div class="kv"><span>advisory_signal</span><code>unproven</code></div><div class="kv"><span>open_disputes</span><code>0</code></div><div class="kv"><span>outcomes</span><code>+0 / -0</code></div></div><div class="snap" data-snap="1"><div class="snaplabel">after dispute</div><div class="kv big"><span>governance_standing</span><code class="gov-in_good_standing">in_good_standing</code></div><div class="kv"><span>advisory_signal</span><code>unproven</code></div><div class="kv"><span>open_disputes</span><code>1</code></div><div class="kv"><span>outcomes</span><code>+0 / -1</code></div></div><div class="snap" data-snap="2"><div class="snaplabel">after adjudication</div><div class="kv big"><span>governance_standing</span><code class="gov-warned">warned</code></div><div class="kv"><span>advisory_signal</span><code>unproven</code></div><div class="kv"><span>open_disputes</span><code>0</code></div><div class="kv"><span>outcomes</span><code>+0 / -1</code></div></div><p class="note">Same fold, recomputed at three cuts of the same log. <strong>governance does not move on the dispute — only on the ADJUDICATE.</strong> Nothing is stored; each view is recomputed.</p></div></div><div class="card"><h2>challenge / adjudication</h2><div class="in"><div class="challenge"><span class="tag warn">⚠ CHALLENGE</span> <code>dispute.open</code> by consumer-agent <span class="evid">[ev:57eb27d959b6]</span><div class="body">wrong_item</div></div><div class="adjudication"><span class="tag verdict">⚖ ADJUDICATE</span> <code>gov.warning</code> by community <span class="evid">[ev:8b5769a56710]</span><div class="body">resolves <code>ev:57eb27d959b6</code></div></div><p class="note">A CHALLENGE opens a dispute; only an ADJUDICATE (referencing it) resolves it and moves commons standing.</p></div></div></div>
+</div>
+<div class="full"><div class="card"><h2>event log — the one source of truth</h2>
+<div class="in"><table class="log"><thead><tr><th>#</th><th>type</th><th>signer</th><th>predicate</th><th>id</th></tr></thead><tbody><tr data-i="0"><td>0</td><td class="t-KEY">KEY</td><td>community</td><td><code>id.key_register</code></td><td class="evid">ev:ffcf491b7456</td></tr><tr data-i="1"><td>1</td><td class="t-KEY">KEY</td><td>human</td><td><code>id.key_register</code></td><td class="evid">ev:6fd756fdffce</td></tr><tr data-i="2"><td>2</td><td class="t-KEY">KEY</td><td>consumer-agent</td><td><code>id.key_register</code></td><td class="evid">ev:2183f83a8a67</td></tr><tr data-i="3"><td>3</td><td class="t-KEY">KEY</td><td>merchant-agent</td><td><code>id.key_register</code></td><td class="evid">ev:cd63428b1f85</td></tr><tr data-i="4"><td>4</td><td class="t-ATTEST">ATTEST</td><td>merchant-agent</td><td><code>commerce.offer</code></td><td class="evid">ev:d81ffa40f16c</td></tr><tr data-i="5"><td>5</td><td class="t-AUTHORIZE">AUTHORIZE</td><td>human</td><td><code>consent.approval</code></td><td class="evid">ev:a89647c6a733</td></tr><tr data-i="6"><td>6</td><td class="t-ATTEST">ATTEST</td><td>consumer-agent</td><td><code>commerce.payment_result</code></td><td class="evid">ev:ac4c5dae9be8</td></tr><tr data-i="7"><td>7</td><td class="t-ATTEST">ATTEST</td><td>merchant-agent</td><td><code>commerce.fulfillment</code></td><td class="evid">ev:53c98eee190f</td></tr><tr data-i="8"><td>8</td><td class="t-CHALLENGE">CHALLENGE</td><td>consumer-agent</td><td><code>dispute.open</code></td><td class="evid">ev:57eb27d959b6</td></tr><tr data-i="9"><td>9</td><td class="t-ATTEST">ATTEST</td><td>consumer-agent</td><td><code>rep.outcome</code></td><td class="evid">ev:44ab6bdf78a2</td></tr><tr data-i="10"><td>10</td><td class="t-ADJUDICATE">ADJUDICATE</td><td>community</td><td><code>gov.warning</code></td><td class="evid">ev:8b5769a56710</td></tr></tbody></table><div id="inspector"><div class="ins-empty">click an event to inspect its raw signed form</div></div></div></div></div>
+<script id="arc-data" type="application/json">[{"id": "ev:ffcf491b7456", "type": "KEY", "signer": "k:community", "predicate": "id.key_register", "timestamp": "2026-06-08T10:01:00Z", "refs": [], "scope": null, "payload": {"key": "k:community"}, "signature": "stub:7d5bc926c0ceeeef"}, {"id": "ev:6fd756fdffce", "type": "KEY", "signer": "k:human", "predicate": "id.key_register", "timestamp": "2026-06-08T10:02:00Z", "refs": [], "scope": null, "payload": {"key": "k:human"}, "signature": "stub:e5c532e188efb568"}, {"id": "ev:2183f83a8a67", "type": "KEY", "signer": "k:consumer_agent", "predicate": "id.key_register", "timestamp": "2026-06-08T10:03:00Z", "refs": [], "scope": null, "payload": {"key": "k:consumer_agent"}, "signature": "stub:a103632479d447f2"}, {"id": "ev:cd63428b1f85", "type": "KEY", "signer": "k:merchant", "predicate": "id.key_register", "timestamp": "2026-06-08T10:04:00Z", "refs": [], "scope": null, "payload": {"key": "k:merchant"}, "signature": "stub:8ce39e93cb360e2a"}, {"id": "ev:d81ffa40f16c", "type": "ATTEST", "signer": "k:merchant", "predicate": "commerce.offer", "timestamp": "2026-06-08T10:05:00Z", "refs": [], "scope": null, "payload": {"item": "gimbap_set", "price_krw": 8000, "context": "lunch", "expires": "2026-06-08T10:40:00Z"}, "signature": "stub:461c0ffa1e5e6a7b"}, {"id": "ev:a89647c6a733", "type": "AUTHORIZE", "signer": "k:human", "predicate": "consent.approval", "timestamp": "2026-06-08T10:06:00Z", "refs": ["ev:d81ffa40f16c", "k:merchant"], "scope": {"max_total_krw": 8000, "context": "lunch"}, "payload": {}, "signature": "stub:3f37465d224585e3"}, {"id": "ev:ac4c5dae9be8", "type": "ATTEST", "signer": "k:consumer_agent", "predicate": "commerce.payment_result", "timestamp": "2026-06-08T10:07:00Z", "refs": ["ev:a89647c6a733", "k:merchant"], "scope": null, "payload": {"result": "confirmed", "amount_krw": 8000, "provider": "mock_pay"}, "signature": "stub:0427981d8fb89fa6"}, {"id": "ev:53c98eee190f", "type": "ATTEST", "signer": "k:merchant", "predicate": "commerce.fulfillment", "timestamp": "2026-06-08T10:08:00Z", "refs": ["ev:d81ffa40f16c"], "scope": null, "payload": {"status": "delivered", "context": "lunch"}, "signature": "stub:fa2b08e6ac6a6246"}, {"id": "ev:57eb27d959b6", "type": "CHALLENGE", "signer": "k:consumer_agent", "predicate": "dispute.open", "timestamp": "2026-06-08T10:09:00Z", "refs": ["k:merchant"], "scope": null, "payload": {"reason": "wrong_item", "context": "lunch"}, "signature": "stub:00e4e15ca892302b"}, {"id": "ev:44ab6bdf78a2", "type": "ATTEST", "signer": "k:consumer_agent", "predicate": "rep.outcome", "timestamp": "2026-06-08T10:10:00Z", "refs": ["k:merchant"], "scope": null, "payload": {"result": "negative", "context": "lunch"}, "signature": "stub:eb1a3f47217f908f"}, {"id": "ev:8b5769a56710", "type": "ADJUDICATE", "signer": "k:community", "predicate": "gov.warning", "timestamp": "2026-06-08T10:11:00Z", "refs": ["k:merchant", "ev:57eb27d959b6"], "scope": null, "payload": {"context": "lunch", "resolves": "ev:57eb27d959b6"}, "signature": "stub:a84c3faca205d802"}]</script>
+<script>
+const EVENTS = JSON.parse(document.getElementById('arc-data').textContent);
+document.querySelectorAll('.snapbtn').forEach(b=>b.onclick=()=>{
+  const i=b.dataset.snap;
+  document.querySelectorAll('.snapbtn').forEach(x=>x.classList.toggle('active',x===b));
+  document.querySelectorAll('.snap').forEach(p=>p.classList.toggle('active',p.dataset.snap===i));
+});
+document.querySelectorAll('table.log tbody tr').forEach(tr=>tr.onclick=()=>{
+  document.querySelectorAll('table.log tbody tr').forEach(x=>x.classList.remove('sel'));
+  tr.classList.add('sel');
+  const e=EVENTS[+tr.dataset.i];
+  document.getElementById('inspector').textContent=JSON.stringify(e,null,2);
+});
+</script>
+</body></html>

@@ -103,6 +103,8 @@ A third probe, [`examples/end-to-end-demo`](examples/end-to-end-demo/), closes t
 
 A fourth probe, [`examples/authority-revocation-demo`](examples/authority-revocation-demo/), isolates one open policy question: when a delegation is revoked, does an act that already *completed* under it survive? It shows the same signed revoke event yielding different answers under an as-of-act-time fold versus a current-log fold — a fold-policy choice, not a missing event type. A probe, not doctrine.
 
+Where the four probes test the canon, a read-only reference client makes it *visible*: [`examples/reference-client`](examples/reference-client/) renders the end-to-end-demo's generated log as the seven surfaces a human would actually see — delegation tree, mandate, approval inbox, signed commitments, projection, challenge/adjudication, and the event log they all fold over. It is a viewer, not a runtime: no keys, no signing, no agent execution. Its point is legibility — that every surface is a projection over one closed event log, and that governance visibly moves only on an `ADJUDICATE`.
+
 ---
 
 ## 2. The Problem
