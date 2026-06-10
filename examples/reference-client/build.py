@@ -25,9 +25,15 @@ Honest scope (deliberate)
   * The projections are computed by the probe's own fold
     (`project_merchant_standing`), not re-implemented here. The HTML is pure
     presentation; the authority over "what the log means" stays in the probe.
-  * This demo's delegation is single-level (one per-purchase AUTHORIZE), so the
-    delegation tree is shallow. Multi-level sub-agent spawning is out of scope
-    for this log and is left for a later fixture.
+  * The commerce log's delegation is single-level (one per-purchase AUTHORIZE),
+    so the delegation-tree card is shallow. Multi-level delegation lives in the
+    DELEGATION GRAPH band at the bottom, which folds over its OWN generated
+    fixture log (`delegation_fixture.py`) — a second log, stated plainly, not
+    smuggled into the first. The graph fold runs here in Python (the fixture's
+    `project_delegation_graph`), parameterized by the two choices the canon
+    does not make: the observer's local root, and the revocation reading. The
+    page only toggles between pre-rendered readings. No Sybil fix: an unrooted
+    key renders at weight 0, it is not blocked.
 
 Run:  python3 build.py    ->  writes client.html  (open it in a browser)
 """
@@ -47,12 +53,15 @@ sys.path.insert(0, os.path.join(HERE, "..", "end-to-end-demo"))
 
 import flow  # the real probe; reused, not copied
 
-# key id -> display name (presentation only; the keys come from flow.py's parties)
+import delegation_fixture as fixture  # the multi-level delegation fixture (same dir)
+
+# key id -> display name (presentation only; the keys come from the probes' parties)
 NAMES = {
     "k:human": "human",
     "k:consumer_agent": "consumer-agent",
     "k:merchant": "merchant-agent",
     "k:community": "community",
+    **fixture.NAMES,
 }
 
 
@@ -72,6 +81,11 @@ def capture_log() -> list[flow.Event]:
     with contextlib.redirect_stdout(io.StringIO()):
         ledger = flow.run()
     return ledger.events
+
+
+def capture_fixture_log() -> list[fixture.Event]:
+    with contextlib.redirect_stdout(io.StringIO()):
+        return fixture.generate_log()
 
 
 def project_at(events: list[flow.Event], upto_predicate: str) -> dict:
@@ -106,7 +120,9 @@ def render_delegation_tree(events) -> str:
                     f'<span class="scope">scope: {esc(scope_str)}</span></div>')
     note = ('<p class="note">Four independently key-rooted participants. The only '
             'delegation edge in this log is one per-purchase AUTHORIZE — '
-            'single-level by design of this probe.</p>')
+            'single-level by design of this probe. Multi-level delegation lives in '
+            'the <strong>delegation graph</strong> band at the bottom, over its own '
+            'fixture log.</p>')
     return "".join(rows) + note
 
 
@@ -230,6 +246,116 @@ def render_event_log(events, proposed=()) -> str:
 
 
 # ---------------------------------------------------------------------------
+# The delegation graph band — renders the fixture fold's output, adds nothing.
+# Both readings are pre-rendered here in Python; the page only toggles them.
+# ---------------------------------------------------------------------------
+
+STATUS_CLS = {"root": "ok", "active": "ok", "spent": "mut",
+              "revoked": "warn", "severed": "warn", "unrooted": "mut"}
+
+
+def render_graph_node(n: dict, depth: int = 0) -> str:
+    nm, key = name(n["key"]), n["key"]
+    tags = [f'<span class="tag {STATUS_CLS[n["status"]]}">{esc(n["status"].upper())}</span>']
+    if n["ephemeral"]:
+        tags.append('<span class="tag mut">EPHEMERAL · single use</span>')
+    if n["overclaimed"]:
+        tags.append('<span class="tag warn">OVERCLAIMED</span>')
+    if n["status"] == "root":
+        ceil = '<span class="ceil">grants authority; holds no mandate</span>'
+    elif n["status"] == "unrooted":
+        ceil = '<span class="ceil">weight 0 from this root — admissible, not blocked</span>'
+    else:
+        c = f'auto-sign &le; {esc(n["effective_ceiling"])} KRW'
+        if n["overclaimed"]:
+            c += (f' <em>(granted {esc(n["claimed_ceiling"])} — clamped by the '
+                  f'inherited intersection)</em>')
+        ceil = f'<span class="ceil">{c} · beyond &rarr; escalate to root</span>'
+
+    edge = ""
+    if n["grant_id"]:
+        wd = (f' <span class="wd">— withdrawn by '
+              f'<span class="evid fid" data-fid="{esc(n["grant_withdrawn_by"])}">'
+              f'[{esc(n["grant_withdrawn_by"])}]</span></span>'
+              if n["grant_withdrawn_by"] else "")
+        cls = " withdrawn" if n["grant_withdrawn_by"] else ""
+        edge = (f'<div class="gedge{cls}">&#9492;&#9472; <span class="m">AUTHORIZE '
+                f'<code>consent.mandate</code></span> '
+                f'<span class="evid fid" data-fid="{esc(n["grant_id"])}">'
+                f'[{esc(n["grant_id"])}]</span>{wd}</div>')
+
+    acts = []
+    for a in n["acts"]:
+        v = ('<span class="tag ok">VALID</span>' if a["valid"]
+             else '<span class="tag warn">VOID</span>')
+        amt = f' {a["amount"]} KRW' if a["amount"] is not None else ""
+        acts.append(
+            f'<div class="gact"><code>ATTEST {esc(a["predicate"])}</code>{esc(amt)} '
+            f'{v} <span class="basis">{esc(a["basis"])}</span> '
+            f'<span class="evid fid" data-fid="{esc(a["id"])}">[{esc(a["id"])}]</span></div>')
+
+    kids = "".join(render_graph_node(c, depth + 1) for c in n["children"])
+    return (f'<div class="gnode">{edge}'
+            f'<div class="ghead"><span class="who">{esc(nm)}</span>'
+            f'<span class="kid">{esc(key)}</span> {"".join(tags)} {ceil}</div>'
+            f'{"".join(acts)}{kids}</div>')
+
+
+def render_delegation_graph(projections: dict, flips: list, fixture_events) -> str:
+    labels = {"as_of_act_time": "as-of-act-time · preserve completed acts",
+              "current_log_cascade": "current-log · retroactive cascade"}
+    buttons, panels = [], []
+    for i, (reading, proj) in enumerate(projections.items()):
+        active = " active" if i == 0 else ""
+        buttons.append(f'<button class="readbtn{active}" data-read="{i}">'
+                       f'{esc(labels[reading])}</button>')
+        tree = render_graph_node(proj["tree"])
+        stray = "".join(render_graph_node(u) for u in proj["unrooted"])
+        panels.append(
+            f'<div class="greading{active}" data-read="{i}">{tree}'
+            f'<div class="gsep">unrooted from <code>{esc(proj["local_root"])}</code> '
+            f'— no grant chain to this observer\'s root</div>{stray}</div>')
+
+    rows = []
+    for f in flips:
+        a, b = f["as_of_act_time"], f["current_log_cascade"]
+        amt = f' {a["amount"]} KRW' if a["amount"] is not None else ""
+        rows.append(
+            f'<div class="gflip"><span class="who">{esc(name(a["signer"]))}</span> · '
+            f'<code>ATTEST {esc(a["predicate"])}</code>{esc(amt)} '
+            f'<span class="evid fid" data-fid="{esc(f["id"])}">[{esc(f["id"])}]</span>'
+            f'<div class="body">as-of-act-time: <strong>VALID</strong> &middot; '
+            f'cascade: <strong>VOID</strong> — same signed act, two answers; the log '
+            f'does not pick</div></div>')
+    flip_panel = (f'<div class="gflips"><div class="gsep">projection divergence — '
+                  f'{len(flips)} completed act(s) flip between the readings; every '
+                  f'post-withdrawal act is void under both</div>{"".join(rows)}</div>')
+
+    note = (
+        '<p class="note">This band folds over its <strong>own generated fixture '
+        'log</strong> (21 events, <code>delegation_fixture.py</code>) — a second log, '
+        'separate from the commerce log above. The graph is never stored: it is '
+        'recomputed by the fixture\'s fold, which is parameterized twice where the '
+        'canon is silent. <strong>(1) Rooted-ness is computed from THIS observer\'s '
+        'root</strong> — fold the same log from <code>k:stray</code> and the picture '
+        'inverts; attribution is local, there is no global identity registry, and the '
+        'stray key is rendered at weight 0, not blocked (Sybil deliberately unsolved). '
+        '<strong>(2) What a withdrawal does to completed acts is a fold reading</strong> '
+        '(toggle above) — note the cascade\'s absurd edge: retiring the spent courier '
+        'voids its already-delivered work. The escalated 40000 payment survives even '
+        'the cascade because its basis is a direct root approval, not the revoked '
+        'chain. The canon stays closed: delegation, over-delegation, escalation, '
+        'retirement and revocation are all KEY/ATTEST/AUTHORIZE with existing fields '
+        '(<code>scope</code>, <code>refs</code>, <code>nullifies</code>) — no sixth '
+        'type, no identity magic.</p>')
+
+    inspector = ('<div id="ginspector"><div class="ins-empty">click any [ev:…] id in '
+                 'this band to inspect its raw signed form</div></div>')
+    return (f'<div class="readnav">fold reading {"".join(buttons)}</div>'
+            f'{"".join(panels)}{flip_panel}{note}{inspector}')
+
+
+# ---------------------------------------------------------------------------
 # Page assembly.
 # ---------------------------------------------------------------------------
 
@@ -295,6 +421,27 @@ table.log tbody tr.sel{background:#e8efff}
 #inspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
 padding:12px;font-size:11.5px;white-space:pre;overflow:auto;max-height:280px}
 .ins-empty{color:#64748b}
+.tag.mut{background:#eef0f5;color:#475569}
+.readnav{color:var(--mut);margin-bottom:10px}
+.readbtn{font:inherit;font-size:11.5px;border:1px solid var(--line);background:#fff;
+padding:4px 10px;border-radius:6px;margin-left:6px;cursor:pointer}
+.readbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.greading{display:none}.greading.active{display:block}
+.gnode{border-left:2px solid var(--line);margin:4px 0;padding:4px 0 2px 14px}
+.ghead .ceil{display:block;color:var(--mut);font-size:11px;margin-top:1px}
+.ghead .ceil em{font-style:normal;color:var(--warn)}
+.gedge{color:var(--mut);font-size:11px;margin:1px 0 3px}
+.gedge.withdrawn .m{text-decoration:line-through}
+.gedge .wd{color:var(--warn)}
+.gact{font-size:12px;padding:2px 0 2px 14px;color:#374151}
+.gact .basis{color:var(--mut);font-size:11px}
+.gsep{color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+margin:12px 0 4px;padding-top:8px;border-top:1px dashed var(--line)}
+.gflip{border:1px solid #f5d488;background:#fffdf5;border-radius:6px;
+padding:8px 10px;margin:6px 0;font-size:12px}
+.evid.fid{cursor:pointer;text-decoration:underline dotted}
+#ginspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
+padding:12px;font-size:11.5px;white-space:pre;overflow:auto;max-height:280px}
 """
 
 JS = """
@@ -309,6 +456,17 @@ document.querySelectorAll('table.log tbody tr').forEach(tr=>tr.onclick=()=>{
   tr.classList.add('sel');
   const e=EVENTS[+tr.dataset.i];
   document.getElementById('inspector').textContent=JSON.stringify(e,null,2);
+});
+const FIX = JSON.parse(document.getElementById('arc-fixture').textContent);
+const FIX_BY_ID = Object.fromEntries(FIX.map(e=>[e.id,e]));
+document.querySelectorAll('.readbtn').forEach(b=>b.onclick=()=>{
+  const i=b.dataset.read;
+  document.querySelectorAll('.readbtn').forEach(x=>x.classList.toggle('active',x===b));
+  document.querySelectorAll('.greading').forEach(p=>p.classList.toggle('active',p.dataset.read===i));
+});
+document.querySelectorAll('.evid.fid').forEach(el=>el.onclick=()=>{
+  document.getElementById('ginspector').textContent=
+    JSON.stringify(FIX_BY_ID[el.dataset.fid],null,2);
 });
 """
 
@@ -398,9 +556,10 @@ def render_proposal_flow(results) -> str:
     return "".join(rows) + note
 
 
-def build_html(events, snapshots, results, signed) -> str:
+def build_html(events, snapshots, results, signed, projections, flips, fixture_events) -> str:
     data = json.dumps([dataclasses.asdict(e) for e in (list(events) + list(signed))],
                        default=list)
+    fixdata = json.dumps([dataclasses.asdict(e) for e in fixture_events], default=list)
     card = lambda t, b: f'<div class="card"><h2>{t}</h2><div class="in">{b}</div></div>'
     left = card("delegation tree", render_delegation_tree(events)) + \
         card("mandate viewer", render_mandate(events))
@@ -412,8 +571,10 @@ def build_html(events, snapshots, results, signed) -> str:
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ARC reference client</title><style>{CSS}</style></head><body>
 <header><h1>ARC reference client</h1>
-<div class="sub">{len(events)} generated events + one proposal verb ·
-every panel folds over the one log · the boundary signs, the key never leaves it</div></header>
+<div class="sub">two generated logs · the commerce log ({len(events)} events) feeds the seven
+surfaces and the write path · a delegation fixture ({len(fixture_events)} events) feeds the
+graph at the bottom · every panel is a recomputed projection; the boundary signs, the key
+never leaves it</div></header>
 <div class="grid">
 <div class="col">{left}</div>
 <div class="col">{mid}</div>
@@ -421,9 +582,12 @@ every panel folds over the one log · the boundary signs, the key never leaves i
 </div>
 <div class="full"><div class="card band"><h2>live proposal — the write path (the boundary decides)</h2>
 <div class="in">{render_proposal_flow(results)}</div></div></div>
-<div class="full"><div class="card"><h2>event log — the one source of truth</h2>
+<div class="full"><div class="card"><h2>event log — the source the seven surfaces fold over</h2>
 <div class="in">{render_event_log(events, signed)}</div></div></div>
+<div class="full"><div class="card band"><h2>delegation graph — authority as a visible object (one fixture log, two readings)</h2>
+<div class="in">{render_delegation_graph(projections, flips, fixture_events)}</div></div></div>
 <script id="arc-data" type="application/json">{data}</script>
+<script id="arc-fixture" type="application/json">{fixdata}</script>
 <script>{JS}</script>
 </body></html>"""
 
@@ -436,9 +600,14 @@ def main() -> None:
         ("after adjudication", project_at(events, "gov.warning")),
     ]
     results, signed = run_proposals(events)
+    fixture_events = capture_fixture_log()
+    projections = {r: fixture.project_delegation_graph(fixture_events, reading=r)
+                   for r in fixture.READINGS}
+    flips = fixture.divergent_acts(fixture_events)
     out = os.path.join(HERE, "client.html")
     with open(out, "w") as f:
-        f.write(build_html(events, snapshots, results, signed))
+        f.write(build_html(events, snapshots, results, signed,
+                           projections, flips, fixture_events))
     print(f"captured {len(events)} signed events from the end-to-end-demo probe")
     for label, s in snapshots:
         print(f"  [{label}] governance={s['governance_standing']} "
@@ -449,6 +618,9 @@ def main() -> None:
         print(f"  {decision:9} {p.type} {p.predicate}{evid} — {reason}")
     # the auto-signed proposals verify against the same log they extend
     flow.verify_log(events + signed)
+    fixture.verify_log(fixture_events)  # the fixture log verifies independently
+    print(f"delegation fixture: {len(fixture_events)} signed events; "
+          f"{len(flips)} completed act(s) flip between the two fold readings")
     print(f"wrote {os.path.relpath(out)} — open it in a browser")
 
 
