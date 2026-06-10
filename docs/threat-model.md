@@ -765,6 +765,8 @@ Why a rational counterparty would choose to honor a particular community's autho
 
 The question belongs to coordination economics: switching costs, network effects, legitimacy signals, trust markets. ARC intentionally leaves it unresolved. The right entry point is "why might a party *not* honor this authority" — not a confident adoption model. Asserting one prematurely would misrepresent ARC's current state.
 
+A fixture in the reference client ([`examples/reference-client`](../examples/reference-client/), `coldstart_fixture.py`) shows this frontier from a single node's point of view. A newcomer has exactly three exits from the cold start — *earn* edges slowly, *manufacture* volume with undisclosed agents, or *borrow* an established party's weak tie — and the resulting appearances are indistinguishable on the log: **cold start cannot be resolved from the log alone.** Three observers folding the same log with different policies reach different, individually defensible readings of the same newcomers, so what the client renders is the disagreement, not a verdict — the fixture's ground truth is shown separately, available to no observer, because pretending the protocol could see it would be the failure mode ("identity verified by protocol") this document warns against. This is offered as a probe finding, not a settled rule.
+
 ---
 
 ## 19. Current Status

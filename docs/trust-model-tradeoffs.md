@@ -66,6 +66,8 @@ Putting the two axes together:
 
 ARC's locality choice is therefore best understood not as a solution but as a *relocation*: it trades a hard cross-community problem for many local cold starts, and it does not address trust over time at all.
 
+A reference-client fixture ([`examples/reference-client`](../examples/reference-client/), `coldstart_fixture.py`) suggests a sharper formulation of what each relocated cold start *is*: **legitimacy is not a property of a node — it is a relation between an observer's fold policy and the log.** In the fixture, three observers fold the same events through three defensible policies (a path from one's own root, outcome history, transitive vouching) and legitimately disagree about the same newcomers, with each policy failing on a different one. The corollary is that **observer policy is unavoidable**: even a stored global score would not escape the choice, it would only be one policy imposed on everyone — the corner ARC already declines (§7). This is offered as a probe finding, not a settled rule: ARC fixes the evidence and returns the reading to the observer.
+
 ## 7. The Defining Proposition: Computed vs Governed Trust
 
 Underneath both axes sits one proposition, already stated as positioning language in [landscape-and-positioning.md](./landscape-and-positioning.md) §9: is trust **computed** (a score or proof on shared infrastructure) or **governed** (a community process over evidence)?
