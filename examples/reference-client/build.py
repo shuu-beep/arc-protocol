@@ -34,6 +34,12 @@ Honest scope (deliberate)
     does not make: the observer's local root, and the revocation reading. The
     page only toggles between pre-rendered readings. No Sybil fix: an unrooted
     key renders at weight 0, it is not blocked.
+  * The COLD START band at the bottom folds a THIRD generated fixture log
+    (`coldstart_fixture.py`) into a legitimacy matrix: three observers (root +
+    policy) read four newcomers, and the surface is their DISAGREEMENT, not a
+    verdict. No composite score, no protocol-level identity verification; the
+    generator's ground truth is rendered separately as "available to no
+    observer". The folds run here in Python; the page toggles two cuts.
 
 Run:  python3 build.py    ->  writes client.html  (open it in a browser)
 """
@@ -54,6 +60,7 @@ sys.path.insert(0, os.path.join(HERE, "..", "end-to-end-demo"))
 import flow  # the real probe; reused, not copied
 
 import delegation_fixture as fixture  # the multi-level delegation fixture (same dir)
+import coldstart_fixture as coldstart  # the cold-start legitimacy fixture (same dir)
 
 # key id -> display name (presentation only; the keys come from the probes' parties)
 NAMES = {
@@ -62,6 +69,7 @@ NAMES = {
     "k:merchant": "merchant-agent",
     "k:community": "community",
     **fixture.NAMES,
+    **coldstart.NAMES,
 }
 
 
@@ -86,6 +94,11 @@ def capture_log() -> list[flow.Event]:
 def capture_fixture_log() -> list[fixture.Event]:
     with contextlib.redirect_stdout(io.StringIO()):
         return fixture.generate_log()
+
+
+def capture_coldstart_log() -> list[coldstart.Event]:
+    with contextlib.redirect_stdout(io.StringIO()):
+        return coldstart.generate_log()
 
 
 def project_at(events: list[flow.Event], upto_predicate: str) -> dict:
@@ -356,6 +369,98 @@ def render_delegation_graph(projections: dict, flips: list, fixture_events) -> s
 
 
 # ---------------------------------------------------------------------------
+# The cold-start band — renders the legitimacy matrix the fixture fold computes.
+# Both cuts are pre-rendered here in Python; the page only toggles them.
+# ---------------------------------------------------------------------------
+
+def render_legitimacy_cell(c: dict) -> str:
+    chips = [f'<span class="tag cat-{esc(c["category"])}">{esc(c["verdict"])}</span>']
+    for r in c["rulings"]:
+        cls = "warn" if r["label"] == "warned" else "ok"
+        chips.append(f'<span class="tag {cls}">{esc(r["label"].upper())} '
+                     f'<span class="evid cid" data-cid="{esc(r["id"])}">[{esc(r["id"])}]</span></span>')
+    if c["open_disputes"]:
+        chips.append(f'<span class="tag warn">{len(c["open_disputes"])} OPEN DISPUTE</span>')
+    hinge = ""
+    if c["hinge"]:
+        hinge = (f'<div class="hinge">&#9888; hinges on one tie '
+                 f'<span class="evid cid" data-cid="{esc(c["hinge"])}">[{esc(c["hinge"])}]</span>'
+                 f' — remove that single event and this judgment is gone</div>')
+    basis = ""
+    if c["basis"]:
+        links = " ".join(f'<span class="evid cid" data-cid="{esc(b)}">[{esc(b)}]</span>'
+                         for b in c["basis"])
+        basis = f'<div class="basis">rests on: {links}</div>'
+    return (f'<td class="mcell cat-{esc(c["category"])}"><div class="chips">'
+            f'{"".join(chips)}</div><div class="mdetail">{esc(c["detail"])}</div>'
+            f'{hinge}{basis}</td>')
+
+
+def render_legitimacy_matrix(projs: list) -> str:
+    heads = []
+    for p in projs:
+        heads.append(
+            f'<th><div class="who">{esc(p["observer"])}</div>'
+            f'<div class="obsmeta">root <code>{esc(name(p["root"]))}</code> · '
+            f'honors <code>{esc(name(p["honors"]))}</code><br>{esc(p["blurb"])}</div></th>')
+    rows = []
+    for s in coldstart.SUBJECTS:
+        cells = "".join(render_legitimacy_cell(p["cells"][s]) for p in projs)
+        rows.append(f'<tr><th class="rowhead"><span class="who">{esc(name(s))}</span>'
+                    f'<span class="kid">{esc(s)}</span></th>{cells}</tr>')
+    return (f'<table class="matrix"><thead><tr><th></th>{"".join(heads)}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table>')
+
+
+def render_coldstart_band(cut_matrices: dict, moves: list) -> str:
+    buttons, panels = [], []
+    for i, (label, projs) in enumerate(cut_matrices.items()):
+        active = " active" if i == 0 else ""
+        buttons.append(f'<button class="cutbtn{active}" data-cut="{i}">{esc(label)}</button>')
+        panels.append(f'<div class="creading{active}" data-cut="{i}">'
+                      f'{render_legitimacy_matrix(projs)}</div>')
+
+    move_rows = []
+    for m in moves:
+        move_rows.append(
+            f'<div class="gflip"><span class="who">{esc(m["observer"])}</span> on '
+            f'<span class="who">{esc(name(m["subject"]))}</span>: '
+            f'<code>{esc(m["before"])}</code> &rarr; <code>{esc(m["after"])}</code></div>')
+    moves_panel = (
+        f'<div class="gsep">what moved between the cuts — note <strong>anointed'
+        f'</strong>: its authority dies (observer-P) while its earned reputation '
+        f'survives (observer-H), the same collapse read in opposite directions</div>'
+        f'{"".join(move_rows)}')
+
+    truth = "".join(f'<div class="truth">{esc(t)}</div>' for t in coldstart.GROUND_TRUTH)
+    truth_panel = (
+        f'<div class="gsep">the omniscient view — available to NO observer; the '
+        f'folds above never see these facts</div><div class="omni">{truth}</div>')
+
+    note = (
+        '<p class="note">A third generated fixture log (30 events, '
+        '<code>coldstart_fixture.py</code>). Legitimacy here is <strong>not a '
+        'property of a node</strong> — it is a relation between an observer\'s fold '
+        'policy and the log, so the surface is a disagreement matrix, not a verdict. '
+        'No cell carries a composite score (that would be the social-credit shape); '
+        'each shows one policy\'s categorical reading plus the exact events it rests '
+        'on, with single-tie judgments flagged. The protocol never verifies identity: '
+        'the generator knows who is real, no fold does, and that gap is rendered as '
+        'its own strip above. The canon\'s three exits from cold start — earn edges '
+        'slowly, manufacture volume, borrow a weak tie — produce appearances the log '
+        'cannot tell apart; this is the threat-model\'s adoption frontier seen from a '
+        'single node. Vouch/retraction are registry-style predicates '
+        '(<code>rep.vouch</code>, <code>rep.retraction</code> + <code>nullifies</code>) '
+        'over the five canonical types — nothing new was added to make uncertainty '
+        'visible.</p>')
+
+    inspector = ('<div id="cinspector"><div class="ins-empty">click any [ev:…] id in '
+                 'this band to inspect its raw signed form</div></div>')
+    return (f'<div class="readnav">cut {"".join(buttons)}</div>{"".join(panels)}'
+            f'{moves_panel}{truth_panel}{note}{inspector}')
+
+
+# ---------------------------------------------------------------------------
 # Page assembly.
 # ---------------------------------------------------------------------------
 
@@ -442,6 +547,32 @@ padding:8px 10px;margin:6px 0;font-size:12px}
 .evid.fid{cursor:pointer;text-decoration:underline dotted}
 #ginspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
 padding:12px;font-size:11.5px;white-space:pre;overflow:auto;max-height:280px}
+.cutbtn{font:inherit;font-size:11.5px;border:1px solid var(--line);background:#fff;
+padding:4px 10px;border-radius:6px;margin-left:6px;cursor:pointer}
+.cutbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.creading{display:none}.creading.active{display:block}
+table.matrix{width:100%;border-collapse:collapse}
+table.matrix th,table.matrix td{border:1px solid var(--line);padding:8px 10px;
+vertical-align:top;text-align:left;font-size:12px}
+table.matrix thead th{background:#fbfcfe}
+table.matrix .rowhead{background:#fbfcfe;white-space:nowrap}
+table.matrix .rowhead .kid{display:block;margin-left:0}
+.obsmeta{color:var(--mut);font-size:11px;font-weight:400;margin-top:3px;line-height:1.4}
+.mcell .chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+.mcell .mdetail{color:#374151;font-size:11.5px;line-height:1.45}
+.mcell .basis{color:var(--mut);font-size:10.5px;margin-top:5px}
+.mcell .hinge{color:var(--warn);font-size:11px;margin-top:5px}
+.tag.cat-affirm{background:#e0eaff;color:var(--accent)}
+.tag.cat-thin{background:#fef3c7;color:var(--warn)}
+.tag.cat-none{background:#eef0f5;color:#475569}
+.tag.cat-dead{background:#fee2e2;color:#b91c1c}
+td.mcell.cat-none{background:#fafbfd}td.mcell.cat-dead{background:#fff7f7}
+.omni{border:1px dashed #94a3b8;border-radius:8px;background:#f8fafc;
+padding:10px 12px}
+.omni .truth{color:#475569;font-size:11.5px;padding:3px 0;line-height:1.5}
+.evid.cid{cursor:pointer;text-decoration:underline dotted}
+#cinspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
+padding:12px;font-size:11.5px;white-space:pre;overflow:auto;max-height:280px}
 """
 
 JS = """
@@ -467,6 +598,17 @@ document.querySelectorAll('.readbtn').forEach(b=>b.onclick=()=>{
 document.querySelectorAll('.evid.fid').forEach(el=>el.onclick=()=>{
   document.getElementById('ginspector').textContent=
     JSON.stringify(FIX_BY_ID[el.dataset.fid],null,2);
+});
+const COLD = JSON.parse(document.getElementById('arc-coldstart').textContent);
+const COLD_BY_ID = Object.fromEntries(COLD.map(e=>[e.id,e]));
+document.querySelectorAll('.cutbtn').forEach(b=>b.onclick=()=>{
+  const i=b.dataset.cut;
+  document.querySelectorAll('.cutbtn').forEach(x=>x.classList.toggle('active',x===b));
+  document.querySelectorAll('.creading').forEach(p=>p.classList.toggle('active',p.dataset.cut===i));
+});
+document.querySelectorAll('.evid.cid').forEach(el=>el.onclick=()=>{
+  document.getElementById('cinspector').textContent=
+    JSON.stringify(COLD_BY_ID[el.dataset.cid],null,2);
 });
 """
 
@@ -556,10 +698,12 @@ def render_proposal_flow(results) -> str:
     return "".join(rows) + note
 
 
-def build_html(events, snapshots, results, signed, projections, flips, fixture_events) -> str:
+def build_html(events, snapshots, results, signed, projections, flips, fixture_events,
+               cut_matrices, moves, coldstart_events) -> str:
     data = json.dumps([dataclasses.asdict(e) for e in (list(events) + list(signed))],
                        default=list)
     fixdata = json.dumps([dataclasses.asdict(e) for e in fixture_events], default=list)
+    colddata = json.dumps([dataclasses.asdict(e) for e in coldstart_events], default=list)
     card = lambda t, b: f'<div class="card"><h2>{t}</h2><div class="in">{b}</div></div>'
     left = card("delegation tree", render_delegation_tree(events)) + \
         card("mandate viewer", render_mandate(events))
@@ -571,10 +715,10 @@ def build_html(events, snapshots, results, signed, projections, flips, fixture_e
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ARC reference client</title><style>{CSS}</style></head><body>
 <header><h1>ARC reference client</h1>
-<div class="sub">two generated logs · the commerce log ({len(events)} events) feeds the seven
+<div class="sub">three generated logs · the commerce log ({len(events)} events) feeds the seven
 surfaces and the write path · a delegation fixture ({len(fixture_events)} events) feeds the
-graph at the bottom · every panel is a recomputed projection; the boundary signs, the key
-never leaves it</div></header>
+graph · a cold-start fixture ({len(coldstart_events)} events) feeds the legitimacy matrix ·
+every panel is a recomputed projection; the boundary signs, the key never leaves it</div></header>
 <div class="grid">
 <div class="col">{left}</div>
 <div class="col">{mid}</div>
@@ -586,8 +730,11 @@ never leaves it</div></header>
 <div class="in">{render_event_log(events, signed)}</div></div></div>
 <div class="full"><div class="card band"><h2>delegation graph — authority as a visible object (one fixture log, two readings)</h2>
 <div class="in">{render_delegation_graph(projections, flips, fixture_events)}</div></div></div>
+<div class="full"><div class="card band"><h2>cold start — legitimacy before anyone can know whom to trust (one fixture log, three observers, two cuts)</h2>
+<div class="in">{render_coldstart_band(cut_matrices, moves)}</div></div></div>
 <script id="arc-data" type="application/json">{data}</script>
 <script id="arc-fixture" type="application/json">{fixdata}</script>
+<script id="arc-coldstart" type="application/json">{colddata}</script>
 <script>{JS}</script>
 </body></html>"""
 
@@ -604,10 +751,15 @@ def main() -> None:
     projections = {r: fixture.project_delegation_graph(fixture_events, reading=r)
                    for r in fixture.READINGS}
     flips = fixture.divergent_acts(fixture_events)
+    coldstart_events = capture_coldstart_log()
+    cut_matrices = {label: coldstart.matrix(coldstart_events, asof)
+                    for label, asof in coldstart.CUTS}
+    moves = coldstart.changed_cells(coldstart_events)
     out = os.path.join(HERE, "client.html")
     with open(out, "w") as f:
         f.write(build_html(events, snapshots, results, signed,
-                           projections, flips, fixture_events))
+                           projections, flips, fixture_events,
+                           cut_matrices, moves, coldstart_events))
     print(f"captured {len(events)} signed events from the end-to-end-demo probe")
     for label, s in snapshots:
         print(f"  [{label}] governance={s['governance_standing']} "
@@ -619,8 +771,11 @@ def main() -> None:
     # the auto-signed proposals verify against the same log they extend
     flow.verify_log(events + signed)
     fixture.verify_log(fixture_events)  # the fixture log verifies independently
+    coldstart.verify_log(coldstart_events)
     print(f"delegation fixture: {len(fixture_events)} signed events; "
           f"{len(flips)} completed act(s) flip between the two fold readings")
+    print(f"cold-start fixture: {len(coldstart_events)} signed events; "
+          f"{len(moves)} matrix cell(s) move between the two cuts")
     print(f"wrote {os.path.relpath(out)} — open it in a browser")
 
 

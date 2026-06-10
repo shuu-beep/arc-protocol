@@ -19,6 +19,8 @@ make two claims legible to a human eye —
 │  event log — the source the seven surfaces fold over (click to inspect)       │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  delegation graph — authority as a visible object (fixture log · two readings)│
+├──────────────────────────────────────────────────────────────────────────────┤
+│  cold start — legitimacy matrix (fixture log · three observers · two cuts)     │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -34,6 +36,7 @@ Every panel is sourced from the same log:
 | challenge / adjudication | `CHALLENGE dispute.open` + `ADJUDICATE gov.warning` |
 | event log | all 11 generated events (+ any auto-signed proposal, tagged) |
 | delegation graph | a separate 21-event fixture log (`delegation_fixture.py`), folded two ways |
+| cold-start matrix | a separate 30-event fixture log (`coldstart_fixture.py`), folded by 3 observers |
 
 The projection viewer's snapshot toggle shows the central fact directly:
 governance is `in_good_standing → in_good_standing → warned`, moving **only on
@@ -108,6 +111,54 @@ Both readings are pre-rendered by the Python fold; the page's JavaScript only
 toggles between them and inspects raw events. The boundary logic never moves
 into the viewer.
 
+## The cold-start matrix — uncertainty rendered, not resolved
+
+The last band enters the region *before* legitimacy is established — where the
+log does not yet contain enough to establish it. The claim:
+
+> at cold start the log does not contain the information that would
+> distinguish an honest newcomer from a disguised Sybil. The distinction is
+> made by an observer's fold **policy**; policies legitimately disagree; and
+> what ARC renders is the **disagreement itself** — not a verdict.
+
+A third fixture log (`coldstart_fixture.py`, 30 events, runnable standalone)
+generates four newcomers that are indistinguishable *in kind* on the log:
+
+* **nova** — honest but unlinked: two real trades, one counterparty, no vouch;
+* **mint** — a storefront pumped by a disposable swarm whose shared operator is
+  **not in the log** (hidden siblings disclose nothing — scenario 11);
+* **pact-1 / pact-2** — a coalition: mutual vouches, one casual outside tie,
+  zero history; it breaks from the inside at the second cut;
+* **anointed** — granted a mandate by an established root *before any history*:
+  authority arriving faster than reputation.
+
+Three observers fold the same log — `(root, policy, honored adjudicator)` —
+and each legitimate policy fails on a different newcomer: the **path** observer
+treats honest nova exactly like sybil mint (weight 0); the **history** observer
+ranks mint's manufactured volume *above* nova's real record; the **social**
+observer admits the whole coalition through one casual vouch — flagged in the
+cell as *"hinges on one tie"*, a weak social link carrying constitutional
+weight — until the coalition defects.
+
+Between the two cuts the collapse lands, and the matrix moves in ways no single
+score could express: **anointed's authority dies while its earned reputation
+survives** (the same withdrawal read in opposite directions by two observers);
+two communities rule the *same dispute* about mint in **opposite directions**
+(`gov.warning` vs `gov.dismissal`), and observers split along which ruling they
+honor — roots dividing into factions; pact-2 is left with a retracted tie and
+an open dispute nobody has adjudicated.
+
+What the band refuses to do is as deliberate as what it shows: no composite
+legitimacy score (a single number would be the social-credit shape); no
+protocol-level identity verification — the generator's ground truth ("mint and
+the swarm share an operator") is rendered in a separate strip labeled
+**available to no observer**, and the folds never see it. The honest finding:
+the canon offers a newcomer exactly three exits — *earn* edges slowly,
+*manufacture* volume, or *borrow* a weak tie — and no observer can read off the
+log which exit produced the appearance in front of them. This is the
+threat-model's adoption frontier seen from a single node, made visible rather
+than solved.
+
 ## Why a viewer (and not a runtime)
 
 ARC's value is the coordination/trust boundary, not agent execution. The
@@ -140,14 +191,17 @@ expressed through the five canonical event types rather than a sixth type.
 * The graph shows the **local-attribution side** of agent multiplication only:
   within one observer's root, sub-agents are trivially attributed; across
   principals nothing here forces attribution (the scenario-11
-  incentive-incompatibility stands). The stray key is the honest face of that —
-  and of the still-open **cold-start** question: a fresh honest root looks
-  exactly like an unrooted key until it earns edges.
+  incentive-incompatibility stands). The stray key is the honest face of that.
+* The cold-start matrix takes the once-deferred **cold-start vs unrooted**
+  question as far as a viewer can: it shows the indistinguishability and the
+  observer disagreement, but it does not (and must not) resolve them. **Key
+  custody remains the one deferred question** — it needs real keys, not a mock.
 
 ## Run
 
 ```
-python3 build.py                # reuses the end-to-end-demo probe + the fixture, writes client.html
+python3 build.py                # reuses the end-to-end-demo probe + both fixtures, writes client.html
 open client.html                # any browser; fully self-contained, no server
-python3 delegation_fixture.py   # the fixture standalone: narrated flow + both fold readings
+python3 delegation_fixture.py   # fixture standalone: narrated flow + both fold readings
+python3 coldstart_fixture.py    # fixture standalone: narrated flow + the matrix at both cuts
 ```
