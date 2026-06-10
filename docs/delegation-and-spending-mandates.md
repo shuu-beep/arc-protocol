@@ -123,7 +123,7 @@ Conversely, a community cannot mandate a person's private spending. Mandates are
 - **Friction quality.** What makes a mandate decision *meaningful* rather than another reflexive accept? Unsolved, and shared with §7.
 - **Scope expressiveness.** Many real constraints ("only if I actually need it") are not cleanly expressible as budget, merchant, category, or time. What belongs to delegation, and what must stay manual?
 - **Audit-review burden.** Who or what ensures the human revisits the audit trail of delegated actions? An unread trail is not oversight.
-- **Compromised approval surface.** A delegated flow trusts the agent to enforce scope, yet [compromised-consumer-agent.json](../examples/local-commerce-demo/artifacts/compromised-consumer-agent.json) shows an agent can misreport. Can scope enforcement be checked independently of the consumer agent — at the approval device or the payment provider? Unresolved.
+- **Compromised approval surface.** A delegated flow trusts the agent to enforce scope, yet [compromised-consumer-agent.json](../examples/local-commerce-demo/artifacts/compromised-consumer-agent.json) shows an agent can misreport. Can scope enforcement be checked independently of the consumer agent — at the approval device or the payment provider? Unresolved. [key-custody.md](./key-custody.md) §2 takes a position on part of this — scope enforcement belongs in the signer's trusted base, with the key, not in the agent — while the residue (a compromised signer) remains open.
 - **Mandate portability.** Does a mandate scoped in one community carry meaning in another? This relates to reputation portability ([reputation.md](./reputation.md) §10).
 
 ## 11. Current ARC Position

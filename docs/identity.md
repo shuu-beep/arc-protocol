@@ -383,6 +383,8 @@ Priority for Stage 2 implementation may include:
 - Clear distinction between account continuity, merchant legitimacy, and professional authority
 - Key rotation and compromised-key handling notes
 
+Where keys live — the signer boundary, key tiers, multi-device binding, compromise and root loss — is explored as a set of design decisions in [key-custody.md](./key-custody.md).
+
 Professional credential binding is a later-stage design area and depends on community demand, jurisdiction, and regulatory review.
 
 Contributions to the identity design are welcome. See [CONTRIBUTING.md](../CONTRIBUTING.md).

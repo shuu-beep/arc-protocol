@@ -196,6 +196,8 @@ expressed through the five canonical event types rather than a sixth type.
   question as far as a viewer can: it shows the indistinguishability and the
   observer disagreement, but it does not (and must not) resolve them. **Key
   custody remains the one deferred question** — it needs real keys, not a mock.
+  A design treatment now exists ([`docs/key-custody.md`](../../docs/key-custody.md));
+  the viewer still mocks signing, deliberately.
 
 ## Run
 
