@@ -61,6 +61,7 @@ import flow  # the real probe; reused, not copied
 
 import delegation_fixture as fixture  # the multi-level delegation fixture (same dir)
 import coldstart_fixture as coldstart  # the cold-start legitimacy fixture (same dir)
+import compromise_fixture as compromise  # the stolen-hot-key fixture (same dir, REAL Ed25519)
 
 # key id -> display name (presentation only; the keys come from the probes' parties)
 NAMES = {
@@ -99,6 +100,14 @@ def capture_fixture_log() -> list[fixture.Event]:
 def capture_coldstart_log() -> list[coldstart.Event]:
     with contextlib.redirect_stdout(io.StringIO()):
         return coldstart.generate_log()
+
+
+def capture_compromise_log():
+    """-> (events, forged_ids, keyring, meta). The only fixture on REAL Ed25519;
+    its narration is suppressed, its signatures are not — verify_log in main()
+    re-checks every one, forgeries included, before the page is written."""
+    with contextlib.redirect_stdout(io.StringIO()):
+        return compromise.generate_log()
 
 
 def project_at(events: list[flow.Event], upto_predicate: str) -> dict:
@@ -461,6 +470,143 @@ def render_coldstart_band(cut_matrices: dict, moves: list) -> str:
 
 
 # ---------------------------------------------------------------------------
+# The compromise band — a stolen hot key on REAL Ed25519. Two moments
+# (just-after-revoke / after the dispute) x two revoke readings (time-scoped /
+# cascade) are all pre-folded in Python; the page only toggles between them.
+# The "forged" flag lives ONLY in the omniscient strip — the honoring tables the
+# page renders never receive it, exactly as the cold-start band withholds its
+# ground truth. The point made visible: a forged event is cryptographically
+# honest, so the honoring grid cannot tell it from a real one.
+# ---------------------------------------------------------------------------
+
+def render_honor_row(r: dict) -> str:
+    honored = r["honored"]
+    cls = "ok" if honored else "mut"
+    label = "HONORED" if honored else "rejected"
+    amt = f'{r["amount"]} KRW' if r["amount"] else "&mdash;"
+    return (f'<tr class="{"hon" if honored else "rej"}">'
+            f'<td><span class="tag verdict">SIG VALID</span></td>'
+            f'<td><span class="tag {cls}">{label}</span></td>'
+            f'<td><code>{esc(r["predicate"])}</code></td>'
+            f'<td class="amt">{amt}</td>'
+            f'<td class="basis">{esc(r["basis"])}</td>'
+            f'<td><span class="evid xid" data-xid="{esc(r["id"])}">[{esc(r["id"])}]</span></td></tr>')
+
+
+def render_compromise_band(moments: list, forged_ids: set, blast: dict,
+                           legit_id: str, forge_a_id: str, ceiling, revoke_ts) -> str:
+    forged = set(forged_ids)
+
+    # moment buttons x reading toggle, every combination pre-rendered
+    mbtns, rbtns, grids = [], [], []
+    for ri, reading in enumerate(compromise.READINGS):
+        rbtns.append(f'<button class="xrbtn{" active" if ri == 0 else ""}" '
+                     f'data-xr="{ri}">{esc(reading.replace("_", "-"))}</button>')
+    for mi, m in enumerate(moments):
+        mbtns.append(f'<button class="xmbtn{" active" if mi == 0 else ""}" '
+                     f'data-xm="{mi}">{esc(m["label"])}</button>')
+        for ri, reading in enumerate(compromise.READINGS):
+            active = " active" if (mi == 0 and ri == 0) else ""
+            rows = "".join(render_honor_row(r) for r in m["projs"][reading]["rows"])
+            grids.append(
+                f'<div class="xgrid{active}" data-xm="{mi}" data-xr="{ri}">'
+                f'<table class="honor"><thead><tr><th>signature</th><th>fold</th>'
+                f'<th>act</th><th>amount</th><th>why</th><th>event</th></tr></thead>'
+                f'<tbody>{rows}</tbody></table></div>')
+
+    # the indistinguishability callout — legit act vs in-scope forgery, just after
+    # the revoke, identical verdicts under both readings
+    pre = moments[0]["projs"]
+    row = lambda reading, eid: next(r for r in pre[reading]["rows"] if r["id"] == eid)
+    verd = lambda r: "HONORED" if r["honored"] else "rejected"
+    twins = (
+        '<div class="gsep">why revocation is not surgical — the legitimate act and '
+        'the in-scope forgery, just after the revoke</div>'
+        '<div class="twins">'
+        f'<div class="twin"><div class="tlab">legitimate '
+        f'<span class="evid xid" data-xid="{esc(legit_id)}">[{esc(legit_id)}]</span></div>'
+        f'<div class="tval">time-scoped <b>{verd(row("time_scoped", legit_id))}</b> · '
+        f'cascade <b>{verd(row("cascade", legit_id))}</b></div></div>'
+        f'<div class="twin frg"><div class="tlab">FORGED, in scope '
+        f'<span class="evid xid" data-xid="{esc(forge_a_id)}">[{esc(forge_a_id)}]</span></div>'
+        f'<div class="tval">time-scoped <b>{verd(row("time_scoped", forge_a_id))}</b> · '
+        f'cascade <b>{verd(row("cascade", forge_a_id))}</b></div></div>'
+        '</div>'
+        '<div class="tnote">Identical verdicts. On the log they ARE the same act — '
+        'valid signature, right context, within ceiling, before the revoke. Switch the '
+        'moment toggle to <em>after the adjudication</em>: only then do they separate, '
+        'and only because the human supplied off-log the one fact the log never held — '
+        'that the 25000 was not theirs (a <code>CHALLENGE</code> + honored '
+        '<code>ADJUDICATE</code> voiding that one event). Three layers: signature valid '
+        '(log) / scope honored (fold) / void (authority).</div>')
+
+    # the blast-radius readout — the fold intersected with the omniscient strip,
+    # so no observer can compute it
+    b_ts, b_cas = blast["time_scoped"], blast["cascade"]
+    blast_panel = (
+        '<div class="gsep">blast radius — forged events the fold HONORS (the actual '
+        'damage). This is the fold intersected with the omniscient strip below, so '
+        '<strong>no observer can compute it</strong>: none can see which honored act '
+        'was forged.</div>'
+        '<div class="blast">'
+        f'<div class="brow"><span class="blab">time-scoped revoke</span>'
+        f'<span class="bval warn">{len(b_ts["honored_damage"])} honored · '
+        f'{b_ts["honored_krw"]} KRW</span>'
+        f'<span class="bnote">— the irreducible window: in-scope, pre-revoke, kept</span>'
+        f'</div>'
+        f'<div class="brow"><span class="blab">cascade revoke</span>'
+        f'<span class="bval">{len(b_cas["honored_damage"])} honored · '
+        f'{b_cas["honored_krw"]} KRW</span>'
+        f'<span class="bnote">— zero, but only by voiding the honest history too</span>'
+        f'</div>'
+        f'<div class="bfind">blast radius = mandate scope ({esc(str(ceiling))} per act, '
+        f'context-bound) <strong>&times; detection latency</strong> (acts honored until '
+        f'the revoke lands @ {esc(revoke_ts[11:16])}). Scope sets the height of the '
+        f'damage; latency sets its width.</div></div>')
+
+    # the omniscient strip: who actually held the pen. The grids never see it.
+    omni_rows = []
+    for r in moments[0]["projs"]["time_scoped"]["rows"]:
+        is_f = r["id"] in forged
+        amt = f'{r["amount"]} KRW' if r["amount"] else "&mdash;"
+        omni_rows.append(
+            f'<div class="otruth {"frg" if is_f else "gen"}">'
+            f'<span class="omark">{"FORGED" if is_f else "genuine"}</span> '
+            f'<code>{esc(r["predicate"])}</code> <span class="oamt">{amt}</span> '
+            f'<span class="evid xid" data-xid="{esc(r["id"])}">[{esc(r["id"])}]</span></div>')
+    omni = (
+        '<div class="gsep">the omniscient view — available to NO observer; the '
+        'honoring grid above never receives the FORGED flag. Every signature here is '
+        'real Ed25519 and verifies: a forged event is <strong>cryptographically '
+        'honest</strong>.</div>'
+        f'<div class="omni">{"".join(omni_rows)}</div>')
+
+    note = (
+        '<p class="note">A fourth generated fixture log (12 events, '
+        '<code>compromise_fixture.py</code>) — the only one on <strong>real '
+        'Ed25519</strong>, not a mock hash, because custody\'s claim ("a signature '
+        'proves a key signed, not how it was kept") cannot be tested on a fake '
+        'signature. The attacker exfiltrates the agent\'s secret and signs as the '
+        'agent; every forgery verifies. What bounds the damage is never the signature '
+        '— it is the mandate fold: the over-ceiling and out-of-context forgeries fall '
+        'to scope, the self-elevation to the tier line (a hot key cannot forge the '
+        'cold root, so cannot mint authority), the post-revoke act to time. No new '
+        'event type: theft is the absence of custody, revocation is '
+        '<code>consent.withdraw</code> + <code>nullifies</code>, the dispute is '
+        '<code>CHALLENGE</code> + <code>ADJUDICATE</code>. A probe finding extending '
+        '<code>docs/key-custody.md</code> §5/§8, not settled doctrine.</p>')
+
+    inspector = ('<div id="xinspector"><div class="ins-empty">click any [ev:…] id in '
+                 'this band to inspect its raw signed form — note the real 128-hex '
+                 'Ed25519 signature</div></div>')
+
+    return (
+        f'<div class="readnav">moment {"".join(mbtns)}'
+        f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;revoke reading {"".join(rbtns)}</div>'
+        f'{"".join(grids)}{blast_panel}{twins}{omni}{note}{inspector}')
+
+
+# ---------------------------------------------------------------------------
 # Page assembly.
 # ---------------------------------------------------------------------------
 
@@ -573,6 +719,41 @@ padding:10px 12px}
 .evid.cid{cursor:pointer;text-decoration:underline dotted}
 #cinspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
 padding:12px;font-size:11.5px;white-space:pre;overflow:auto;max-height:280px}
+.xmbtn,.xrbtn{font:inherit;font-size:11.5px;border:1px solid var(--line);
+background:#fff;padding:4px 10px;border-radius:6px;margin-left:6px;cursor:pointer}
+.xmbtn.active,.xrbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.xgrid{display:none}.xgrid.active{display:block}
+table.honor{width:100%;border-collapse:collapse;background:var(--card);
+border:1px solid var(--line);border-radius:8px;overflow:hidden}
+table.honor th,table.honor td{text-align:left;padding:6px 10px;
+border-bottom:1px solid var(--line);font-size:12px;vertical-align:top}
+table.honor th{color:var(--mut);text-transform:uppercase;font-size:10.5px;
+letter-spacing:.04em;background:#fbfcfe}
+table.honor tr.hon{background:#f3fbf5}table.honor tr.rej{background:#fafbfd}
+table.honor .amt{white-space:nowrap}table.honor .basis{color:#374151;font-size:11.5px}
+.blast{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
+.brow{display:flex;align-items:center;gap:10px;padding:3px 0}
+.brow .blab{font-weight:600;min-width:160px}
+.bval{font-weight:700;color:var(--ok)}.bval.warn{color:#b91c1c}
+.brow .bnote{color:var(--mut);font-size:11px}
+.bfind{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);
+color:#374151;font-size:12px;line-height:1.5}
+.twins{display:flex;gap:10px;flex-wrap:wrap}
+.twin{flex:1;min-width:220px;border:1px solid var(--line);border-radius:6px;
+padding:8px 10px;background:#fbfcfe}
+.twin.frg{border-color:#f5d488;background:#fffdf5}
+.twin .tlab{font-weight:600;margin-bottom:3px}
+.twin .tval{color:#374151;font-size:12px}
+.tnote{color:var(--mut);font-size:11.5px;margin-top:8px;line-height:1.5}
+.otruth{font-size:11.5px;padding:3px 0;line-height:1.5;color:#475569}
+.otruth .omark{display:inline-block;min-width:62px;font-weight:700;font-size:10px;
+letter-spacing:.05em}
+.otruth.frg .omark{color:#b91c1c}.otruth.gen .omark{color:#475569}
+.otruth .oamt{color:var(--mut)}
+.evid.xid{cursor:pointer;text-decoration:underline dotted}
+#xinspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
+padding:12px;font-size:11px;white-space:pre-wrap;word-break:break-all;
+overflow:auto;max-height:300px}
 """
 
 JS = """
@@ -609,6 +790,21 @@ document.querySelectorAll('.cutbtn').forEach(b=>b.onclick=()=>{
 document.querySelectorAll('.evid.cid').forEach(el=>el.onclick=()=>{
   document.getElementById('cinspector').textContent=
     JSON.stringify(COLD_BY_ID[el.dataset.cid],null,2);
+});
+const XCOMP = JSON.parse(document.getElementById('arc-compromise').textContent);
+const XCOMP_BY_ID = Object.fromEntries(XCOMP.map(e=>[e.id,e]));
+let xm='0', xr='0';
+function xsync(){
+  document.querySelectorAll('.xmbtn').forEach(b=>b.classList.toggle('active',b.dataset.xm===xm));
+  document.querySelectorAll('.xrbtn').forEach(b=>b.classList.toggle('active',b.dataset.xr===xr));
+  document.querySelectorAll('.xgrid').forEach(g=>g.classList.toggle('active',
+    g.dataset.xm===xm && g.dataset.xr===xr));
+}
+document.querySelectorAll('.xmbtn').forEach(b=>b.onclick=()=>{xm=b.dataset.xm;xsync();});
+document.querySelectorAll('.xrbtn').forEach(b=>b.onclick=()=>{xr=b.dataset.xr;xsync();});
+document.querySelectorAll('.evid.xid').forEach(el=>el.onclick=()=>{
+  document.getElementById('xinspector').textContent=
+    JSON.stringify(XCOMP_BY_ID[el.dataset.xid],null,2);
 });
 """
 
@@ -699,11 +895,15 @@ def render_proposal_flow(results) -> str:
 
 
 def build_html(events, snapshots, results, signed, projections, flips, fixture_events,
-               cut_matrices, moves, coldstart_events) -> str:
+               cut_matrices, moves, coldstart_events, comp) -> str:
     data = json.dumps([dataclasses.asdict(e) for e in (list(events) + list(signed))],
                        default=list)
     fixdata = json.dumps([dataclasses.asdict(e) for e in fixture_events], default=list)
     colddata = json.dumps([dataclasses.asdict(e) for e in coldstart_events], default=list)
+    compdata = json.dumps([dataclasses.asdict(e) for e in comp["events"]], default=list)
+    comp_band = render_compromise_band(comp["moments"], comp["forged"], comp["blast"],
+                                       comp["legit_id"], comp["forge_a_id"],
+                                       comp["ceiling"], comp["revoke_ts"])
     card = lambda t, b: f'<div class="card"><h2>{t}</h2><div class="in">{b}</div></div>'
     left = card("delegation tree", render_delegation_tree(events)) + \
         card("mandate viewer", render_mandate(events))
@@ -715,9 +915,10 @@ def build_html(events, snapshots, results, signed, projections, flips, fixture_e
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ARC reference client</title><style>{CSS}</style></head><body>
 <header><h1>ARC reference client</h1>
-<div class="sub">three generated logs · the commerce log ({len(events)} events) feeds the seven
+<div class="sub">four generated logs · the commerce log ({len(events)} events) feeds the seven
 surfaces and the write path · a delegation fixture ({len(fixture_events)} events) feeds the
 graph · a cold-start fixture ({len(coldstart_events)} events) feeds the legitimacy matrix ·
+a compromise fixture ({len(comp["events"])} events, real Ed25519) feeds the blast-radius band ·
 every panel is a recomputed projection; the boundary signs, the key never leaves it</div></header>
 <div class="grid">
 <div class="col">{left}</div>
@@ -732,9 +933,12 @@ every panel is a recomputed projection; the boundary signs, the key never leaves
 <div class="in">{render_delegation_graph(projections, flips, fixture_events)}</div></div></div>
 <div class="full"><div class="card band"><h2>cold start — legitimacy before anyone can know whom to trust (one fixture log, three observers, two cuts)</h2>
 <div class="in">{render_coldstart_band(cut_matrices, moves)}</div></div></div>
+<div class="full"><div class="card band"><h2>compromise — a stolen hot key, and the exact size of the damage (real Ed25519; two moments, two revoke readings)</h2>
+<div class="in">{comp_band}</div></div></div>
 <script id="arc-data" type="application/json">{data}</script>
 <script id="arc-fixture" type="application/json">{fixdata}</script>
 <script id="arc-coldstart" type="application/json">{colddata}</script>
+<script id="arc-compromise" type="application/json">{compdata}</script>
 <script>{JS}</script>
 </body></html>"""
 
@@ -755,11 +959,32 @@ def main() -> None:
     cut_matrices = {label: coldstart.matrix(coldstart_events, asof)
                     for label, asof in coldstart.CUTS}
     moves = coldstart.changed_cells(coldstart_events)
+
+    # the compromise band: fold the stolen-key log at two moments x two readings
+    comp_events, comp_forged, _comp_kr, comp_meta = capture_compromise_log()
+    c_root, c_agent = comp_meta["root"], comp_meta["agent"]
+    comp_pre = [e for e in comp_events if e.type not in ("CHALLENGE", "ADJUDICATE")]
+    proj = lambda log, r: compromise.project_compromise(log, root=c_root, agent=c_agent, reading=r)
+    comp_moments = [
+        {"label": "just after the revocation",
+         "projs": {r: proj(comp_pre, r) for r in compromise.READINGS}},
+        {"label": "after the adjudication",
+         "projs": {r: proj(comp_events, r) for r in compromise.READINGS}},
+    ]
+    comp_blast = {r: compromise.blast_radius(comp_pre, comp_forged, root=c_root,
+                                             agent=c_agent, reading=r)
+                  for r in compromise.READINGS}
+    base = comp_moments[0]["projs"]["time_scoped"]
+    comp = {"events": comp_events, "forged": comp_forged, "moments": comp_moments,
+            "blast": comp_blast, "legit_id": comp_meta["legit_id"],
+            "forge_a_id": comp_meta["forge_a_id"], "ceiling": base["mandate_ceiling"],
+            "revoke_ts": base["revoke_ts"]}
+
     out = os.path.join(HERE, "client.html")
     with open(out, "w") as f:
         f.write(build_html(events, snapshots, results, signed,
                            projections, flips, fixture_events,
-                           cut_matrices, moves, coldstart_events))
+                           cut_matrices, moves, coldstart_events, comp))
     print(f"captured {len(events)} signed events from the end-to-end-demo probe")
     for label, s in snapshots:
         print(f"  [{label}] governance={s['governance_standing']} "
@@ -772,10 +997,14 @@ def main() -> None:
     flow.verify_log(events + signed)
     fixture.verify_log(fixture_events)  # the fixture log verifies independently
     coldstart.verify_log(coldstart_events)
+    compromise.verify_log(comp_events)  # REAL Ed25519, every forgery included
     print(f"delegation fixture: {len(fixture_events)} signed events; "
           f"{len(flips)} completed act(s) flip between the two fold readings")
     print(f"cold-start fixture: {len(coldstart_events)} signed events; "
           f"{len(moves)} matrix cell(s) move between the two cuts")
+    print(f"compromise fixture: {len(comp_events)} real-Ed25519 events; "
+          f"blast radius (time-scoped) = {comp_blast['time_scoped']['honored_krw']} KRW "
+          f"in {len(comp_blast['time_scoped']['honored_damage'])} honored forgery")
     print(f"wrote {os.path.relpath(out)} — open it in a browser")
 
 
