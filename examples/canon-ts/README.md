@@ -1,7 +1,9 @@
 # ARC canon — TypeScript hardening probe
 
-A tiny, dependency-free probe that turns ARC canon invariants into rules the
-TypeScript compiler — not a convention — enforces. It locks two so far:
+A tiny, dependency-free probe that turns ARC invariants into rules the
+TypeScript compiler — not a convention — enforces. Two files, six locks.
+
+[`canon.ts`](./canon.ts) locks three **canon** invariants:
 
 1. **Closedness** — the five-event canon is a **closed discriminated union**, so
    nothing can quietly add a sixth event type.
@@ -14,13 +16,29 @@ TypeScript compiler — not a convention — enforces. It locks two so far:
    canonical type. The forbidden pseudo-types (`REVOKE`, `KEY_REVOKE`,
    `DELEGATE`, `CAPABILITY`) are proven non-members of `CanonicalType`.
 
+[`custody.ts`](./custody.ts) locks three **custody** invariants — the decisions
+in [`docs/key-custody.md`](../../docs/key-custody.md) after their adversarial
+probe on real Ed25519 keys
+([`compromise_fixture.py`](../reference-client/compromise_fixture.py)):
+
+4. **A hot key cannot mint authority beyond its ancestor's scope** — the only
+   two paths to a mandate are a ceremonial root (a branded type no hot key can
+   fabricate) or an attenuating redelegation (the child scope must narrow the
+   parent's; widening fails to compile).
+5. **A revoked key cannot produce honored post-revoke acts** — key liveness is
+   a phantom type; post-revoke bytes are still *constructible* (theft is not a
+   type error — the log can hold a forgery) but cannot occupy the honored slot.
+6. **Surgical invalidation requires adjudication** — the only per-act void slot
+   takes an `ADJUDICATE`; a key revocation or mandate withdrawal cannot unhonor
+   a single act. "Revocation is not surgical" becomes a compile-time refusal.
+
 ## What this is (and is not)
 
 - **Not a runtime implementation.** Nothing here signs, folds, stores, or runs.
-  There is no I/O. `canon.ts` is checked, never executed.
-- **A type-level hardening probe.** The single test is `tsc --noEmit`: the file
-  must compile as written, and must **fail to compile** the moment a sixth type
-  is introduced.
+  There is no I/O. Both files are checked, never executed.
+- **A type-level hardening probe.** The single test is `tsc --noEmit`: the files
+  must compile as written, and must **fail to compile** the moment any locked
+  invariant is violated.
 
 It is the companion to the Python probe in [`../canon-fold-demo`](../canon-fold-demo/),
 and the two test different things:
@@ -78,6 +96,30 @@ into a rule the type-checker enforces on every build.
    The neighboring `const revokeType: CanonicalType = "REVOKE"` line is commented;
    uncommenting it fails (`"REVOKE"` is not assignable to `CanonicalType`).
 
+## How the custody invariants are enforced
+
+1. **The tier line is a brand.** `RootKey` carries a `unique symbol` no other
+   code can fabricate, so a `HotKey` cannot occupy a root minting slot
+   (`custody.ts` §1–§2). A hot key cannot exist without a mandate — the tier
+   line *is* the mandate line ([key-custody.md](../../docs/key-custody.md) §3).
+2. **Attenuation is structural subtyping.** `redelegate` requires the child
+   scope's `category` to be assignable to the parent's, and a parent whose
+   scope has `redelegatable: true`. Widening a category, changing it sideways,
+   or re-minting from a surrendered mandate all fail to compile (§3 proofs).
+3. **Key liveness is a phantom type.** `revokeKey` is the only
+   `"live"` → `"revoked"` transition; `honorAct` takes `SignedAct<"live">`
+   only. `signAct` deliberately accepts a revoked key — bytes can always be
+   made; the refusal lands at the honored slot (§4–§5).
+4. **The scalpel slot takes only a verdict.** `voidAct(act, verdict)` reuses
+   `GovernanceEvent` from `canon.ts` §7: a `KeyEvent` revocation or an
+   `AUTHORIZE` withdrawal in that slot fails to compile (§6–§7).
+5. **An honesty section.** `custody.ts` §8 states what the compiler *cannot*
+   hold: ordered axes (it cannot see that 20000 ≤ 50000 — ceiling arithmetic
+   stays in the signer's trusted base), custody provenance (an in-scope
+   pre-revoke forgery types identically to the honest act — finding I as a
+   type-level fact, reproduced on purpose), and detection latency (the phantom
+   flips where the revocation lands, not where the theft happens).
+
 ## Run it
 
 No install or `package.json` required; `npx` fetches TypeScript on demand:
@@ -93,7 +135,10 @@ Expected: **no output, exit 0** (the canon compiles). To see the guarantees bite
 uncomment a block in `canon.ts` §6 (closedness — fails on `CanonicalType` or
 `never`), §8 (governance — fails because a `CHALLENGE`/`ATTEST` is not an
 `AdjudicateEvent`), or §9 (field discipline — fails because `"REVOKE"` is not a
-`CanonicalType`) and run again.
+`CanonicalType`) and run again. The custody locks bite the same way: uncomment
+a block in `custody.ts` §3 (attenuation — a widened scope or a hot key in the
+root slot), §5 (a post-revoke act in the honored slot), or §7 (a revocation in
+the per-act void slot).
 
 ## The point
 
@@ -101,5 +146,9 @@ uncomment a block in `canon.ts` §6 (closedness — fails on `CanonicalType` or
 
 The five types held across every scenario the Python probe could throw at them.
 This probe takes the next step: it makes those findings something a compiler
-defends, so violating them — adding a sixth type, or letting a non-verdict move
-governance — can no longer happen by accident. It breaks the build.
+defends, so violating them — adding a sixth type, letting a non-verdict move
+governance, minting authority beyond an ancestor's scope, honoring a
+post-revoke act, or unhonoring a single act without an `ADJUDICATE` — can no
+longer happen by accident. It breaks the build. And where the compiler cannot
+defend a custody fact (ceiling arithmetic, custody provenance, detection
+latency), `custody.ts` §8 says so instead of pretending.
