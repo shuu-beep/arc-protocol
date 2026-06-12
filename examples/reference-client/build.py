@@ -62,6 +62,7 @@ import flow  # the real probe; reused, not copied
 import delegation_fixture as fixture  # the multi-level delegation fixture (same dir)
 import coldstart_fixture as coldstart  # the cold-start legitimacy fixture (same dir)
 import compromise_fixture as compromise  # the stolen-hot-key fixture (same dir, REAL Ed25519)
+import federation_fixture as federation  # the cross-community bridge fixture (same dir)
 
 # key id -> display name (presentation only; the keys come from the probes' parties)
 NAMES = {
@@ -71,6 +72,7 @@ NAMES = {
     "k:community": "community",
     **fixture.NAMES,
     **coldstart.NAMES,
+    **federation.NAMES,
 }
 
 
@@ -108,6 +110,11 @@ def capture_compromise_log():
     re-checks every one, forgeries included, before the page is written."""
     with contextlib.redirect_stdout(io.StringIO()):
         return compromise.generate_log()
+
+
+def capture_federation_log() -> list:
+    with contextlib.redirect_stdout(io.StringIO()):
+        return federation.generate_log()
 
 
 def project_at(events: list[flow.Event], upto_predicate: str) -> dict:
@@ -607,6 +614,142 @@ def render_compromise_band(moments: list, forged_ids: set, blast: dict,
 
 
 # ---------------------------------------------------------------------------
+# The federation band — one log, two community authorities, five observers.
+# Every (moment x severance reading) is pre-folded in Python by the fixture's
+# own fold; the page only toggles between pre-rendered grids. CONTESTED is
+# rendered as a literally split chip — the disagreement is the surface, not an
+# error state the page hides.
+# ---------------------------------------------------------------------------
+
+FED_STATUS_LABEL = {
+    "local": "local authority",
+    "imported": "imported as BINDING",
+    "advisory": "imported as ADVISORY — moves nothing",
+    "overridden": "imported, then OVERRIDDEN by the local ruling",
+    "foreign": "foreign — weight 0",
+}
+
+
+def render_federation_cell(cell: dict) -> str:
+    if cell["category"] == "contested":
+        chip = ('<span class="tag fed-contested">'
+                + " &#8741; ".join(esc(l.upper()) for l in cell["labels"])
+                + '</span>')
+    else:
+        cls = {"good": "mut", "affirm": "ok", "warn": "warn"}[cell["category"]]
+        chip = f'<span class="tag {cls}">{esc(cell["standing"].upper())}</span>'
+    chips = [chip]
+    for v in cell["verdicts"]:
+        if v["status"] == "advisory":
+            chips.append(f'<span class="tag fed-adv">ADVISORY: {esc(v["label"].upper())}</span>')
+
+    lines = []
+    for v in cell["verdicts"]:
+        via = (f' via bridge <span class="evid eid" data-eid="{esc(v["via"])}">'
+               f'[{esc(v["via"])}]</span>' if v["via"] else "")
+        lines.append(
+            f'<div class="fverdict"><code>{esc(v["label"])}</code> by '
+            f'<span class="who">{esc(name(v["by"]))}</span> '
+            f'<span class="evid eid" data-eid="{esc(v["id"])}">[{esc(v["id"])}]</span>'
+            f' — {esc(FED_STATUS_LABEL[v["status"]])}{via}</div>')
+
+    hinge = ""
+    if cell["hinge"]:
+        hinge = (f'<div class="hinge">&#9888; this standing hinges on the bridge '
+                 f'<span class="evid eid" data-eid="{esc(cell["hinge"])}">'
+                 f'[{esc(cell["hinge"])}]</span> — fold without that one grant '
+                 f'and it flips</div>')
+    return (f'<td class="mcell fcell-{esc(cell["category"])}"><div class="chips">'
+            f'{"".join(chips)}</div><div class="mdetail">{esc(cell["detail"])}</div>'
+            f'{"".join(lines)}{hinge}</td>')
+
+
+def render_federation_matrix(projs: list) -> str:
+    rows = []
+    for p in projs:
+        prec = (f' · precedence: {p["precedence"].replace("_", "-")}'
+                if p["precedence"] else "")
+        rows.append(
+            f'<tr><th class="rowhead frow"><div class="who">{esc(p["observer"])}</div>'
+            f'<div class="obsmeta">root <code>{esc(name(p["root"]))}</code> · bridge: '
+            f'{esc(p["bridge_reading"])}{esc(prec)}<br>{esc(p["blurb"])}</div></th>'
+            f'{render_federation_cell(p["cell"])}</tr>')
+    return (f'<table class="matrix fed"><thead><tr><th></th>'
+            f'<th>the vendor&#8217;s standing, as this observer projects it</th>'
+            f'</tr></thead><tbody>{"".join(rows)}</tbody></table>')
+
+
+def render_federation_band(fed_matrices: dict, fed_moves: dict) -> str:
+    mbtns, rbtns, grids = [], [], []
+    for ri, reading in enumerate(federation.READINGS):
+        rbtns.append(f'<button class="frbtn{" active" if ri == 0 else ""}" '
+                     f'data-fr="{ri}">{esc(reading.replace("_", "-"))}</button>')
+    for mi, (mlabel, _asof) in enumerate(federation.MOMENTS):
+        mbtns.append(f'<button class="fmbtn{" active" if mi == 0 else ""}" '
+                     f'data-fm="{mi}">{esc(mlabel)}</button>')
+        for ri, reading in enumerate(federation.READINGS):
+            active = " active" if (mi == 0 and ri == 0) else ""
+            grids.append(f'<div class="fgrid{active}" data-fm="{mi}" data-fr="{ri}">'
+                         f'{render_federation_matrix(fed_matrices[(mi, ri)])}</div>')
+
+    move_panels = []
+    for ri, reading in enumerate(federation.READINGS):
+        rows = []
+        for m in fed_moves[reading]:
+            rows.append(
+                f'<div class="gflip"><span class="who">{esc(m["observer"])}</span> '
+                f'({esc(m["from_moment"])} &rarr; {esc(m["to_moment"])}): '
+                f'<code>{esc(m["before"])}</code> &rarr; <code>{esc(m["after"])}</code></div>')
+        if reading == "time_scoped":
+            extra = ('<div class="gflip mutflip">the severance moved <strong>nothing'
+                     '</strong> under time-scoped — it bounds future imports; it does '
+                     'not sort the past. The contested cell outlives the bridge that '
+                     'created it.</div>')
+        else:
+            extra = ('<div class="gflip mutflip">under cascade the contested cell '
+                     '&#8220;resolves&#8221; — but only because the severed bridge is '
+                     'read as never having existed, voiding every ruling it carried. '
+                     'Resolution by amnesia, not resolution.</div>')
+        move_panels.append(
+            f'<div class="fmoves{" active" if ri == 0 else ""}" data-fr="{ri}">'
+            f'<div class="gsep">what moved between the moments · '
+            f'{esc(reading.replace("_", "-"))}</div>{"".join(rows)}{extra}</div>')
+
+    truth = "".join(f'<div class="truth">{esc(t)}</div>' for t in federation.GROUND_TRUTH)
+    truth_panel = (
+        f'<div class="gsep">the omniscient view — available to NO observer; no fold '
+        f'above keys on these facts</div><div class="omni">{truth}</div>')
+
+    note = (
+        '<p class="note">A fifth generated fixture log (15 events, '
+        '<code>federation_fixture.py</code>) — the first executable slice of '
+        'federation, deliberately small. The bridge needed <strong>no new '
+        'primitive</strong>: recognition is a scoped <code>AUTHORIZE</code> '
+        '(<code>fed.recognition</code>), severance is <code>nullifies</code>, and '
+        'the preserve-vs-cascade divergence arrived for free — severing a bridge '
+        'bounds future imports, it does not sort the past. A bridge reading is '
+        'categorical (authority / advisory / ignore), never a numeric trust weight — '
+        'a community-trust scalar would be the composite score ARC refuses, one '
+        'level up. Override is a precedence choice inside a fold, not an event; and '
+        'where a fold honors two conflicting authorities with no precedence rule, '
+        '<strong>CONTESTED is the honest terminal output</strong> — the only thing '
+        'that would dissolve it is an authority of last resort, the corner ARC '
+        'declines. Bridges are directional and route only authority the observer '
+        'already grants. Why a community recognizes another in the first place is '
+        'not in the log and no fold can read it — the adoption boundary, unchanged. '
+        'A probe finding, not doctrine.</p>')
+
+    inspector = ('<div id="finspector"><div class="ins-empty">click any [ev:…] id in '
+                 'this band to inspect its raw signed form</div></div>')
+
+    return (
+        f'<div class="readnav">moment {"".join(mbtns)}'
+        f'&nbsp;&nbsp;&middot;&nbsp;&nbsp;severance reading {"".join(rbtns)}'
+        f'<span class="frnote">(the readings differ only after the severance)</span>'
+        f'</div>{"".join(grids)}{"".join(move_panels)}{truth_panel}{note}{inspector}')
+
+
+# ---------------------------------------------------------------------------
 # Page assembly.
 # ---------------------------------------------------------------------------
 
@@ -754,6 +897,22 @@ letter-spacing:.05em}
 #xinspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
 padding:12px;font-size:11px;white-space:pre-wrap;word-break:break-all;
 overflow:auto;max-height:300px}
+.fmbtn,.frbtn{font:inherit;font-size:11.5px;border:1px solid var(--line);
+background:#fff;padding:4px 10px;border-radius:6px;margin-left:6px;cursor:pointer}
+.fmbtn.active,.frbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.frnote{font-size:10.5px;color:var(--mut);margin-left:8px}
+.fgrid{display:none}.fgrid.active{display:block}
+.fmoves{display:none}.fmoves.active{display:block}
+table.matrix.fed .rowhead{white-space:normal;max-width:380px}
+.tag.fed-contested{background:linear-gradient(90deg,#fee2e2 0 50%,#dcfce7 50% 100%);
+color:#1d2330;border:1px solid #e5e7eb}
+.tag.fed-adv{background:#e0f2fe;color:#0369a1}
+td.mcell.fcell-contested{background:#fffbf5}
+.fverdict{font-size:11.5px;color:#374151;padding:2px 0}
+.gflip.mutflip{border-color:var(--line);background:#fbfcfe;color:#374151}
+.evid.eid{cursor:pointer;text-decoration:underline dotted}
+#finspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
+padding:12px;font-size:11.5px;white-space:pre;overflow:auto;max-height:280px}
 """
 
 JS = """
@@ -805,6 +964,22 @@ document.querySelectorAll('.xrbtn').forEach(b=>b.onclick=()=>{xr=b.dataset.xr;xs
 document.querySelectorAll('.evid.xid').forEach(el=>el.onclick=()=>{
   document.getElementById('xinspector').textContent=
     JSON.stringify(XCOMP_BY_ID[el.dataset.xid],null,2);
+});
+const FED = JSON.parse(document.getElementById('arc-federation').textContent);
+const FED_BY_ID = Object.fromEntries(FED.map(e=>[e.id,e]));
+let fm='0', fr='0';
+function fsync(){
+  document.querySelectorAll('.fmbtn').forEach(b=>b.classList.toggle('active',b.dataset.fm===fm));
+  document.querySelectorAll('.frbtn').forEach(b=>b.classList.toggle('active',b.dataset.fr===fr));
+  document.querySelectorAll('.fgrid').forEach(g=>g.classList.toggle('active',
+    g.dataset.fm===fm && g.dataset.fr===fr));
+  document.querySelectorAll('.fmoves').forEach(g=>g.classList.toggle('active',g.dataset.fr===fr));
+}
+document.querySelectorAll('.fmbtn').forEach(b=>b.onclick=()=>{fm=b.dataset.fm;fsync();});
+document.querySelectorAll('.frbtn').forEach(b=>b.onclick=()=>{fr=b.dataset.fr;fsync();});
+document.querySelectorAll('.evid.eid').forEach(el=>el.onclick=()=>{
+  document.getElementById('finspector').textContent=
+    JSON.stringify(FED_BY_ID[el.dataset.eid],null,2);
 });
 """
 
@@ -895,12 +1070,14 @@ def render_proposal_flow(results) -> str:
 
 
 def build_html(events, snapshots, results, signed, projections, flips, fixture_events,
-               cut_matrices, moves, coldstart_events, comp) -> str:
+               cut_matrices, moves, coldstart_events, comp, fed) -> str:
     data = json.dumps([dataclasses.asdict(e) for e in (list(events) + list(signed))],
                        default=list)
     fixdata = json.dumps([dataclasses.asdict(e) for e in fixture_events], default=list)
     colddata = json.dumps([dataclasses.asdict(e) for e in coldstart_events], default=list)
     compdata = json.dumps([dataclasses.asdict(e) for e in comp["events"]], default=list)
+    feddata = json.dumps([dataclasses.asdict(e) for e in fed["events"]], default=list)
+    fed_band = render_federation_band(fed["matrices"], fed["moves"])
     comp_band = render_compromise_band(comp["moments"], comp["forged"], comp["blast"],
                                        comp["legit_id"], comp["forge_a_id"],
                                        comp["ceiling"], comp["revoke_ts"])
@@ -915,10 +1092,11 @@ def build_html(events, snapshots, results, signed, projections, flips, fixture_e
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ARC reference client</title><style>{CSS}</style></head><body>
 <header><h1>ARC reference client</h1>
-<div class="sub">four generated logs · the commerce log ({len(events)} events) feeds the seven
+<div class="sub">five generated logs · the commerce log ({len(events)} events) feeds the seven
 surfaces and the write path · a delegation fixture ({len(fixture_events)} events) feeds the
 graph · a cold-start fixture ({len(coldstart_events)} events) feeds the legitimacy matrix ·
 a compromise fixture ({len(comp["events"])} events, real Ed25519) feeds the blast-radius band ·
+a federation fixture ({len(fed["events"])} events) feeds the bridge disagreement band ·
 every panel is a recomputed projection; the boundary signs, the key never leaves it</div></header>
 <div class="grid">
 <div class="col">{left}</div>
@@ -935,10 +1113,13 @@ every panel is a recomputed projection; the boundary signs, the key never leaves
 <div class="in">{render_coldstart_band(cut_matrices, moves)}</div></div></div>
 <div class="full"><div class="card band"><h2>compromise — a stolen hot key, and the exact size of the damage (real Ed25519; two moments, two revoke readings)</h2>
 <div class="in">{comp_band}</div></div></div>
+<div class="full"><div class="card band"><h2>federation — one log, two authorities, and what a bridge imports (five observers; three moments, two severance readings)</h2>
+<div class="in">{fed_band}</div></div></div>
 <script id="arc-data" type="application/json">{data}</script>
 <script id="arc-fixture" type="application/json">{fixdata}</script>
 <script id="arc-coldstart" type="application/json">{colddata}</script>
 <script id="arc-compromise" type="application/json">{compdata}</script>
+<script id="arc-federation" type="application/json">{feddata}</script>
 <script>{JS}</script>
 </body></html>"""
 
@@ -980,11 +1161,20 @@ def main() -> None:
             "forge_a_id": comp_meta["forge_a_id"], "ceiling": base["mandate_ceiling"],
             "revoke_ts": base["revoke_ts"]}
 
+    # the federation band: every (moment x severance reading) pre-folded
+    fed_events = capture_federation_log()
+    fed_matrices = {(mi, ri): federation.matrix(fed_events, asof, reading)
+                    for mi, (_label, asof) in enumerate(federation.MOMENTS)
+                    for ri, reading in enumerate(federation.READINGS)}
+    fed_moves = {reading: federation.moved_cells(fed_events, reading)
+                 for reading in federation.READINGS}
+    fed = {"events": fed_events, "matrices": fed_matrices, "moves": fed_moves}
+
     out = os.path.join(HERE, "client.html")
     with open(out, "w") as f:
         f.write(build_html(events, snapshots, results, signed,
                            projections, flips, fixture_events,
-                           cut_matrices, moves, coldstart_events, comp))
+                           cut_matrices, moves, coldstart_events, comp, fed))
     print(f"captured {len(events)} signed events from the end-to-end-demo probe")
     for label, s in snapshots:
         print(f"  [{label}] governance={s['governance_standing']} "
@@ -998,6 +1188,7 @@ def main() -> None:
     fixture.verify_log(fixture_events)  # the fixture log verifies independently
     coldstart.verify_log(coldstart_events)
     compromise.verify_log(comp_events)  # REAL Ed25519, every forgery included
+    federation.verify_log(fed_events)
     print(f"delegation fixture: {len(fixture_events)} signed events; "
           f"{len(flips)} completed act(s) flip between the two fold readings")
     print(f"cold-start fixture: {len(coldstart_events)} signed events; "
@@ -1005,6 +1196,12 @@ def main() -> None:
     print(f"compromise fixture: {len(comp_events)} real-Ed25519 events; "
           f"blast radius (time-scoped) = {comp_blast['time_scoped']['honored_krw']} KRW "
           f"in {len(comp_blast['time_scoped']['honored_damage'])} honored forgery")
+    n_sev_moves = sum(1 for m in fed_moves["time_scoped"]
+                      if m["to_moment"] == federation.MOMENTS[2][0])
+    print(f"federation fixture: {len(fed_events)} signed events; the severance moves "
+          f"{n_sev_moves} cell(s) under time-scoped (it cannot sort the past) and "
+          f"{sum(1 for m in fed_moves['cascade'] if m['to_moment'] == federation.MOMENTS[2][0])} "
+          f"under cascade")
     print(f"wrote {os.path.relpath(out)} — open it in a browser")
 
 

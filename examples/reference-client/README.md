@@ -23,6 +23,8 @@ make two claims legible to a human eye —
 │  cold start — legitimacy matrix (fixture log · three observers · two cuts)     │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  compromise — blast radius of a stolen hot key (real Ed25519 · 2 moments × 2)  │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  federation — what a bridge imports (5 observers · 3 moments × 2 readings)      │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -40,6 +42,7 @@ Every panel is sourced from the same log:
 | delegation graph | a separate 21-event fixture log (`delegation_fixture.py`), folded two ways |
 | cold-start matrix | a separate 30-event fixture log (`coldstart_fixture.py`), folded by 3 observers |
 | compromise band | a separate 12-event fixture log (`compromise_fixture.py`, **real Ed25519**), folded at 2 moments × 2 revoke readings |
+| federation band | a separate 15-event fixture log (`federation_fixture.py`), folded by 5 observers at 3 moments × 2 severance readings |
 
 The projection viewer's snapshot toggle shows the central fact directly:
 governance is `in_good_standing → in_good_standing → warned`, moving **only on
@@ -202,6 +205,48 @@ intersected with that strip, so it is a quantity **no observer can compute**:
 none can see which honored act was forged. A probe finding extending
 [`docs/key-custody.md`](../../docs/key-custody.md) §5/§8, not settled doctrine.
 
+## The federation band — what a bridge imports
+
+The newest band is the first executable slice of federation, deliberately
+small: **one log, two community authorities, and observers who must decide what
+the other community's adjudication is worth.** A fifth fixture log
+(`federation_fixture.py`, 15 events, runnable standalone) stages the conflict:
+a cross-community sale is disputed; **community-harbor** rules *suspension* (its
+strict rule: late delivery is non-fulfillment); the vendor appeals at home and
+**community-orchard** rules *dismissal* (its rule: delivered late is still
+delivered). Before any of this, orchard had **recognized harbor's commerce
+rulings** — the bridge, an ordinary `AUTHORIZE` (`fed.recognition`) with a
+`scope`. After the conflict, orchard severs it (`fed.severance` + `nullifies`).
+No new primitive anywhere — and that is half the finding.
+
+Five observers fold the same log, differing only in fold parameters: harbor's
+own observer (who holds no bridge — **bridges are directional**); an orchard
+observer who reads the bridge as *nothing* (imported rulings weigh 0, the
+stray-key treatment); one who reads it as **advisory** (the imported ruling is a
+visible flag that moves no standing); one who reads it as **authority** with a
+precedence rule (on conflict, local supersedes — *override is a precedence
+choice inside a fold, not an event*); and one who reads it as authority with
+**no precedence rule**. That last cell is the band's center: when two honored
+authorities conflict and nothing ranks them, the projection is **CONTESTED** —
+rendered as a literally split chip, because the only thing that would dissolve
+it is an authority of last resort, the corner ARC declines.
+
+The severance toggle replays the revocation divergence on the federation side:
+under **time-scoped**, severing the bridge moves *nothing* — it bounds future
+imports, it does not sort the past, and the contested cell **outlives the bridge
+that created it**; under **cascade**, the contested cell "resolves" — but only
+because the severed bridge is read as never having existed, voiding every ruling
+it carried. Resolution by amnesia, not resolution.
+
+The refusals are load-bearing: a bridge reading is **categorical** (authority /
+advisory / ignore), never a numeric trust weight — a community-trust scalar
+would be the composite score ARC refuses, one level up. And the omniscient strip
+carries the band's quietest point: the goods were in fact delivered (late), both
+rulings are sincere, and **no fold keys on the delivery fact — every fold keys
+on which authority it honors**. Why orchard recognized harbor in the first place
+is not in the log and no fold can read it: the adoption boundary, unchanged. A
+probe finding, not doctrine.
+
 ## Why a viewer (and not a runtime)
 
 ARC's value is the coordination/trust boundary, not agent execution. The
@@ -247,13 +292,19 @@ expressed through the five canonical event types rather than a sixth type.
   stolen hot key. What the band still does *not* settle is everything §8 leaves
   open (a compromised signer, threshold custody, enclave attestation); a viewer
   cannot, and a real client must.
+* The federation band is a **first slice, deliberately small**: one bridge, one
+  direction, one disputed act. Schism, observer migration, meta-folding (reading
+  someone *else's* bridges to discount them), and multi-bridge conflict are
+  explicitly out of scope for this cycle. And the band shows what a bridge *is*,
+  not what makes one worth issuing — the adoption/incentive question stays open.
 
 ## Run
 
 ```
-python3 build.py                # reuses the end-to-end-demo probe + all three fixtures, writes client.html
+python3 build.py                # reuses the end-to-end-demo probe + all four fixtures, writes client.html
 open client.html                # any browser; fully self-contained, no server
 python3 delegation_fixture.py   # fixture standalone: narrated flow + both fold readings
 python3 coldstart_fixture.py    # fixture standalone: narrated flow + the matrix at both cuts
 python3 compromise_fixture.py   # fixture standalone: real Ed25519, the blast radius + the residue
+python3 federation_fixture.py   # fixture standalone: the bridge, the contested cell, both severance readings
 ```
