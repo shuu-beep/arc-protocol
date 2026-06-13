@@ -656,6 +656,8 @@ Different communities may define fraud, evidence, lateness, refund fairness, or 
 
 ARC should allow local variation while making differences visible.
 
+A fixture in the reference client ([`examples/reference-client`](../examples/reference-client/), `federation_fixture.py`) probes this frontier directly: a strict community and a lenient one issue opposite rulings on the same vendor, and a recognition bridge between them carries one into the other's view. It suggests three things about the mitigations above. Making differences **visible** (13.3) has a concrete terminal form — when a reader recognizes two communities that disagree and ranks neither, the honest output is a *contested* status, not a synthesized verdict. **Weak import** (13.1) is bounded constitutionally, not only by weighting: a bridge can route only authority the reader already grants, so it cannot mint trust an importer never extended. And **fraud migration** (13.2) is only half-addressed by severance — cutting a bridge stops *future* imports but does not undo rulings already folded; withdrawing recognition does not re-sort the past. What stays outside the log entirely is *why* one community recognizes another (§18.1's adoption frontier): the bridge records that recognition exists, never why it was extended. Offered as a probe finding, not a settled rule.
+
 ---
 
 ## 14. Threats to Non-Profit Governance
