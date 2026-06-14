@@ -25,6 +25,8 @@ make two claims legible to a human eye —
 │  compromise — blast radius of a stolen hot key (real Ed25519 · 2 moments × 2)  │
 ├──────────────────────────────────────────────────────────────────────────────┤
 │  federation — what a bridge imports (5 observers · 3 moments × 2 readings)      │
+├──────────────────────────────────────────────────────────────────────────────┤
+│  custody seam — what the approval carries back (real Ed25519 · 2 readings)      │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -43,6 +45,7 @@ Every panel is sourced from the same log:
 | cold-start matrix | a separate 30-event fixture log (`coldstart_fixture.py`), folded by 3 observers |
 | compromise band | a separate 12-event fixture log (`compromise_fixture.py`, **real Ed25519**), folded at 2 moments × 2 revoke readings |
 | federation band | a separate 15-event fixture log (`federation_fixture.py`), folded by 5 observers at 3 moments × 2 severance readings |
+| custody seam band | a separate 6-event fixture log (`approval_seam_fixture.py`, **real Ed25519**), the sign-time wall + an approval judged under 2 readings (proposal-bound / scope-only) |
 
 The projection viewer's snapshot toggle shows the central fact directly:
 governance is `in_good_standing → in_good_standing → warned`, moving **only on
@@ -247,6 +250,35 @@ on which authority it honors**. Why orchard recognized harbor in the first place
 is not in the log and no fold can read it: the adoption boundary, unchanged. A
 probe finding, not doctrine.
 
+## The custody seam — what the approval carries back
+
+The newest band is the second on **real Ed25519**, and it descends from a
+question the compromise band left standing: if the key lives behind a separate
+signer, what does *escalation* carry? Its fixture (`approval_seam_fixture.py`, 6
+events, runnable standalone) splits the agent from the signer so the agent holds
+no key — it can only *propose*. The first panel is that **sign-time wall**: an
+in-scope payment is SIGNED, an over-ceiling one is ROUTED to a human, and an
+out-of-domain forgery and a self-mint-as-root attempt are REFUSED — the last two
+*never become events*, because the cold key is not in the process to sign them.
+
+The second panel is the finding. A routed proposal needs an approval **return
+path** the one-way proposal seam never had, so a human reviews the exact bytes
+("pay 90000 to merchant-rho — the same bytes the signer would sign") and approves
+with the cold key. Then the **same approval, in flight back through the untrusted
+agent**, is judged under two readings, and the toggle *is* the point: under
+**proposal-bound** the approval is tied to the one proposal's content hash, so a
+re-aim (different hash), a replay (already spent), and a bare scope token (names
+no proposal) all die at sign-time; flip to **scope-only** — the context+amount
+token the embodiment fixture carried — and all three turn **SIGNED**. That grid
+is the fixture's own `scope_only_would_sign()`, a *computed counterfactual*: a
+scope token is a bearer token, and binding is exactly what removes it.
+
+The residue the band leaves visible: binding makes the **human a second signer**.
+The approval is only as good as what the human *saw*, so the inbox owes a human's
+eyes the same "sign what you saw" property the signer's bytes give — `ROUTE` is
+not "defer to a human," it opens a second custody boundary. A probe finding
+extending [`docs/key-custody.md`](../../docs/key-custody.md) §5/§8, not doctrine.
+
 ## Why a viewer (and not a runtime)
 
 ARC's value is the coordination/trust boundary, not agent execution. The
@@ -297,14 +329,23 @@ expressed through the five canonical event types rather than a sixth type.
   someone *else's* bridges to discount them), and multi-bridge conflict are
   explicitly out of scope for this cycle. And the band shows what a bridge *is*,
   not what makes one worth issuing — the adoption/incentive question stays open.
+* The custody-seam band runs on **real Ed25519** for the same reason the
+  compromise band does: "this approval validates against that one proposal" must
+  be a fact, not a claim. But it is **not a wallet, not a daemon, not a security
+  product** — the "processes" are objects sharing a serializable seam, with no
+  network, persistence, or real isolation. The scope-only reading is a *computed
+  counterfactual*, not a second live signer. What it does not settle is what
+  makes a human's review reliable (ceremony fatigue, §8) and the availability of
+  the return path — both stated open, neither solved by a viewer.
 
 ## Run
 
 ```
-python3 build.py                # reuses the end-to-end-demo probe + all four fixtures, writes client.html
+python3 build.py                # reuses the end-to-end-demo probe + all five fixtures, writes client.html
 open client.html                # any browser; fully self-contained, no server
 python3 delegation_fixture.py   # fixture standalone: narrated flow + both fold readings
 python3 coldstart_fixture.py    # fixture standalone: narrated flow + the matrix at both cuts
 python3 compromise_fixture.py   # fixture standalone: real Ed25519, the blast radius + the residue
 python3 federation_fixture.py   # fixture standalone: the bridge, the contested cell, both severance readings
+python3 approval_seam_fixture.py # fixture standalone: the sign-time wall + bearer-vs-bound approval
 ```

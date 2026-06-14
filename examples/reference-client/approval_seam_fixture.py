@@ -580,6 +580,123 @@ def generate() -> dict:
 
 
 # ===========================================================================
+# Band data — the same scenario, returned as structure for the reference
+# client's seventh band. The signer's verdicts and the computed counterfactual
+# are produced HERE (the fixture's trusted base); build.py only renders them.
+# The two READINGS are the real toggle finding L exposes: the actual proposal-
+# bound signer vs the scope-only bearer-token signer embodiment_fixture carried.
+# ===========================================================================
+
+READINGS = ["proposal_bound", "scope_only"]   # the actual signer / the counterfactual
+NAMES: dict[str, str] = {}                     # payees are plain strings; no key display
+
+
+def band_data() -> dict:
+    """Run the custody-seam scenario once and return what the band renders:
+    the sign-time WALL (finding K's trichotomy), the live ESCALATION through the
+    second seam, and the ATTEMPTS each judged under BOTH readings (proposal-bound
+    refuses; scope-only would sign — the bearer-token leak, computed not asserted).
+    No stdout; build.py re-verifies the log it returns."""
+    clock = Clock()
+    log: list[Event] = []
+
+    def keypair(name: str) -> tuple[bytes, str]:
+        sk = hashlib.sha256(b"arc-approval-seam/" + name.encode()).digest()
+        return sk, ed25519_publickey(sk).hex()
+
+    root_secret, root_pub = keypair("root")
+    agent_secret, agent_pub = keypair("agent")
+    ceremony = ColdRootCeremony(root_pub=root_pub, root_secret=root_secret,
+                                clock=clock, log=log)
+    ceremony.register(root_pub)
+    ceremony.register(agent_pub)
+    mandate = ceremony.grant_mandate(agent_pub, context="market", ceiling=30000)
+    inbox = ApprovalInbox()
+    signer = SignerProcess(hot_pub=agent_pub, hot_secret=agent_secret, mandate=mandate,
+                           clock=clock, log=log)
+    agent = AgentProcess(signer=signer, inbox=inbox)
+
+    def payment(amount: int, payee: str, context: str = "market") -> Proposal:
+        return Proposal(type="ATTEST", predicate="commerce.payment_result", refs=(mandate.id,),
+                        payload={"result": "confirmed", "amount_krw": amount,
+                                 "payee": payee, "context": context, "provider": "mock_pay"})
+
+    def record(label: str, by: str, d: Decision, amount, payee: str) -> dict:
+        return {"label": label, "by": by, "verdict": d.kind, "reason": d.reason,
+                "amount": amount, "payee": payee,
+                "id": d.event.id if d.event else None}
+
+    # --- the wall: the signer's trichotomy (K), agent holds no key ---
+    wall = [
+        record("in-scope payment", "operator",
+               agent.propose(payment(20000, "merchant-rho")), 20000, "merchant-rho"),
+    ]
+    honest = payment(90000, "merchant-rho")
+    d_route = agent.propose(honest)
+    wall.append(record("over-ceiling payment", "operator", d_route, 90000, "merchant-rho"))
+    wall.append(record("out-of-domain forgery", "attacker", agent.propose(
+        Proposal(type="ATTEST", predicate="identity.binding", refs=(mandate.id,),
+                 payload={"claim": "controls_external_account", "context": "identity"})),
+        None, "—"))
+    wall.append(record("self-mint as root", "attacker", agent.propose(
+        Proposal(type="AUTHORIZE", predicate="consent.mandate", as_role="root",
+                 refs=(agent_pub,), scope={"context": "market", "max_total_krw": 1000000})),
+        1000000, "—"))
+
+    # --- the escalation: the human reviews the exact bytes, approves bound ---
+    seen = inbox.review(d_route.ticket)
+    approval = ceremony.review_and_approve(inbox, d_route.ticket, 90000, "market")
+    d_signed = agent.propose(honest, approval=approval)   # SIGNED; spends the approval
+    escalation = {"ticket": d_route.ticket, "payee": "merchant-rho", "amount": 90000,
+                  "approval_id": approval.id, "signed_id": d_signed.event.id,
+                  "review_payee": seen["body"]["payload"]["payee"],
+                  "review_amount": seen["body"]["payload"]["amount_krw"]}
+
+    # --- the attempts: the approval in flight through the untrusted agent, each
+    #     judged under both readings. proposal_bound = the actual signer (calling
+    #     handle has no side effect since all three refuse); scope_only = the
+    #     computed counterfactual (the bearer-token signer that would sign). ---
+    def attempt(label: str, p: Proposal, appr: Event, *, kind: str) -> dict:
+        d = signer.handle(p, approval=appr)               # actual, proposal-bound
+        cf = scope_only_would_sign(p, appr)               # counterfactual, scope-only
+        cf_reason = ("a scope token (context + amount) signs this — the return path "
+                     "is a bearer token") if cf else "outside even the scope token's cap/context"
+        return {"label": label, "kind": kind,
+                "payee": p.payload.get("payee"), "amount": p.payload.get("amount_krw"),
+                "readings": {
+                    "proposal_bound": {"verdict": d.kind, "reason": d.reason},
+                    "scope_only": {"verdict": "signed" if cf else "refused",
+                                   "reason": cf_reason}}}
+
+    # the bearer prop is built OFF-LOG: it is not a real cold-root act, just a
+    # scope-only token shape an attacker might harvest. handle never checks an
+    # approval's signature (it refuses on the missing proposal binding first), so
+    # an unsigned stand-in exercises exactly the path under test without polluting
+    # the log's "what reached it" story.
+    bearer = Event(id="(scope-only token)", type="AUTHORIZE", signer=root_pub,
+                   predicate="consent.approval", timestamp="",
+                   scope={"context": "market", "max_total_krw": 90000})
+    attempts = [
+        attempt("re-aim to a new payee", payment(90000, "attacker-self"), approval, kind="reaim"),
+        attempt("replay the approved act", honest, approval, kind="replay"),
+        attempt("scope-only bearer token", payment(90000, "attacker-self"), bearer, kind="bearer"),
+    ]
+
+    # omniscient: who actually drove each act. The wall/attempt rows never see it.
+    omniscient = [
+        {"label": "in-scope + over-ceiling payments", "who": "the honest operator"},
+        {"label": "out-of-domain, self-mint, re-aim, replay, bearer", "who": "the attacker"},
+        {"note": "a valid in-scope proposal is the SAME object whoever composed it — "
+                 "the signer never reads this strip"},
+    ]
+
+    verify_log(log)
+    return {"events": log, "wall": wall, "escalation": escalation, "attempts": attempts,
+            "omniscient": omniscient, "ceiling": 30000, "context": "market",
+            "root": root_pub, "agent": agent_pub}
+
+
+# ===========================================================================
 # Standalone run — narrate, then state what making the seam live revealed.
 # ===========================================================================
 

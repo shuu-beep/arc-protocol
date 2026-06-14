@@ -63,6 +63,7 @@ import delegation_fixture as fixture  # the multi-level delegation fixture (same
 import coldstart_fixture as coldstart  # the cold-start legitimacy fixture (same dir)
 import compromise_fixture as compromise  # the stolen-hot-key fixture (same dir, REAL Ed25519)
 import federation_fixture as federation  # the cross-community bridge fixture (same dir)
+import approval_seam_fixture as approval_seam  # the escalation-return-path fixture (same dir, REAL Ed25519)
 
 # key id -> display name (presentation only; the keys come from the probes' parties)
 NAMES = {
@@ -73,6 +74,7 @@ NAMES = {
     **fixture.NAMES,
     **coldstart.NAMES,
     **federation.NAMES,
+    **approval_seam.NAMES,
 }
 
 
@@ -115,6 +117,14 @@ def capture_compromise_log():
 def capture_federation_log() -> list:
     with contextlib.redirect_stdout(io.StringIO()):
         return federation.generate_log()
+
+
+def capture_approval_seam():
+    """-> the band's structured record (events + wall + escalation + attempts +
+    omniscient). Real Ed25519, like the compromise fixture; verify_log in main()
+    re-checks every signature the band returns before the page is written."""
+    with contextlib.redirect_stdout(io.StringIO()):
+        return approval_seam.band_data()
 
 
 def project_at(events: list[flow.Event], upto_predicate: str) -> dict:
@@ -750,6 +760,148 @@ def render_federation_band(fed_matrices: dict, fed_moves: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
+# The approval-seam band — the escalation return path made visible. Panel one is
+# finding K's sign-time WALL (the agent holds no key; the signer SIGNs / ROUTEs /
+# REFUSEs); panel two is finding L's second seam: a human reviews the exact bytes
+# and binds an approval to them, then the SAME approval, in flight through the
+# untrusted agent, is judged under two readings. The reading toggle IS the money
+# shot — flip to "scope-only" and the attacker's three forgeries turn SIGNED (the
+# bearer-token leak embodiment_fixture carried), computed by the fixture, not
+# asserted here. The omniscient strip (who drove the agent) the grid never sees.
+# ---------------------------------------------------------------------------
+
+SEAM_VERDICT = {"signed": ("ok", "SIGNED"), "routed": ("warn", "ROUTED"),
+                "refused": ("mut", "REFUSED")}
+
+
+def render_seam_wall_row(w: dict) -> str:
+    cls, label = SEAM_VERDICT[w["verdict"]]
+    amt = f'{w["amount"]} KRW' if w["amount"] else "&mdash;"
+    drove = "honest operator" if w["by"] == "operator" else "attacker"
+    return (f'<tr><td><span class="tag {cls}">{label}</span></td>'
+            f'<td><code>{esc(w["label"])}</code></td>'
+            f'<td class="amt">{amt}</td>'
+            f'<td class="basis">{esc(w["reason"])}</td>'
+            f'<td class="who">{esc(drove)}</td>'
+            + (f'<td><span class="evid sid" data-sid="{esc(w["id"])}">[{esc(w["id"])}]</span></td>'
+               if w["id"] else '<td class="basis">never an event</td>') + '</tr>')
+
+
+def render_seam_attempt_row(a: dict, reading: str) -> str:
+    r = a["readings"][reading]
+    cls, label = SEAM_VERDICT[r["verdict"]]
+    leak = " leak" if (reading == "scope_only" and r["verdict"] == "signed") else ""
+    payee = a["payee"] or "&mdash;"
+    amt = f'{a["amount"]} KRW' if a["amount"] else "&mdash;"
+    return (f'<tr class="seamatt{leak}"><td><span class="tag {cls}">{label}</span></td>'
+            f'<td><code>{esc(a["label"])}</code></td>'
+            f'<td class="amt">{esc(payee)} · {amt}</td>'
+            f'<td class="basis">{esc(r["reason"])}</td></tr>')
+
+
+def render_approval_seam_band(seam: dict) -> str:
+    # panel one — the wall (finding K, the setup the second seam needs)
+    wall_rows = "".join(render_seam_wall_row(w) for w in seam["wall"])
+    wall = (
+        '<div class="gsep">the wall — the agent holds no key, so it can only '
+        '<em>propose</em>; the signer decides in its own process. Out-of-scope '
+        'proposals never become events (enforcement at <strong>sign-time</strong>, '
+        'not after the fact).</div>'
+        '<table class="honor"><thead><tr><th>signer</th><th>proposal</th>'
+        '<th>amount</th><th>why</th><th>who drove it</th><th>event</th></tr></thead>'
+        f'<tbody>{wall_rows}</tbody></table>')
+
+    # the escalation — ROUTE opens the second seam; the human reviews exact bytes
+    e = seam["escalation"]
+    match = "the same bytes the signer would sign" if (
+        e["review_payee"] == e["payee"] and e["review_amount"] == e["amount"]) else "DIVERGED"
+    escalation = (
+        '<div class="gsep">the second seam — a routed proposal needs an approval '
+        'RETURN path the one-way proposal seam never had</div>'
+        '<div class="seamflow">'
+        f'<div class="sstep"><span class="tag warn">ROUTED</span> over-ceiling '
+        f'{e["amount"]} KRW &rarr; the approval inbox</div>'
+        f'<div class="sstep">the human pulls ticket <code>{esc(e["ticket"])}</code> and '
+        f'sees <b>pay {e["review_amount"]} KRW to {esc(e["review_payee"])}</b> '
+        f'<span class="smatch">({esc(match)})</span></div>'
+        f'<div class="sstep">approves with the COLD key &rarr; an approval '
+        f'<span class="evid sid" data-sid="{esc(e["approval_id"])}">[{esc(e["approval_id"])}]</span> '
+        f'<b>bound to that one proposal</b></div>'
+        f'<div class="sstep"><span class="tag ok">SIGNED</span> '
+        f'<span class="evid sid" data-sid="{esc(e["signed_id"])}">[{esc(e["signed_id"])}]</span> '
+        f'— the act the human consented to, byte-for-byte</div>'
+        '</div>')
+
+    # the money shot — the same approval in flight, two readings (the toggle)
+    rbtns, grids, notes = [], [], []
+    rlabel = {"proposal_bound": "proposal-bound (the signer)",
+              "scope_only": "scope-only (a bearer token)"}
+    for ri, reading in enumerate(approval_seam.READINGS):
+        rbtns.append(f'<button class="srbtn{" active" if ri == 0 else ""}" '
+                     f'data-sr="{ri}">{esc(rlabel[reading])}</button>')
+        rows = "".join(render_seam_attempt_row(a, reading) for a in seam["attempts"])
+        grids.append(
+            f'<div class="sgrid{" active" if ri == 0 else ""}" data-sr="{ri}">'
+            '<table class="honor"><thead><tr><th>verdict</th><th>attacker attempt</th>'
+            '<th>payee · amount</th><th>why</th></tr></thead>'
+            f'<tbody>{rows}</tbody></table></div>')
+        if reading == "proposal_bound":
+            notes.append('<div class="sgnote sgsafe" data-sr="0">Bound to the one '
+                         'proposal the human reviewed: re-aim (a different proposal hash), '
+                         'replay (already spent), and a bare scope token (names no proposal) '
+                         'all die at <strong>sign-time</strong>. The approval is consent to '
+                         'ONE act.</div>')
+        else:
+            notes.append('<div class="sgnote sgleak" data-sr="1">embodiment_fixture\'s '
+                         'approval was scope-only (context + amount). Run forward to a live '
+                         'inbox, it is a <strong>bearer token</strong>: it signs a payment '
+                         're-aimed to the attacker, a replay, any token of the right shape. '
+                         'This grid is the fixture\'s <code>scope_only_would_sign()</code> — '
+                         'a <strong>computed counterfactual</strong>, not an assertion. '
+                         'Binding is exactly what removes it.</div>')
+    money = (
+        '<div class="gsep">the same approval, in flight back through the untrusted '
+        'agent &mdash; two readings. <strong>Toggle to see the leak.</strong></div>'
+        f'<div class="readnav">approval is {"".join(rbtns)}</div>'
+        f'{"".join(grids)}{"".join(notes)}')
+
+    # the omniscient strip — who drove each act; the grids never receive it
+    orows = []
+    for o in seam["omniscient"]:
+        if "note" in o:
+            orows.append(f'<div class="truth">{esc(o["note"])}</div>')
+        else:
+            orows.append(f'<div class="otruth gen"><span class="omark">'
+                         f'{esc(o["who"])}</span> <code>{esc(o["label"])}</code></div>')
+    omni = ('<div class="gsep">the omniscient view — available to NO observer; the '
+            'grids above never receive who held the pen. A compromised agent and an '
+            'honest one emit the same proposals.</div>'
+            f'<div class="omni">{"".join(orows)}</div>')
+
+    note = (
+        '<p class="note">A sixth generated fixture log '
+        '(<code>approval_seam_fixture.py</code>, real Ed25519) makes LIVE the second '
+        'seam the embodiment fixture named but left dead. The first seam moved the '
+        'KEY behind the signer; the approval still rides back through the same '
+        'untrusted agent, so it is a capability in flight — a scope token (context + '
+        'amount) is a <strong>bearer token</strong>, reusable and re-aimable. Binding '
+        'the approval to the content hash of the exact proposal the human reviewed '
+        'makes it single-use and non-transferable (no new event type — the binding '
+        'rides in <code>consent.approval</code>\'s refs). The residue: binding makes '
+        'the <strong>human a second signer</strong> — the approval is only as good as '
+        'what the human SAW, so the inbox owes a human\'s eyes the first seam\'s "sign '
+        'what you saw" property. <code>ROUTE</code> is not "defer to a human"; it '
+        'opens a second custody boundary. A probe finding extending '
+        '<code>docs/key-custody.md</code> §5/§8, not settled doctrine.</p>')
+
+    inspector = ('<div id="sinspector"><div class="ins-empty">click any [ev:…] id in '
+                 'this band to inspect its raw signed form — note the real 128-hex '
+                 'Ed25519 signature</div></div>')
+
+    return f'{wall}{escalation}{money}{omni}{note}{inspector}'
+
+
+# ---------------------------------------------------------------------------
 # Page assembly.
 # ---------------------------------------------------------------------------
 
@@ -913,6 +1065,24 @@ td.mcell.fcell-contested{background:#fffbf5}
 .evid.eid{cursor:pointer;text-decoration:underline dotted}
 #finspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
 padding:12px;font-size:11.5px;white-space:pre;overflow:auto;max-height:280px}
+.srbtn{font:inherit;font-size:11.5px;border:1px solid var(--line);
+background:#fff;padding:4px 10px;border-radius:6px;margin-left:6px;cursor:pointer}
+.srbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.sgrid{display:none}.sgrid.active{display:block}
+.seamflow{border:1px solid var(--line);border-radius:8px;padding:6px 12px;background:#fff}
+.sstep{padding:4px 0;font-size:12px;border-bottom:1px dashed var(--line)}
+.sstep:last-child{border-bottom:0}
+.smatch{color:var(--ok);font-size:11px}
+.tr.seamatt.leak,tr.seamatt.leak{background:#fef2f2}
+.sgnote{display:none;margin-top:8px;padding:9px 11px;border-radius:6px;font-size:11.5px;
+line-height:1.5}
+.sgnote.active{display:block}
+.sgnote.sgsafe{background:#f3fbf5;border:1px solid #cdeed5;color:#14532d}
+.sgnote.sgleak{background:#fef2f2;border:1px solid #f3c9c9;color:#7f1d1d}
+.evid.sid{cursor:pointer;text-decoration:underline dotted}
+#sinspector{margin-top:10px;background:#0f172a;color:#e2e8f0;border-radius:8px;
+padding:12px;font-size:11px;white-space:pre-wrap;word-break:break-all;
+overflow:auto;max-height:300px}
 """
 
 JS = """
@@ -980,6 +1150,20 @@ document.querySelectorAll('.frbtn').forEach(b=>b.onclick=()=>{fr=b.dataset.fr;fs
 document.querySelectorAll('.evid.eid').forEach(el=>el.onclick=()=>{
   document.getElementById('finspector').textContent=
     JSON.stringify(FED_BY_ID[el.dataset.eid],null,2);
+});
+const SEAM = JSON.parse(document.getElementById('arc-approval-seam').textContent);
+const SEAM_BY_ID = Object.fromEntries(SEAM.map(e=>[e.id,e]));
+let sr='0';
+function ssync(){
+  document.querySelectorAll('.srbtn').forEach(b=>b.classList.toggle('active',b.dataset.sr===sr));
+  document.querySelectorAll('.sgrid').forEach(g=>g.classList.toggle('active',g.dataset.sr===sr));
+  document.querySelectorAll('.sgnote').forEach(g=>g.classList.toggle('active',g.dataset.sr===sr));
+}
+document.querySelectorAll('.srbtn').forEach(b=>b.onclick=()=>{sr=b.dataset.sr;ssync();});
+ssync();
+document.querySelectorAll('.evid.sid').forEach(el=>el.onclick=()=>{
+  document.getElementById('sinspector').textContent=
+    JSON.stringify(SEAM_BY_ID[el.dataset.sid]||{note:'not a logged event (e.g. a refused proposal or an off-log prop)'},null,2);
 });
 """
 
@@ -1070,14 +1254,16 @@ def render_proposal_flow(results) -> str:
 
 
 def build_html(events, snapshots, results, signed, projections, flips, fixture_events,
-               cut_matrices, moves, coldstart_events, comp, fed) -> str:
+               cut_matrices, moves, coldstart_events, comp, fed, seam) -> str:
     data = json.dumps([dataclasses.asdict(e) for e in (list(events) + list(signed))],
                        default=list)
     fixdata = json.dumps([dataclasses.asdict(e) for e in fixture_events], default=list)
     colddata = json.dumps([dataclasses.asdict(e) for e in coldstart_events], default=list)
     compdata = json.dumps([dataclasses.asdict(e) for e in comp["events"]], default=list)
     feddata = json.dumps([dataclasses.asdict(e) for e in fed["events"]], default=list)
+    seamdata = json.dumps([dataclasses.asdict(e) for e in seam["events"]], default=list)
     fed_band = render_federation_band(fed["matrices"], fed["moves"])
+    seam_band = render_approval_seam_band(seam)
     comp_band = render_compromise_band(comp["moments"], comp["forged"], comp["blast"],
                                        comp["legit_id"], comp["forge_a_id"],
                                        comp["ceiling"], comp["revoke_ts"])
@@ -1097,6 +1283,7 @@ surfaces and the write path · a delegation fixture ({len(fixture_events)} event
 graph · a cold-start fixture ({len(coldstart_events)} events) feeds the legitimacy matrix ·
 a compromise fixture ({len(comp["events"])} events, real Ed25519) feeds the blast-radius band ·
 a federation fixture ({len(fed["events"])} events) feeds the bridge disagreement band ·
+an approval-seam fixture ({len(seam["events"])} events, real Ed25519) feeds the custody-seam band ·
 every panel is a recomputed projection; the boundary signs, the key never leaves it</div></header>
 <div class="grid">
 <div class="col">{left}</div>
@@ -1115,11 +1302,14 @@ every panel is a recomputed projection; the boundary signs, the key never leaves
 <div class="in">{comp_band}</div></div></div>
 <div class="full"><div class="card band"><h2>federation — one log, two authorities, and what a bridge imports (five observers; three moments, two severance readings)</h2>
 <div class="in">{fed_band}</div></div></div>
+<div class="full"><div class="card band"><h2>the custody seam — a key behind the signer, and what the approval carries back (real Ed25519; the sign-time wall, then a live approval bound to one act)</h2>
+<div class="in">{seam_band}</div></div></div>
 <script id="arc-data" type="application/json">{data}</script>
 <script id="arc-fixture" type="application/json">{fixdata}</script>
 <script id="arc-coldstart" type="application/json">{colddata}</script>
 <script id="arc-compromise" type="application/json">{compdata}</script>
 <script id="arc-federation" type="application/json">{feddata}</script>
+<script id="arc-approval-seam" type="application/json">{seamdata}</script>
 <script>{JS}</script>
 </body></html>"""
 
@@ -1170,11 +1360,14 @@ def main() -> None:
                  for reading in federation.READINGS}
     fed = {"events": fed_events, "matrices": fed_matrices, "moves": fed_moves}
 
+    # the approval-seam band: the custody seam scenario, structured by the fixture
+    seam = capture_approval_seam()
+
     out = os.path.join(HERE, "client.html")
     with open(out, "w") as f:
         f.write(build_html(events, snapshots, results, signed,
                            projections, flips, fixture_events,
-                           cut_matrices, moves, coldstart_events, comp, fed))
+                           cut_matrices, moves, coldstart_events, comp, fed, seam))
     print(f"captured {len(events)} signed events from the end-to-end-demo probe")
     for label, s in snapshots:
         print(f"  [{label}] governance={s['governance_standing']} "
@@ -1189,6 +1382,7 @@ def main() -> None:
     coldstart.verify_log(coldstart_events)
     compromise.verify_log(comp_events)  # REAL Ed25519, every forgery included
     federation.verify_log(fed_events)
+    approval_seam.verify_log(seam["events"])  # REAL Ed25519, the seam log re-checked
     print(f"delegation fixture: {len(fixture_events)} signed events; "
           f"{len(flips)} completed act(s) flip between the two fold readings")
     print(f"cold-start fixture: {len(coldstart_events)} signed events; "
@@ -1202,6 +1396,11 @@ def main() -> None:
           f"{n_sev_moves} cell(s) under time-scoped (it cannot sort the past) and "
           f"{sum(1 for m in fed_moves['cascade'] if m['to_moment'] == federation.MOMENTS[2][0])} "
           f"under cascade")
+    n_leak = sum(1 for a in seam["attempts"]
+                 if a["readings"]["scope_only"]["verdict"] == "signed")
+    print(f"approval-seam fixture: {len(seam['events'])} real-Ed25519 events; "
+          f"under proposal-bound all {len(seam['attempts'])} attacker attempts refuse at "
+          f"sign-time, under the scope-only counterfactual {n_leak} would sign (the bearer leak)")
     print(f"wrote {os.path.relpath(out)} — open it in a browser")
 
 
