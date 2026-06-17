@@ -1,11 +1,18 @@
-# ARC Protocol
+<h1 align="center">
+  <img src="assets/arc-wordmark.svg" width="340" alt="ARC Protocol">
+</h1>
 
-> Autonomous Relay Commerce
-> A community-driven open protocol for human-approved AI-to-AI commerce.
+> **Any agent. Any model. Any company.**
+> **Human approval required.**
+
+> An open protocol for human-approved delegation between AI agents.
+> Authority, delegation, and revocation live as signed events — trust is
+> computed from them, never stored as a score.
 
 > This is a philosophical declaration and design document,
 > not a production project or startup pitch.
-> One person's vision for what open commerce infrastructure should look like.
+> One person's vision for what an open authority-and-approval layer for the
+> agent economy should look like.
 
 → Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Bootstrap & Incentives](docs/bootstrap-and-incentives.md) · [Liability Boundaries](docs/liability-boundaries.md) · [Future Protocol Spec](docs/future-protocol-spec.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Authority & Conflict](docs/authority-and-conflict.md) · [Object Model](docs/object-model.md) · [Event Registry](docs/event-registry.md) · [Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md) · [Landscape & Positioning](docs/landscape-and-positioning.md) · [Trust Model Trade-offs](docs/trust-model-tradeoffs.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
 
@@ -13,30 +20,68 @@
 
 ## One-Sentence Summary
 
-ARC Protocol is an experimental open-source protocol for trusted, human-approved, AI-to-AI commerce.
+ARC is an open protocol for human-approved delegation between heterogeneous AI agents — recording authority, delegation, and revocation as signed events, computing trust from them as on-demand projections rather than stored scores, and leaving what a log cannot prove (legitimacy, fidelity) visible rather than hidden.
 
 ## IMPORTANT NOTICE
 
-ARC Protocol is a manifesto, protocol proposal, governance philosophy, and architecture draft.
+ARC Protocol is a manifesto, protocol proposal, governance philosophy, and architecture draft. It is not yet a complete protocol specification.
 
-ARC Protocol is a protocol-oriented design project. It is not yet a complete protocol specification.
+It is not production-ready infrastructure. It does not provide real payments, real delivery, verified identity, legal guarantees, or production-grade security.
 
-It is not production-ready infrastructure.
+ARC is a research-oriented, non-profit, open-source exploration of an **authority, approval, and audit layer for AI agents** — a way for heterogeneous agents to be delegated authority, act under human approval, have that authority revoked, and leave an auditable trail, while humans always keep the final approval.
 
-It does not provide real payments, real delivery, verified identity, legal guarantees, or production-grade security.
+ARC is not an AI agent, an agent runtime, an agent framework, or a closed marketplace. It is the common layer such agents can share. Commerce is its first and most developed application, not its definition.
 
-ARC is intended as a research-oriented, non-profit, open-source exploration of human-approved agent commerce infrastructure.
+---
 
-ARC Protocol is an experimental, non-profit, open-source project exploring a future where AI agents can negotiate, compare, request, coordinate, and prepare transactions on behalf of humans — while humans always keep the final approval.
+## What ARC Is
 
-This is not just a shopping app.
+Agents are multiplying — from tools like Claude Code, Codex, and Qwen Code to
+vendor-operated and personal agents. ARC is not another agent. It is the common layer where heterogeneous
+agents can be delegated authority, act under human approval, have that authority
+revoked, and leave an auditable trail — with no single operator owning the trust.
 
-This is a proposal for an open commerce layer for the agent economy.
+ARC stores only signed **Events**. Trust, reputation, and standing are never
+stored as records; they are **Projections** — deterministic folds recomputed on
+demand, then discarded. Not storing the relationship is the structural defense
+against becoming a social-credit database.
+
+<p align="center">
+  <img src="assets/arc-architecture.svg" width="800" alt="ARC sits as the human-approval and authority layer between humans and heterogeneous agents, riding on existing tool, interop, and payment layers.">
+</p>
+
+### Core
+
+- **Human Approval** — agents negotiate and prepare; humans hold the final signed step.
+- **Authority** — delegation is scoped, attenuating, and never self-widening.
+- **Delegation** — authority moves between agents without moving key material.
+- **Revocation** — bounds future authority; the past stays auditable, not rewritten.
+- **Auditability** — every surface is a projection over one signed event log.
+
+### Stance
+
+ARC does not decide legitimacy. Legitimacy is a relation between an observer's
+policy and the log — observers legitimately disagree, and ARC renders the
+disagreement rather than resolving it. What a log cannot prove (legitimacy,
+interpretive fidelity), ARC leaves visible rather than hidden.
+
+### Applications
+
+ARC is application-neutral; the protocol primitives are the same across domains.
+
+- **Commerce** *(flagship)* — the problem that birthed ARC: human-approved agent commerce without platform capture.
+- **Community governance** — disputes, suspension, expulsion as events.
+- **Licensing** — agents acting under scoped delegated authority for professional, creative, or contractual work.
+- **Research** — auditable trails of agent coordination.
 
 ---
 
 ## Table of Contents
 
+- [What ARC Is](#what-arc-is)
+  - [Core](#core)
+  - [Stance](#stance)
+  - [Applications](#applications)
 - [1. Philosophy](#1-philosophy)
 - [2. The Problem](#2-the-problem)
 - [3. Vision](#3-vision)
