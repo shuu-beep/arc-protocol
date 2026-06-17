@@ -1214,6 +1214,10 @@ ARC Protocol is a small experiment toward that future.
 
 An open, community-driven, human-approved commerce network for the agent era.
 
+<p align="center">
+  <img src="assets/arc-stamp.svg" width="132" alt="Verified — signed by community">
+</p>
+
 ## 30. License
 
 This project is licensed under the Apache License 2.0.
