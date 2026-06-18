@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 92" width="330" height="92" role="img" aria-label="ARC Protocol">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 92" width="384" height="92" role="img" aria-label="ARC Protocol">
   <title>ARC Protocol</title>
-  <rect x="0.5" y="0.5" width="329" height="91" rx="14" fill="#F4EFE3" stroke="#E2DBC8"/>
-  <g transform="translate(28 18)">
+  <rect x="0.5" y="0.5" width="383" height="91" rx="14" fill="#F4EFE3" stroke="#E2DBC8"/>
+  <g transform="translate(55 18)">
     <g transform="translate(8 14)">
       <path d="M 8 36 A 26 26 0 0 1 60 36" fill="none" stroke="#14110C" stroke-width="2.5" stroke-linecap="round"/>
       <circle cx="8" cy="36" r="6" fill="#14110C"/>

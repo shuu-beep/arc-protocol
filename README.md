@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="assets/arc-wordmark.svg" width="340" alt="ARC Protocol">
+  <img src="assets/arc-wordmark.svg" width="380" alt="ARC Protocol">
 </h1>
 
 > **Any agent. Any model. Any company.**
@@ -663,7 +663,7 @@ ARC Protocol is a small experiment toward that future.
 An open, community-governed, human-approved authority layer for the agent era — with commerce as its first application.
 
 <p align="center">
-  <img src="assets/arc-stamp.svg" width="132" alt="Verified — signed by community">
+  <img src="assets/arc-stamp.svg" width="420" alt="Verified, signed by community — no central issuer. Any agent. Any model. Any company. Human approval required.">
 </p>
 
 ## 18. License
