@@ -14,7 +14,7 @@
 > One person's vision for what an open authority-and-approval layer for the
 > agent economy should look like.
 
-→ Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Bootstrap & Incentives](docs/bootstrap-and-incentives.md) · [Liability Boundaries](docs/liability-boundaries.md) · [Future Protocol Spec](docs/future-protocol-spec.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Authority & Conflict](docs/authority-and-conflict.md) · [Object Model](docs/object-model.md) · [Event Registry](docs/event-registry.md) · [Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md) · [Landscape & Positioning](docs/landscape-and-positioning.md) · [Trust Model Trade-offs](docs/trust-model-tradeoffs.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
+→ Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Bootstrap & Incentives](docs/bootstrap-and-incentives.md) · [Liability Boundaries](docs/liability-boundaries.md) · [Future Protocol Spec](docs/future-protocol-spec.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Authority & Conflict](docs/authority-and-conflict.md) · [Object Model](docs/object-model.md) · [Event Registry](docs/event-registry.md) · [Key Custody](docs/key-custody.md) · [Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md) · [Landscape & Positioning](docs/landscape-and-positioning.md) · [Trust Model Trade-offs](docs/trust-model-tradeoffs.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
 
 → Adjacent ideas: [Economics of Agent Access](docs/adjacent-ideas/economics-of-agent-access.md) · [Intelligence Democratization](docs/adjacent-ideas/intelligence-democratization.md)
 
@@ -83,38 +83,36 @@ ARC is application-neutral; the protocol primitives are the same across domains.
   - [Stance](#stance)
   - [Applications](#applications)
 - [1. Philosophy](#1-philosophy)
-- [2. The Problem](#2-the-problem)
-- [3. Vision](#3-vision)
-- [3.1 Why Now?](#31-why-now)
-- [3.2 Human Sovereignty](#32-human-sovereignty)
-- [3.3 Open Protocol Philosophy](#33-open-protocol-philosophy)
-- [4. Core Principle](#4-core-principle)
-- [5. Basic Scenario](#5-basic-scenario)
-- [6. Long-Term Expansion](#6-long-term-expansion)
-- [7. Main Actors](#7-main-actors)
-- [8. Identity Layer](#8-identity-layer)
-- [9. Human Approval Layer](#9-human-approval-layer)
-- [10. Reputation Layer](#10-reputation-layer)
-- [11. Community Trial and Expulsion](#11-community-trial-and-expulsion)
-- [12. Blockchain Boundary](#12-blockchain-boundary)
-- [13. Payment Layer](#13-payment-layer)
-- [14. Map and Local Infrastructure](#14-map-and-local-infrastructure)
-- [15. Advertising in the Agent Economy](#15-advertising-in-the-agent-economy)
-- [16. Architecture Overview](#16-architecture-overview)
-- [17. Technical Architecture](#17-technical-architecture)
-- [18. MVP Scope](#18-mvp-scope)
-- [19. Example MVP Flow](#19-example-mvp-flow)
-- [20. Possible Future Repository Structure](#20-possible-future-repository-structure)
-- [21. Protocol Concepts](#21-protocol-concepts)
-- [22. Security Considerations](#22-security-considerations)
-- [23. Permission Levels](#23-permission-levels)
-- [24. Governance Model](#24-governance-model)
-- [25. Why Non-Profit and Open Source?](#25-why-non-profit-and-open-source)
-- [26. Current Status](#26-current-status)
-- [27. Roadmap](#27-roadmap)
-- [28. Design Principle](#28-design-principle)
-- [29. Manifesto](#29-manifesto)
-- [30. License](#30-license)
+- [2. The Core Model](#2-the-core-model)
+- [3. The Problem](#3-the-problem)
+- [4. Vision](#4-vision)
+  - [4.1 Why Now?](#41-why-now)
+  - [4.2 Human Sovereignty](#42-human-sovereignty)
+  - [4.3 Open Protocol Philosophy](#43-open-protocol-philosophy)
+- [5. Flagship Application: Commerce](#5-flagship-application-commerce)
+  - [5.1 Core Principle](#51-core-principle)
+  - [5.2 Basic Scenario](#52-basic-scenario)
+  - [5.3 Long-Term Expansion](#53-long-term-expansion)
+  - [5.4 Commerce Actors](#54-commerce-actors)
+  - [5.5 Approval Flow](#55-approval-flow)
+  - [5.6 Payment Boundary](#56-payment-boundary)
+  - [5.7 Discovery and Map Boundary](#57-discovery-and-map-boundary)
+  - [5.8 Advertising Hypothesis](#58-advertising-hypothesis)
+  - [5.9 Commerce Architecture](#59-commerce-architecture)
+  - [5.10 Commerce MVP Sketch](#510-commerce-mvp-sketch)
+- [6. Identity Layer](#6-identity-layer)
+- [7. Reputation](#7-reputation)
+- [8. Community Trial and Expulsion](#8-community-trial-and-expulsion)
+- [9. Delegation and Mandates](#9-delegation-and-mandates)
+- [10. Blockchain Boundary](#10-blockchain-boundary)
+- [11. Security Considerations](#11-security-considerations)
+- [12. Governance Model](#12-governance-model)
+- [13. Why Non-Profit and Open Source?](#13-why-non-profit-and-open-source)
+- [14. Current Status](#14-current-status)
+- [15. Roadmap](#15-roadmap)
+- [16. Design Principle](#16-design-principle)
+- [17. Manifesto](#17-manifesto)
+- [18. License](#18-license)
 
 ---
 
@@ -124,37 +122,46 @@ The internet was built for humans.
 
 The next internet may be operated by agents.
 
-But if AI agents become the new interface of commerce, the economic network behind them should not belong to one corporation.
+But if AI agents become the new interface of the economy, the network of authority behind them should not belong to one corporation.
 
 ARC Protocol is based on five beliefs:
 
 1. AI agents may negotiate, but humans must approve.
-2. Commerce infrastructure should be open, community-driven, and interoperable.
+2. The shared authority layer should be open, community-driven, and interoperable — not owned by one corporation.
 3. Trust, reputation, and identity are more important than advertising.
 4. Local communities should control fraud, disputes, and expulsion.
 5. Blockchain should be used minimally, only where proof and transparency matter.
 
-**Core design — one idea underneath all of it:** ARC stores only signed **Events**. Trust, reputation, identity, and authority are never stored as records; they are **Projections** — deterministic folds recomputed on demand over the event log, then discarded. There is no stored score, profile, or status anywhere. Not storing the relationship is the structural defense against turning ARC into a social-credit database. (See [Object Model](docs/object-model.md) and [Event Registry](docs/event-registry.md).)
-
-This is not only a claim on paper. [`examples/canon-fold-demo`](examples/canon-fold-demo/) is a small executable probe that folds a signed event log into these projections across eleven scenarios — among them governed disputes, key rotation and revocation, projection caching, conflicting authority, delegated authority, and agent multiplication — testing whether five event types (`KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE`) plus a `nullifies` field are enough. They held: no scenario forced a sixth type.
-
-Where the probe hit a limit — conflicting community rulings, or whether a completed act survives a revoked delegation — the canon still *represented* the situation faithfully. What it left open was a **policy** choice, not a missing event type. That is the recurring result: what leaks out of the five types is always policy or discipline, never a new primitive.
-
-The eleventh scenario (agent multiplication) sharpened even that. One actor can run many agents, so many signatures need not mean many independent counterparties; the canon can collapse their combined influence to a single principal only when the shared root is *voluntarily disclosed*. **Voluntary root disclosure is incentive-incompatible: it correctly collapses disclosed sibling agents, but adversarial siblings can simply omit the linkage and avoid the same correction.** Scenario 11 does not reveal a missing event type. It reveals that certain global agent-level Sybil resistance would require either a stored identity graph, an external cost gate, or acceptance of local, probabilistic, fallible review. ARC's current position is the third: local and probabilistic resistance, with review triggers rather than automatic penalties. Here the residue is sharper than a policy choice — it is a trade-off among anti-social-credit, value-neutrality, and Sybil resistance, and the three cannot all hold at once.
-
-A companion probe, [`examples/canon-ts`](examples/canon-ts/), takes the closed set one step further: it encodes the five types as a TypeScript discriminated union so the *compiler itself* rejects a sixth type — turning "no sixth event type" from a claim in prose into a rule the type-checker enforces on every build. It locks a second invariant the same way: a verdict slot only an `ADJUDICATE` satisfies, so the compiler refuses to let a dispute or an outcome move governance. A second file, `custody.ts`, gives the key-custody decisions the same treatment after their compromise probe: a hot key minting authority beyond its ancestor's scope has no well-typed call, a revoked key's post-revoke acts cannot occupy the honored slot, and nothing short of an `ADJUDICATE` unhonors a single act — while stating plainly what no compiler can hold (ceiling arithmetic, custody provenance, detection latency).
-
-A third probe, [`examples/end-to-end-demo`](examples/end-to-end-demo/), closes the loop from the other direction. Where the fold demo reads a hand-built log, this one *generates* the log: a human, a consumer agent, a merchant agent, and a community run one full interaction — offer, human approval, payment claim, fulfillment, dispute, adjudication — and each emits its own signed events. The same standing projection, recomputed at three points, shows governance moving only when an `ADJUDICATE` is added, never by mutating stored state. Nothing in the resulting log is written by hand.
-
-A fourth probe, [`examples/authority-revocation-demo`](examples/authority-revocation-demo/), isolates one open policy question: when a delegation is revoked, does an act that already *completed* under it survive? It shows the same signed revoke event yielding different answers under an as-of-act-time fold versus a current-log fold — a fold-policy choice, not a missing event type. A probe, not doctrine.
-
-Where the four probes test the canon, a reference client makes it *visible*: [`examples/reference-client`](examples/reference-client/) renders the end-to-end-demo's generated log as the seven surfaces a human would actually see — delegation tree, mandate, approval inbox, signed commitments, projection, challenge/adjudication, and the event log they all fold over. It then adds one write path: a single proposal verb (`propose_event`) that the mandate boundary routes — in-scope proposals are auto-signed, out-of-scope ones escalate to a human, and an agent cannot widen its own mandate. It is a client, not a runtime: the brain is bring-your-own, the write path's signing is mock, and key custody — once left open — now has its one probe-able slice tested on real keys in the compromise band below. Its point is legibility — that every surface is a projection over one closed event log, that governance visibly moves only on an `ADJUDICATE`, and that a mandate is exactly what an agent may sign without re-asking. A delegation-graph band extends this to multi-level delegation over a separate generated fixture log: authority propagating through scoped mandates, an over-wide grant clamped by the inherited intersection, an ephemeral single-use agent, a revoked branch folded under two readings that disagree about completed acts, and a stray key rendered at weight 0 rather than blocked — making a third claim legible: attribution is local, computed from a chosen root, with no global identity registry and no new event type. A cold-start band then enters the region before legitimacy exists at all: three observers, each a root plus a fold policy, read the same four newcomers — an honest unlinked key, a swarm-pumped storefront, a vouch coalition, an agent mandated before any history — and legitimately disagree, with each judgment shown resting on the exact events (sometimes a single weak tie) that carry it. The generator's ground truth is rendered separately as available to no observer: the protocol never verifies identity, and the surface is the disagreement itself — uncertainty made observable, not resolved. A compromise band — the first on real Ed25519 — steals a hot key and measures the damage: every forgery's signature genuinely verifies, so the signature layer is blind to custody failure, and what bounds the harm is the mandate fold alone. It makes one finding legible: the blast radius of a stolen key is its mandate's scope *times the detection latency*, and revocation is not surgical — just after a revoke, an in-scope forgery is byte-indistinguishable from a legitimate act, and only a per-act `CHALLENGE`/`ADJUDICATE` carrying an off-log fact can tell them apart. A federation band opens the next axis with a first executable slice: one log, two community authorities ruling the same dispute in opposite directions, and five observers who differ only in how they read the bridge between them — an ordinary scoped `AUTHORIZE`, no new primitive. An imported ruling is binding to one fold, advisory to a second, weightless to a third; override is a precedence choice, not an event; and where a fold honors both authorities with no precedence rule, the projection is CONTESTED — rendered as a split cell, because the only thing that would dissolve it is the authority of last resort ARC declines. Severing the bridge replays the revocation divergence: time-scoped, it moves nothing (the contested cell outlives the bridge); cascade "resolves" it only by voiding the bridge's whole history. A custody-seam band — the second on real Ed25519 — splits the agent from the signer so the agent holds no key and can only propose: an in-scope payment is signed, an out-of-scope one never becomes an event, and an over-ceiling one routes to a human, opening the approval return path the one-way proposal seam never had. Then the same human-approved escalation, carried back through the untrusted agent, is judged two ways: bound to the exact proposal the human reviewed it refuses a re-aim, a replay, and a bare scope token at sign-time; read as the scope-only token the embodiment fixture carried, all three are signed — a computed counterfactual showing the approval is a bearer token unless it is bound, and that binding makes the human a second signer whose review is only as good as what they saw.
-
-The custody–authority–revocation axis is thus expressed four linked ways — design document, executable probe, visible projection, static lock — each a probe-backed or compiler-locked slice rather than a resolution; its open questions (a compromised signer, threshold custody, enclave attestation, detection latency) remain open in [docs/key-custody.md](docs/key-custody.md) §8.
+**Core design — one idea underneath all of it:** ARC stores only signed **Events**. Trust, reputation, identity, and authority are never stored as records; they are **Projections** — deterministic folds recomputed on demand over the event log, then discarded. There is no stored score, profile, or status anywhere. Not storing the relationship is the structural defense against turning ARC into a social-credit database. The next section makes this model concrete; see also [Object Model](docs/object-model.md) and [Event Registry](docs/event-registry.md).
 
 ---
 
-## 2. The Problem
+## 2. The Core Model
+
+Everything in ARC folds back to a small, closed set of ideas.
+
+- **Event** — the only stored, signed, verifiable unit. The set is closed: five types — `KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE` — plus a `nullifies` field.
+- **Projection** — a deterministic fold over the event log, recomputed on demand and then discarded. Trust, reputation, standing, and current authority-state are all projections, never records.
+- **Authority** — there is no single internal authority of last resort. Humans rule their own action and risk; communities rule the commons. Events are evidence; projections are advisory; external law sits on top.
+- **Delegation** — authority moves between agents as scoped `AUTHORIZE`, attenuating and never self-widening, without moving key material.
+- **Revocation** — a `nullifies` reference bounds future authority. The past stays auditable; it is not rewritten.
+- **Human Approval** — a hard constraint, not a feature. Agents negotiate and prepare; the human holds the final signed step.
+
+### Proven, not only claimed
+
+These are not only claims on paper. Five small executable probes test them — each a single-purpose, dependency-light slice, not an implementation:
+
+- [`examples/canon-fold-demo`](examples/canon-fold-demo/) — eleven scenarios fold a hand-built log (governed disputes, key rotation and revocation, conflicting and delegated authority, agent multiplication). The five event types held: no scenario forced a sixth.
+- [`examples/canon-ts`](examples/canon-ts/) — encodes the five types as a TypeScript discriminated union so the **compiler itself** rejects a sixth type, a non-`ADJUDICATE` verdict, an over-scope hot key, and a honored post-revoke act.
+- [`examples/end-to-end-demo`](examples/end-to-end-demo/) — four parties (human, consumer agent, merchant agent, community) each sign their own events; the standing projection moves only when an `ADJUDICATE` is added, never by mutating stored state. Nothing in the log is written by hand.
+- [`examples/authority-revocation-demo`](examples/authority-revocation-demo/) — isolates one open policy question: whether an act that already completed under a delegation survives its revocation. The same signed event yields different answers under an as-of-act-time fold versus a current-log fold — a policy choice, not a missing type.
+- [`examples/reference-client`](examples/reference-client/) — renders the log as the seven surfaces a human actually sees, plus one mandate-routed write path (in-scope proposals auto-sign, out-of-scope ones escalate, an agent cannot widen its own mandate). Bands probe cold-start legitimacy, key compromise (on real Ed25519), federation between communities, and the custody seam that splits the agent from the signer.
+
+The recurring result: what leaks out of the five types is always **policy or discipline, never a new primitive**. One trade-off is sharper than a policy choice — global, certain Sybil resistance cannot coexist with both anti-social-credit and value-neutrality; ARC chooses local, probabilistic, fallible review. And the deepest edges stay open: a valid signature proves a key signed, not that custody was sound or that the signer faithfully read its mandate. Those — a compromised signer, threshold custody, enclave attestation, detection latency, interpretive fidelity — remain open in [docs/key-custody.md](docs/key-custody.md) §8, left visible rather than hidden.
+
+---
+
+## 3. The Problem
 
 Current digital commerce is controlled by centralized platforms.
 
@@ -183,13 +190,13 @@ This creates several problems:
 
 In the AI agent era, this problem may become even bigger.
 
-If a few companies control the agents, the identity layer, the payment layer, and the marketplace layer, then the future agent economy will simply become another centralized platform economy.
+If a few companies control the agents, the identity layer, the payment layer, and the authority layer, then the future agent economy will simply become another centralized platform economy.
 
 ARC Protocol proposes a different direction.
 
 ---
 
-## 3. Vision
+## 4. Vision
 
 ARC Protocol imagines a world where:
 
@@ -198,17 +205,15 @@ ARC Protocol imagines a world where:
 - a logistics agent can negotiate pickup and delivery
 - a legal or dispute agent can help review conflicts
 - a community can verify, suspend, or expel malicious actors
-- humans approve final transactions through their own devices
+- humans approve final actions through their own devices
 
 The goal is not full AI autonomy.
 
-The goal is human-centered agent commerce.
+The goal is human-centered agent coordination.
 
 AI should reduce friction, not remove human sovereignty.
 
----
-
-## 3.1 Why Now?
+### 4.1 Why Now?
 
 Several technological shifts are happening at the same time:
 
@@ -219,15 +224,13 @@ Several technological shifts are happening at the same time:
 - Local commerce APIs are becoming programmable
 - Open-source AI models are rapidly improving
 
-The next commerce layer may not be a website or an app.
+The next economic layer may not be a website or an app.
 
 It may be an ecosystem of agents interacting on behalf of humans.
 
 ARC Protocol exists to explore what happens if that infrastructure is open instead of controlled by a small number of corporations.
 
----
-
-## 3.2 Human Sovereignty
+### 4.2 Human Sovereignty
 
 ARC assumes that AI agents should assist humans, not replace them.
 
@@ -249,9 +252,7 @@ But humans should always retain:
 
 ARC rejects the idea of fully autonomous economic agents operating without meaningful human oversight.
 
----
-
-## 3.3 Open Protocol Philosophy
+### 4.3 Open Protocol Philosophy
 
 ARC is designed as an open protocol, not a closed platform.
 
@@ -261,7 +262,7 @@ Any community should be able to:
 - host their own governance systems
 - create local reputation rules
 - integrate local payment providers
-- adapt ARC for regional commerce
+- adapt ARC for regional needs
 
 ARC should be:
 
@@ -276,13 +277,17 @@ The goal is protocol interoperability.
 
 ARC is not the first attempt at open digital infrastructure. Projects such as ActivityPub, Matrix, Nostr, Farcaster, and AT Protocol have explored federation, identity portability, and resistance to centralized platform control.
 
-ARC learns from those efforts, but focuses specifically on human-approved agent commerce: structured negotiation, transparent recommendation, reputation portability, and community-governed economic coordination.
+ARC learns from those efforts, but focuses specifically on human-approved delegation between agents: scoped authority, transparent recommendation, reputation portability, and community-governed coordination.
 
-ARC does not emerge in isolation. As agent commerce becomes an active area of experimentation, multiple organizations and protocols are beginning to explore interoperable agent transactions, machine-readable commerce, and agent payment coordination. ARC remains a narrower, non-profit proposal for human-approved, community-governed commerce coordination.
+ARC does not emerge in isolation. As agent coordination becomes an active area of experimentation, multiple organizations and protocols are beginning to explore interoperable agent transactions, machine-readable commerce, and agent payment coordination. ARC remains a narrower, non-profit proposal for human-approved, community-governed coordination.
 
 ---
 
-## 4. Core Principle
+## 5. Flagship Application: Commerce
+
+Commerce is the problem that birthed ARC and remains its most developed application. The protocol primitives in [section 2](#2-the-core-model) are application-neutral; this section shows how they land in one concrete domain.
+
+### 5.1 Core Principle
 
 ```txt
 AI agents may negotiate and prepare transactions,
@@ -299,7 +304,7 @@ Agent negotiation -> Human confirmation -> Payment execution -> Community-verifi
 
 This remains a design goal and philosophical commitment, not a proven property of the current proposal.
 
-## 5. Basic Scenario
+### 5.2 Basic Scenario
 
 A user says:
 
@@ -344,194 +349,33 @@ The human approves.
 
 Only then does payment happen.
 
-## 6. Long-Term Expansion
+### 5.3 Long-Term Expansion
 
-ARC begins with local commerce.
+ARC's commerce application begins with local commerce, but the long-term vision is broader.
 
-But the long-term vision is broader.
+- **Phase 1 — Local Commerce:** nearby restaurants, local stores, cafes, convenience stores, short-distance delivery.
+- **Phase 2 — Regional Logistics:** local delivery agents, personal cargo drivers, courier services, moving services, logistics company APIs.
+- **Phase 3 — National Commerce:** nationwide merchants, warehouse sellers, logistics brokers, transport agents, multi-region price negotiation.
+- **Phase 4 — Service Marketplace:** intangible services — design, translation, coding, accounting, legal assistance, consulting, education, repair, local labor, B2B procurement. For regulated domains such as legal, medical, or financial services, future ARC-compatible systems may support agents operating under delegated authority from verified licensed professionals.
+- **Phase 5 — Open Agent Economy:** B2C and B2B agent commerce, agent-to-agent quotation, logistics, and service contracting, and human-approved autonomous procurement.
 
-### Phase 1 — Local Commerce
+### 5.4 Commerce Actors
 
-- nearby restaurants
-- local stores
-- cafes
-- convenience stores
-- short-distance delivery
+**Consumer Agent** — represents the user: understands intent, compares offers, negotiates conditions, filters unsafe offers, requests final approval, remembers preferences, and asks for ratings after completion. It should not spend money without human approval unless explicitly authorized by the user.
 
-### Phase 2 — Regional Logistics
+**Merchant Agent** — represents a store, seller, or service provider: provides product and service information, exposes stock, responds to price requests, negotiates discounts, provides delivery/pickup conditions, and signs offers with merchant identity.
 
-- local delivery agents
-- personal cargo drivers
-- courier services
-- moving services
-- logistics company APIs
+**Logistics Agent** — represents delivery, transport, courier, or cargo providers: provides pickup availability, estimates delivery time, negotiates fees, coordinates routes, and provides proof of completion.
 
-### Phase 3 — National Commerce
+**Community Governance Agent** — represents local or national communities: receives fraud reports, assists dispute review, evaluates evidence, recommends suspension, and coordinates community voting.
 
-- nationwide merchants
-- warehouse sellers
-- logistics brokers
-- transport agents
-- multi-region price negotiation
+**Legal / Dispute Agent** *(future category)* — summarizes transaction logs, compares contract conditions, organizes claims, and explains community rules. This is not a replacement for licensed professionals; it is a structured assistant for community dispute handling.
 
-### Phase 4 — Service Marketplace
+### 5.5 Approval Flow
 
-ARC is not limited to physical goods.
+This is the practical permission system that realizes [Human Sovereignty](#42-human-sovereignty) in commerce.
 
-It can also apply to intangible services:
-
-- design
-- translation
-- coding
-- accounting
-- legal assistance
-- consulting
-- education
-- repair
-- local labor
-- B2B procurement
-
-For regulated domains such as legal, medical, or financial services, future ARC-compatible systems may support agents operating under delegated authority from verified licensed professionals.
-
-### Phase 5 — Open Agent Economy
-
-Eventually, ARC may support:
-
-- B2C agent commerce
-- B2B agent commerce
-- agent-to-agent quotation
-- agent-to-agent logistics
-- agent-to-agent service contracting
-- human-approved autonomous procurement
-
-## 7. Main Actors
-
-### 7.1 Consumer Agent
-
-Represents the user.
-
-Responsibilities:
-
-- understand user intent
-- compare offers
-- negotiate conditions
-- filter unsafe offers
-- request final approval
-- remember user preferences
-- ask for ratings after completion
-
-The consumer agent should not spend money without human approval unless explicitly authorized by the user.
-
-### 7.2 Merchant Agent
-
-Represents a store, seller, or service provider.
-
-Responsibilities:
-
-- provide product or service information
-- expose stock availability
-- respond to price requests
-- negotiate discounts
-- provide delivery/pickup conditions
-- sign offers with merchant identity
-
-### 7.3 Logistics Agent
-
-Represents delivery, transport, courier, or cargo providers.
-
-Responsibilities:
-
-- provide pickup availability
-- estimate delivery time
-- negotiate delivery fee
-- coordinate route
-- provide proof of completion
-- maintain delivery reputation
-
-### 7.4 Community Governance Agent
-
-Represents local or national communities.
-
-Responsibilities:
-
-- receive fraud reports
-- assist dispute review
-- evaluate evidence
-- recommend suspension
-- manage reputation penalties
-- coordinate community voting
-
-### 7.5 Legal / Dispute Agent
-
-A future agent category.
-
-Responsibilities:
-
-- summarize transaction logs
-- compare contract conditions
-- organize claims
-- explain community rules
-- assist with dispute resolution
-
-This is not a replacement for licensed professionals.
-
-It is a structured assistant for community dispute handling.
-
-## 8. Identity Layer
-
-Fraud prevention is one of the most important parts of ARC.
-
-AI commerce cannot work if fake agents can freely appear and steal money.
-
-ARC proposes a layered identity model.
-
-Possible Identity Providers:
-
-- Google Account
-- Apple ID
-- Microsoft Account
-- local national ID systems
-- local community accounts
-- business registration systems
-- verified payment accounts
-
-Consumer-grade identity providers such as Google, Apple, or Microsoft may help establish account continuity, but they do not prove merchant legitimacy, inventory ownership, fulfillment capability, professional authority, or legal compliance. See [Identity](docs/identity.md) for the fuller model and its limits.
-
-Agent Identity:
-
-Each agent should have:
-
-- owner identity
-- agent public key
-- signed agent profile
-- reputation history
-- permission level
-- community status
-
-Example:
-
-```json
-{
-  "agent_id": "merchant_abc_001",
-  "owner_type": "business",
-  "identity_provider": "google",
-  "public_key": "...",
-  "community": "seoul-local-commerce",
-  "status": "verified"
-}
-```
-
-## 9. Human Approval Layer
-
-This section describes the practical permission system.
-
-For the philosophical position on human sovereignty, see section 3.2.
-
-ARC is not designed for unreviewed automation.
-
-Every important transaction should support human approval.
-
-Examples:
+ARC is not designed for unreviewed automation. Every important action should support human approval:
 
 - approve order
 - approve payment
@@ -549,190 +393,33 @@ Require explicit approval for meaningful purchases.
 Block all new merchants without reputation.
 ```
 
-Any such rule should remain exploratory, optional, user-defined, reviewable, auditable, and easily revocable. Pre-authorization is risky if it weakens meaningful review, so ARC should not treat fixed dollar thresholds as protocol defaults.
+Any such rule should remain exploratory, optional, user-defined, reviewable, auditable, and easily revocable. Pre-authorization is risky if it weakens meaningful review, so ARC should not treat fixed dollar thresholds as protocol defaults. The general delegation model behind this flow is in [section 9](#9-delegation-and-mandates).
 
-This protects users from unwanted AI actions.
+### 5.6 Payment Boundary
 
-## 10. Reputation Layer
+ARC does not need to create a new payment system. It connects to existing trusted payment systems and does not attempt to replace payment providers, card networks, wallets, or local smart-pay systems. It is payment-provider-agnostic and region-adaptive.
 
-In ARC, reputation may become more important than advertising.
+Examples: Google Pay, Apple Pay, Stripe, PayPal, Toss, Naver Pay, Kakao Pay, Alipay, WeChat Pay, and local national payment systems.
 
-Current internet advertising depends on:
+The agent prepares payment. The human confirms payment. The payment provider executes payment.
 
-- emotional targeting
-- click manipulation
-- attention capture
-- impulse buying
+### 5.7 Discovery and Map Boundary
 
-But AI agents do not respond to ads like humans do.
+Commerce is local, so ARC should respect local infrastructure: Google Maps, Apple Maps, OpenStreetMap, Naver Map, Kakao Map, local delivery APIs, and national address systems.
 
-Agents compare:
+ARC should not force one global map provider. Each country or community may choose its own map and logistics providers.
 
-- price
-- trust
-- delivery time
-- reviews
-- refund rate
-- verified transaction history
-- dispute record
+### 5.8 Advertising Hypothesis
 
-Therefore, the future of commerce may shift from advertising economy to reputation economy.
+ARC assumes that traditional advertising may become weaker in an agent-driven economy. Current platforms optimize when to show ads, which user to target, what emotional trigger to use, and how to increase clicks. But AI agents may ignore emotional advertising.
 
-ARC proposes reputation based on verified transactions, not fake reviews.
-
-Reputation is contextual and gameable. It must not become a universal social credit score. See [Reputation](docs/reputation.md) for the current boundaries and unresolved risks.
-
-Reputation Data:
-
-Possible reputation metrics:
-
-- completed transaction rate
-- refund rate
-- dispute rate
-- late delivery rate
-- cancellation rate
-- response speed
-- verified buyer rating
-- verified merchant rating
-- community trust score
-
-## 11. Community Trial and Expulsion
-
-ARC assumes that fraud will happen.
-
-So the system must include community-based dispute handling.
-
-When a suspicious agent appears:
-
-1. user reports the agent
-2. transaction logs are submitted
-3. signed offer records are checked
-4. community or dispute agents review the case
-5. the community decides penalty
-6. malicious agents may be suspended or expelled
-
-Possible penalties:
-
-- warning
-- reputation reduction
-- temporary suspension
-- payment limit
-- community ban
-- identity provider report
-
-## 12. Blockchain Boundary
-
-ARC does not use blockchain as a real-time commerce engine.
-
-Blockchain may be useful for records where manipulation resistance matters:
-
-- reputation checkpoints
-- verified review proofs
-- blacklist or ban records
-- dispute result hashes
-- signed contract hashes
-- community governance proofs
-- agent identity proofs
-
-Blockchain is not suitable for:
-
-- real-time agent communication
-- merchant search
-- map discovery
-- payment execution
-- delivery status updates
-- chat logs
-- every price negotiation
-- every small transaction
-
-ARC uses WebRTC, APIs, relay servers, and normal databases for speed.
-
-ARC uses cryptographic proofs or blockchain checkpoints only where shared verification and manipulation resistance matter.
-
-In short:
-
-- Speed: WebRTC / APIs / databases
-- Payment: existing payment providers
-- Discovery: existing map and local search providers
-- Trust: signatures, reputation proofs, dispute records, and optional blockchain checkpoints
-
-## 13. Payment Layer
-
-ARC does not need to create a new payment system at the beginning.
-
-It should connect to existing trusted payment systems.
-
-ARC does not attempt to replace payment providers, card networks, wallets, or local smart-pay systems. It is payment-provider-agnostic and region-adaptive.
-
-Examples:
-
-- Google Pay
-- Apple Pay
-- Stripe
-- PayPal
-- Toss
-- Naver Pay
-- Kakao Pay
-- Alipay
-- WeChat Pay
-- local national payment systems
-
-The agent prepares payment.
-
-The human confirms payment.
-
-The payment provider executes payment.
-
-## 14. Map and Local Infrastructure
-
-Commerce is local.
-
-Therefore ARC should respect local infrastructure.
-
-Examples:
-
-- Google Maps
-- Apple Maps
-- OpenStreetMap
-- Naver Map
-- Kakao Map
-- local delivery APIs
-- national address systems
-
-ARC should not force one global map provider.
-
-Each country or community may choose its own map and logistics providers.
-
-## 15. Advertising in the Agent Economy
-
-ARC assumes that traditional advertising may become weaker in an agent-driven economy.
-
-Current platforms optimize:
-
-- when to show ads
-- which user to target
-- what emotional trigger to use
-- how to increase clicks
-
-But AI agents may ignore emotional advertising.
-
-Instead, future merchant visibility may depend on:
-
-- structured offer quality
-- verified reputation
-- machine-readable discounts
-- trust score
-- delivery reliability
-- refund behavior
-- community standing
+Instead, future merchant visibility may depend on structured offer quality, verified reputation, machine-readable discounts, trust, delivery reliability, refund behavior, and community standing.
 
 This may reduce manipulation-based advertising and increase merit-based discovery, but this remains a hypothesis to test rather than a proven outcome.
 
-> See [Philosophy](docs/philosophy.md) for extended discussion on
-> advertising evolution, recommendation transparency,
-> and manipulation-resistant discovery design.
+> See [Philosophy](docs/philosophy.md) for extended discussion on advertising evolution, recommendation transparency, and manipulation-resistant discovery design.
 
-## 16. Architecture Overview
+### 5.9 Commerce Architecture
 
 ```txt
 +----------------------+
@@ -773,432 +460,193 @@ This may reduce manipulation-based advertising and increase merit-based discover
 +------------------------------------------------------+
 ```
 
-## 17. Technical Architecture
+### 5.10 Commerce MVP Sketch
 
-The listed stack is a possible reference implementation stack, not part of the ARC protocol itself.
+The first MVP should be simple. Do not start with real payments, real delivery, or nationwide logistics. The goal is to show that multiple agents can simulate a commerce transaction.
 
-### Frontend
+MVP features: consumer agent chat, merchant and logistics agent simulation, offer comparison, a human approval button, mock payment confirmation, mock delivery status, a basic reputation projection, a transaction log, and a signed-offer mock structure.
 
-Recommended:
+MVP non-goals: no real payment, no real delivery, no legal guarantee, no production security, no real identity verification, no real dispute enforcement.
 
-- Next.js
-- React
-- Tailwind CSS
-- PWA support
+An illustrative flow:
 
-Purpose:
-
-- user dashboard
-- agent chat interface
-- transaction approval screen
-- reputation display
-- community dispute UI
-
-### Backend
-
-Recommended:
-
-- Node.js
-- Fastify or Express
-- PostgreSQL
-- Redis
-- WebSocket server
-
-Purpose:
-
-- agent registry
-- session management
-- fallback relay
-- reputation cache
-- community records
-
-### Agent Runtime
-
-Possible:
-
-- OpenAI API
-- DeepSeek API
-- local LLM
-- Ollama
-- llama.cpp
-- LangGraph
-- CrewAI
-- AutoGen
-
-Initial MVP can use simple rule-based agents plus LLM responses.
-
-### P2P Communication
-
-Possible:
-
-- WebRTC DataChannel
-- libp2p
-- WebSocket fallback
-- relay server fallback
-
-ARC should not require full decentralization from day one.
-
-A hybrid model is more realistic.
-
-### Database
-
-Initial:
-
-- PostgreSQL for app state
-- Redis for temporary session state
-
-Future:
-
-- community-hosted database
-- cryptographic audit logs
-- blockchain checkpoints
-
-### Cryptography
-
-Recommended:
-
-- public/private key pair per agent
-- signed offers
-- signed order proposals
-- signed delivery confirmations
-- transaction hash records
-
-## 18. MVP Scope
-
-The first MVP should be simple.
-
-Do not start with real payments, real delivery, or nationwide logistics.
-
-MVP Goal:
-
-Show that multiple agents can simulate a commerce transaction.
-
-MVP Features:
-
-- consumer agent chat
-- merchant agent simulation
-- logistics agent simulation
-- offer comparison
-- human approval button
-- fake payment confirmation
-- fake delivery status
-- basic reputation score
-- transaction log
-- signed offer mock structure
-
-MVP Non-Goals:
-
-- no real payment
-- no real delivery
-- no legal guarantee
-- no production security
-- no real identity verification
-- no real dispute enforcement
-
-## 19. Example MVP Flow
-
-1. User enters request:
-   "Find me coffee and sandwich nearby under $10."
-
-2. Consumer Agent parses request.
-
-3. Merchant Agent A responds:
-   "Coffee + sandwich = $9.50, ready in 8 minutes."
-
-4. Merchant Agent B responds:
-   "Coffee + sandwich = $8.80, ready in 15 minutes."
-
-5. Logistics Agent responds:
-   "Delivery possible in 12 minutes, fee $2."
-
-6. Consumer Agent recommends:
-   "Merchant A is faster, Merchant B is cheaper."
-
+1. User: "Find me coffee and sandwich nearby under $10."
+2. Consumer Agent parses the request.
+3. Merchant A: "Coffee + sandwich = $9.50, ready in 8 minutes."
+4. Merchant B: "Coffee + sandwich = $8.80, ready in 15 minutes."
+5. Logistics Agent: "Delivery possible in 12 minutes, fee $2."
+6. Consumer Agent recommends: "Merchant A is faster, Merchant B is cheaper."
 7. Human approves one option.
-
 8. Mock payment is created.
-
 9. Mock delivery begins.
+10. User instructs the agent to leave a rating.
 
-10. User instructs agent to leave a rating.
+For real signed-event formats (offers, approvals, attestations), see the [Event Registry](docs/event-registry.md) and the runnable [`examples/`](examples/).
 
-## 20. Possible Future Repository Structure
+---
 
-This is a possible future implementation structure, not a description of the current repository state.
+## 6. Identity Layer
 
-```txt
-arc-protocol/
-|-- README.md
-|-- LICENSE
-|-- docs/
-|   |-- philosophy.md
-|   |-- architecture.md
-|   |-- protocol.md
-|   |-- identity.md
-|   |-- reputation.md
-|   |-- governance.md
-|   |-- roadmap.md
-|   `-- adjacent-ideas/
-|       |-- information-sovereignty.md
-|       `-- agent-mediated-collaboration.md
-|-- apps/
-|   `-- web/
-|       |-- app/
-|       |-- components/
-|       `-- lib/
-|-- packages/
-|   |-- agent-core/
-|   |-- protocol-types/
-|   |-- reputation/
-|   `-- crypto/
-|-- examples/
-|   |-- local-commerce-demo/
-|   |-- merchant-agent/
-|   |-- consumer-agent/
-|   `-- logistics-agent/
-`-- diagrams/
-    `-- architecture.png
-```
+Fraud prevention is one of the most important parts of ARC. AI coordination cannot work if fake agents can freely appear and steal money.
 
-## 21. Protocol Concepts
+ARC proposes a layered identity model. Possible identity providers include Google, Apple, and Microsoft accounts, local national ID systems, local community accounts, business registration systems, and verified payment accounts.
 
-### Offer
+Consumer-grade identity providers such as Google, Apple, or Microsoft may help establish account continuity, but they do not prove merchant legitimacy, inventory ownership, fulfillment capability, professional authority, or legal compliance. See [Identity](docs/identity.md) for the fuller model and its limits.
+
+**Agent identity.** What an agent *holds* is minimal and cryptographic — an owner reference, a public key, and a signed profile:
 
 ```json
 {
-  "offer_id": "offer_001",
-  "merchant_agent_id": "merchant_abc",
-  "items": [
-    {
-      "name": "Coffee",
-      "price": 3.5
-    }
-  ],
-  "total_price": 9.5,
-  "estimated_ready_time": "8 minutes",
-  "expires_at": "2026-01-01T12:00:00Z",
-  "signature": "signed_by_merchant_agent"
+  "agent_id": "merchant_abc_001",
+  "owner_type": "business",
+  "identity_provider": "google",
+  "public_key": "...",
+  "community": "seoul-local-commerce"
 }
 ```
 
-### Approval
+Everything else an agent might seem to "have" — reputation, permission level, community standing, verification status — is **not a stored field**. It is a projection folded on demand from signed events (`KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE`), never written onto the agent record. There is no stored status to tamper with, because there is no stored status at all.
 
-```json
-{
-  "approval_id": "approval_001",
-  "user_id": "user_123",
-  "selected_offer_id": "offer_001",
-  "approved_at": "2026-01-01T12:01:00Z",
-  "approval_method": "smartphone_button",
-  "signature": "signed_by_user_device"
-}
-```
+---
 
-### Reputation Event
+## 7. Reputation
 
-```json
-{
-  "event_id": "rep_001",
-  "agent_id": "merchant_abc",
-  "transaction_id": "tx_001",
-  "rating": 5,
-  "verified": true,
-  "comment": "Delivered correctly.",
-  "created_at": "2026-01-01T13:00:00Z"
-}
-```
+In ARC, reputation may matter more than advertising.
 
-## 22. Security Considerations
+Current internet advertising depends on emotional targeting, click manipulation, attention capture, and impulse buying. But AI agents do not respond to ads like humans do. Agents compare price, trust, delivery time, reviews, refund rate, verified history, and dispute record.
+
+Therefore, the future of commerce may shift from an advertising economy to a reputation economy. ARC proposes reputation grounded in verified transactions, not fake reviews.
+
+But reputation in ARC is **not a stored number**. It is a projection — a contextual, reviewable, fallible fold over signed evidence, recomputed on demand and then discarded. There is no score to store, optimize, or game, and it must never become a universal social-credit score. See [Reputation](docs/reputation.md) for the current boundaries and unresolved risks.
+
+The evidence a reputation projection folds over may include completion records, refunds, disputes, late deliveries, cancellations, response speed, and verified buyer and merchant attestations. These are signed events, not stored metrics — the standing is computed from them, never saved as a field.
+
+---
+
+## 8. Community Trial and Expulsion
+
+ARC assumes that fraud will happen, so the system must include community-based dispute handling.
+
+When a suspicious agent appears:
+
+1. a user reports the agent
+2. transaction logs are submitted
+3. signed offer records are checked
+4. community or dispute agents review the case
+5. the community decides a penalty
+6. malicious agents may be suspended or expelled
+
+Possible penalties: warning, reputation reduction (i.e. the evidence a standing projection folds over shifts), temporary suspension, payment limit, community ban, identity-provider report. Every penalty is itself a signed event — most often an `ADJUDICATE` — so it folds into future projections without rewriting the past.
+
+---
+
+## 9. Delegation and Mandates
+
+Agents do not hold unlimited authority. ARC replaces fixed permission tiers with explicit, scoped delegation.
+
+- **Manual approval is the default.** Nothing meaningful happens without a human's final signed step.
+- **Delegation is explicit and scoped.** Authority is granted as an `AUTHORIZE` event carrying a `scope`. It attenuates as it passes along — a delegate can never widen its own mandate, only narrow it.
+- **A mandate is exactly what an agent may sign without re-asking.** In-scope proposals can be auto-signed; out-of-scope proposals **escalate to a human** rather than executing.
+- **Revocation uses `nullifies`.** Revoking a delegation bounds future authority; it does not rewrite the past. Whether an act that already *completed* under a now-revoked delegation still stands is a fold-policy choice, made visible — see [`examples/authority-revocation-demo`](examples/authority-revocation-demo/).
+
+The current authority-state of any agent is a projection over these events, never a stored permission record. See [Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md) and [Key Custody](docs/key-custody.md).
+
+---
+
+## 10. Blockchain Boundary
+
+ARC does not use blockchain as a real-time engine.
+
+Blockchain may be useful for records where manipulation resistance matters: reputation checkpoints, verified review proofs, blacklist or ban records, dispute result hashes, signed contract hashes, community governance proofs, and agent identity proofs.
+
+Blockchain is not suitable for real-time agent communication, merchant search, map discovery, payment execution, delivery updates, chat logs, or every small transaction. ARC uses WebRTC, APIs, relay servers, and normal databases for speed, and cryptographic proofs or blockchain checkpoints only where shared verification and manipulation resistance matter.
+
+In short:
+
+- Speed: WebRTC / APIs / databases
+- Payment: existing payment providers
+- Discovery: existing map and local search providers
+- Trust: signatures, reputation proofs, dispute records, and optional blockchain checkpoints
+
+---
+
+## 11. Security Considerations
 
 ARC must assume hostile agents exist.
 
-Possible attacks:
+Possible attacks: fake merchant or logistics agents, fake reviews, replayed offers, manipulated prices, phishing payment links, malicious agent recommendations, collusion between agents, fake community votes, and identity farming.
 
-- fake merchant agents
-- fake logistics agents
-- fake reviews
-- replayed offers
-- manipulated prices
-- phishing payment links
-- malicious agent recommendations
-- collusion between agents
-- fake community votes
-- identity farming
+Required defenses: signed offers, verified identity providers, human payment approval, verified transaction reviews, community moderation, rate limits, new-agent restrictions, dispute logs, reputation decay, and fraud reporting.
 
-Required defenses:
+See the [Threat Model](docs/threat-model.md) for the fuller treatment, including the custody and signer-fidelity edges that signatures alone cannot close.
 
-- signed offers
-- verified identity providers
-- human payment approval
-- verified transaction reviews
-- community moderation
-- rate limits
-- new-agent restrictions
-- dispute logs
-- reputation decay
-- fraud reporting
+---
 
-## 23. Permission Levels
-
-Agents should not have unlimited authority.
-
-Example permission model:
-
-| Level | Permission |
-| --- | --- |
-| Level 0 | Read-only recommendation |
-| Level 1 | Compare offers |
-| Level 2 | Create cart |
-| Level 3 | Request human approval |
-| Level 4 | Execute pre-approved small transactions |
-| Level 5 | Business automation with strict limits |
-
-Default should be conservative.
-
-Humans should control permission levels.
-
-## 24. Governance Model
+## 12. Governance Model
 
 ARC is designed as a non-profit open protocol.
 
-Possible governance layers:
+Possible governance layers: local community, national community, merchant association, user council, technical maintainers, dispute reviewers, and protocol contributors.
 
-- local community
-- national community
-- merchant association
-- user council
-- technical maintainers
-- dispute reviewers
-- protocol contributors
-
-Governance should be transparent.
-
-No single corporation should control the entire network.
+Governance should be transparent. No single corporation should control the entire network.
 
 Community governance can inform trust and participation decisions, but it does not replace courts, payment-provider dispute processes, consumer protection law, professional regulation, or legal liability. See [Governance](docs/governance.md) and [Liability Boundaries](docs/liability-boundaries.md).
 
-## 25. Why Non-Profit and Open Source?
+---
+
+## 13. Why Non-Profit and Open Source?
 
 Because the agent economy may become basic infrastructure.
 
-If AI-to-AI commerce becomes the next layer of the internet, it should not be fully controlled by a single company.
+If AI-to-AI coordination becomes the next layer of the internet, it should not be fully controlled by a single company.
 
-ARC should be:
+ARC should be open, forkable, auditable, community-governed, locally adaptable, and human-centered.
 
-- open
-- forkable
-- auditable
-- community-governed
-- locally adaptable
-- human-centered
+The goal is not to build another closed marketplace. The goal is to explore an open authority-and-approval layer for the AI agent era.
 
-The goal is not to build another closed marketplace.
+---
 
-The goal is to explore an open commerce protocol for the AI agent era.
+## 14. Current Status
 
-## 26. Current Status
+ARC Protocol is currently an experimental documentation and mock-artifact project. It is not production-ready.
 
-ARC Protocol is currently an experimental documentation and mock-artifact project.
+It does not currently provide real payments, real delivery, legal guarantees, verified identity, or production-grade security.
 
-It is not production-ready.
+An initial documentation baseline exists, along with the executable probes in [section 2](#2-the-core-model), but identity, discovery, incentives, governance, liability, and full protocol interoperability remain unresolved.
 
-It does not currently provide:
+It is a research-oriented proposal for exploring human-approved delegation, agent authority and revocation, agent reputation as projection, community dispute resolution, and open coordination protocols — with commerce as the first application.
 
-- real payments
-- real delivery
-- legal guarantees
-- verified identity
-- production-grade security
+---
 
-An initial documentation baseline exists, but identity, discovery, incentives, governance, liability, and full protocol interoperability remain unresolved.
+## 15. Roadmap
 
-It is a research-oriented proposal for exploring:
+- **Stage 0 — Philosophy and Protocol Draft:** README, architecture, core model, governance and reputation models.
+- **Stage 1 — Local MVP:** consumer agent, merchant and logistics simulation, approval UI, transaction log.
+- **Stage 2 — Identity and Reputation:** agent profile, public-key identity, signed offers, verified-review model, reputation projection.
+- **Stage 3 — Community Governance:** fraud report, dispute case, community decision, suspension flow.
+- **Stage 4 — Payment Integration:** mock payment first, then payment-provider integration, human approval required.
+- **Stage 5 — Local Commerce Pilot:** small local merchant demo, limited geography, no full automation.
+- **Stage 6 — Open Agent Network:** multiple communities, merchant and logistics agents, interoperability tests.
 
-- AI-to-AI commerce
-- human-approved transactions
-- agent reputation
-- community dispute resolution
-- open commerce protocols
+See [Roadmap](docs/roadmap.md) for the fuller version.
 
-## 27. Roadmap
+---
 
-### Stage 0 — Philosophy and Protocol Draft
+## 16. Design Principle
 
-- README
-- architecture
-- protocol concepts
-- governance model
-- reputation model
+ARC should avoid becoming a dark-pattern machine.
 
-### Stage 1 — Local MVP
+The system should not optimize only for more clicks, more spending, emotional manipulation, addictive behavior, or hidden advertising.
 
-- consumer agent
-- merchant agent simulation
-- logistics agent simulation
-- approval UI
-- transaction log
+Instead, ARC should optimize for trust, clarity, human approval, transparent comparison, fair reputation, lower friction, and community accountability.
 
-### Stage 2 — Identity and Reputation
+---
 
-- agent profile
-- public key identity
-- signed offers
-- verified review model
-- reputation score
+## 17. Manifesto
 
-### Stage 3 — Community Governance
+We believe AI agents will become a new interface of the economy.
 
-- fraud report
-- dispute case
-- community decision
-- suspension flow
-
-### Stage 4 — Payment Integration
-
-- mock payment first
-- then payment provider integration
-- human approval required
-
-### Stage 5 — Local Commerce Pilot
-
-- small local merchant demo
-- limited geography
-- no full automation
-
-### Stage 6 — Open Agent Commerce Network
-
-- multiple communities
-- multiple merchant agents
-- multiple logistics agents
-- interoperability tests
-
-## 28. Design Principle
-
-ARC should avoid becoming a dark pattern machine.
-
-The system should not optimize only for:
-
-- more clicks
-- more spending
-- emotional manipulation
-- addictive behavior
-- hidden advertising
-
-Instead, ARC should optimize for:
-
-- trust
-- clarity
-- human approval
-- transparent comparison
-- fair reputation
-- lower transaction friction
-- community accountability
-
-## 29. Manifesto
-
-We believe AI agents will become a new interface of commerce.
-
-But commerce should not become a fully automated black box.
+But that economy should not become a fully automated black box.
 
 Humans must remain in control.
 
@@ -1212,13 +660,13 @@ Agents should help people compare, negotiate, and coordinate — not replace hum
 
 ARC Protocol is a small experiment toward that future.
 
-An open, community-driven, human-approved commerce network for the agent era.
+An open, community-governed, human-approved authority layer for the agent era — with commerce as its first application.
 
 <p align="center">
   <img src="assets/arc-stamp.svg" width="132" alt="Verified — signed by community">
 </p>
 
-## 30. License
+## 18. License
 
 This project is licensed under the Apache License 2.0.
 

@@ -3,6 +3,11 @@
 > **Status:** Draft v1.0
 > **Purpose:** Philosophical foundation of the ARC Protocol
 > For a quick overview, see the [README](../README.md).
+>
+> **Scope note:** This document argues ARC's philosophy through commerce, the
+> application that birthed it. Commerce is ARC's flagship application, not its
+> definition — at its core ARC is an open authority, approval, and audit layer
+> for AI agents.
 
 ---
 
@@ -81,8 +86,8 @@ AI should reduce friction, not remove sovereignty. Every significant economic ac
 
 Manual approval is the default and recommended behavior. A future implementation may explore explicitly pre-authorized, low-risk approval rules within user-defined thresholds, provided meaningful economic actions still require explicit confirmation and every action remains auditable. Approval fatigue, and the risk that convenience erodes oversight, remains an open design tension.
 
-**2. Commerce infrastructure should be open.**
-If agent-to-agent commerce becomes the next layer of the internet, its infrastructure should be forkable, inspectable, and community-governed — not owned by a single corporation.
+**2. The shared authority layer should be open.**
+If agent-to-agent coordination becomes the next layer of the internet, the authority and approval layer behind it should be forkable, inspectable, and community-governed — not owned by a single corporation.
 
 **3. Reputation matters more than advertising.**
 In an agent economy, trust is the primary competitive asset. Verified transaction history, refund rates, dispute records, and community standing should determine merchant visibility — not advertising spend.
@@ -196,4 +201,4 @@ Not a startup. Not a platform. A proposal.
 
 > *"Agents should help people compare, negotiate, and coordinate — not replace human sovereignty."*
 
-> Note: ARC's ideas may have implications beyond commerce, including information discovery and social curation. Those speculative ideas are kept outside the core philosophy document to preserve ARC's current scope as a commerce protocol.
+> Note: ARC's ideas may have implications beyond commerce, including information discovery and social curation. Those speculative ideas are kept outside the core philosophy document to keep this document focused on commerce — ARC's flagship application, not its definition.
