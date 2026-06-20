@@ -470,34 +470,24 @@ A user can type a request, receive competing offers from simulated agents, see a
 
 ## 12. Repository Structure
 
+This repository is currently organized as a protocol research corpus, not a production monorepo.
+
 ```
 arc-protocol/
-├── README.md
-├── LICENSE
-├── CONTRIBUTING.md
-├── docs/
-│   ├── philosophy.md
-│   ├── architecture.md       ← this document
-│   ├── protocol.md
-│   ├── identity.md
-│   ├── reputation.md
-│   ├── governance.md
-│   └── roadmap.md
-├── apps/
-│   └── web/
-│       ├── app/
-│       ├── components/
-│       └── lib/
-├── packages/
-│   ├── agent-core/
-│   ├── protocol-types/
-│   ├── reputation/
-│   └── crypto/
-├── examples/
-│   ├── local-commerce-demo/
-│   ├── merchant-agent/
-│   ├── consumer-agent/
-│   └── logistics-agent/
-└── diagrams/
-    └── architecture.png
+├── README.md            ← project compass and entry point
+├── LICENSE, CONTRIBUTING.md
+├── docs/                ← normative models, tradeoffs, custody, threat model, glossary, roadmap
+│   │                      (object-model, event-registry, authority-and-conflict, key-custody,
+│   │                       delegation-and-spending-mandates, identity, reputation, governance,
+│   │                       trust-model-tradeoffs, threat-model, future-protocol-spec, …)
+│   └── adjacent-ideas/  ← exploratory essays
+├── examples/            ← executable probes and reference clients
+│   ├── reference-client/             browser client for observing authority/approval bands
+│   ├── canon-fold-demo/, canon-ts/   canonicalization and type-level custody locks
+│   ├── authority-revocation-demo/, threshold-authority-demo/, cache-discipline-demo/
+│   ├── end-to-end-demo/, local-commerce-demo/
+├── diagrams/            ← discovery-topology.md, dispute-flow.md, transaction-lifecycle.md
+└── apps/, packages/     ← reserved placeholders, not yet populated
 ```
+
+The earlier `apps/web` and `packages/*` layout was an aspirational sketch of a reference implementation, not a current commitment; treat it as non-normative. The README is the canonical map of the corpus.
