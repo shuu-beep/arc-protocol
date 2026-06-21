@@ -259,6 +259,8 @@ How agents find each other is as important as how they communicate.
 
 ARC does not impose a single discovery mechanism. Communities may operate their own discovery backends.
 
+Discovery establishes contactability, not authority: a backend surfaces reachable endpoints, but legitimacy, permission, and fulfillment capacity are decided in other layers (identity, approval, governance, fulfillment) — never by appearing in a directory.
+
 ### 6.1 Discovery Methods
 
 | Method | Description |

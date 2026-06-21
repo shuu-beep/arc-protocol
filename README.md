@@ -409,6 +409,8 @@ Commerce is local, so ARC should respect local infrastructure: Google Maps, Appl
 
 ARC should not force one global map provider. Each country or community may choose its own map and logistics providers.
 
+Discovery in ARC is contactability, not endorsement. Locating a counterparty — through a map, a registry, or an index — does not grant it authority, legitimacy, or fulfillment capacity; those live in other layers (approval, governance, and actual fulfillment), never in being found. A discovery backend surfaces who can be reached, not who may be trusted.
+
 ### 5.8 Advertising Hypothesis
 
 ARC assumes that traditional advertising may become weaker in an agent-driven economy. Current platforms optimize when to show ads, which user to target, what emotional trigger to use, and how to increase clicks. But AI agents may ignore emotional advertising.
