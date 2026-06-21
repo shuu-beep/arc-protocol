@@ -9,10 +9,9 @@
 > Authority, delegation, and revocation live as signed events — trust is
 > computed from them, never stored as a score.
 
-> This is a philosophical declaration and design document,
-> not a production project or startup pitch.
-> One person's vision for what an open authority-and-approval layer for the
-> agent economy should look like.
+> A protocol draft and research project — a philosophical declaration now backed by executable probes, not production-ready infrastructure.
+> One person's attempt to explore what an open authority-and-approval layer for the agent economy could look like.
+> ARC is open to research collaboration, independent implementations, commercial adoption, funding, and community stewardship. It is intended to remain open, forkable, interoperable, and uncaptured by any single operator.
 
 → Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Bootstrap & Incentives](docs/bootstrap-and-incentives.md) · [Liability Boundaries](docs/liability-boundaries.md) · [Future Protocol Spec](docs/future-protocol-spec.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Authority & Conflict](docs/authority-and-conflict.md) · [Object Model](docs/object-model.md) · [Event Registry](docs/event-registry.md) · [Key Custody](docs/key-custody.md) · [Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md) · [Landscape & Positioning](docs/landscape-and-positioning.md) · [Trust Model Trade-offs](docs/trust-model-tradeoffs.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
 
@@ -601,6 +600,8 @@ Community governance can inform trust and participation decisions, but it does n
 Because the agent economy may become basic infrastructure.
 
 If AI-to-AI coordination becomes the next layer of the internet, it should not be fully controlled by a single company.
+
+This is opposition to capture, not to commerce. Building on ARC, funding it, and adopting it commercially are all compatible with ARC; enclosing the protocol itself under a single operator is not.
 
 ARC should be open, forkable, auditable, community-governed, locally adaptable, and human-centered.
 

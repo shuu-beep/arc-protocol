@@ -1,8 +1,8 @@
 # Contributing to ARC Protocol
 
-> ARC Protocol is a non-profit, open-source philosophical and design project.
-> There is no company behind it. No funding. No roadmap pressure.
-> Just one person's attempt to think carefully about what open commerce infrastructure should look like.
+> ARC Protocol is a non-profit, open-source protocol research project.
+> It is currently stewarded by one maintainer, but is intended to remain open, forkable, interoperable, and uncaptured by any single company or operator.
+> Research collaboration, independent implementations, commercial adoption, grants, sponsorship, and community stewardship are welcome, provided they preserve human approval, interoperability, and non-capture.
 
 Thank you for being here.
 
@@ -94,7 +94,7 @@ ARC Protocol is written in English but the problems it addresses are global. If 
 
 ## What We're Not Looking For
 
-- Proposals to make ARC into a startup or commercial product
+- Proposals to capture ARC itself into a closed, proprietary, or single-operator system (building on ARC commercially is encouraged; enclosing ARC is not)
 - Blockchain maximalism or Web3 ideology for its own sake
 - Fully autonomous agent systems without human approval
 - Anything that reduces human sovereignty over economic decisions
