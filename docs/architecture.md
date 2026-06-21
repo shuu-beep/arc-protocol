@@ -17,6 +17,7 @@ Three principles guide every architectural decision:
 - **Speed over purity.** Real-time commerce cannot wait for blockchain consensus. Use existing fast infrastructure wherever possible.
 - **Hybrid over dogmatic.** Full decentralization is not required from day one. A realistic hybrid model is more valuable than an ideologically pure system that never ships.
 - **Human approval as a hard constraint.** No architectural shortcut should bypass the requirement for explicit human confirmation of significant transactions.
+- **Idle by default.** Agents are not continuously reasoning processes. Presence is established on contact, not maintained around the clock, keeping the cost of participation proportional to use (see §5.5).
 
 ### 1.1 Database-First Boundary
 
@@ -233,6 +234,22 @@ All agent messages are structured JSON with mandatory signature fields:
   "signature": "ed25519:consumer_abc:..."
 }
 ```
+
+### 5.5 Agent Presence and the Wake Handshake
+
+Agents do not need to remain continuously reasoning. An agent publishes a reachable endpoint to a discovery backend (§6) and may otherwise stay idle — holding no persistent connection and running no continuous inference loop. A counterparty makes contact, the agent wakes, and a lightweight handshake establishes that it is reachable and what it can currently do, before either side commits compute to negotiation:
+
+```txt
+registry endpoint -> idle -> contact (knock) -> wake -> presence check -> capability exchange -> negotiation
+```
+
+This sequence spans three concerns that should not be conflated:
+
+- **Transport.** The contact, presence, and capability messages are ephemeral transport, not events. They assert no truth, grant no permission, and enter no log or projection ([event-registry.md](./event-registry.md) §2.3 — requests are not events). No signed Event exists until negotiation yields one: an `ATTEST` offer or an `AUTHORIZE` approval. Any of §5.1–§5.3 (P2P, relay, async inbox) may carry the wake.
+- **Architecture.** Presence is established on contact rather than maintained continuously. The handshake is the bridge between discovery (§6, which locates an endpoint) and the message layer (§5.4, which carries signed exchanges). It introduces no new message type beyond a reachability probe and a capability response.
+- **Economics.** Continuous reasoning is an agent's dominant operating cost, and an always-on reasoning process per merchant is infeasible for small local participants. Idle-by-default makes the cost of presence proportional to actual contact rather than wall-clock uptime — the same DB-first, low-cost stance as §1.1, and a precondition for the local-commerce cost model ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md)).
+
+Real-time availability — whether the merchant is open, the kitchen is ready, an item is in stock — belongs in the capability response, not in a signed record: it is volatile live state, not an Event. Durable capabilities (service categories, delivery radius, accepted payment methods, hours) may instead be carried as ordinary `ATTEST` evidence where a counterparty needs them after the fact.
 
 ---
 
