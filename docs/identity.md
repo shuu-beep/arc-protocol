@@ -69,11 +69,11 @@ Each agent may have a unique cryptographic identity:
   "identity_provider": "google",
   "public_key": "ed25519:...",
   "community": "seoul-local-commerce",
-  "status": "verified",
-  "created_at": "2026-01-01T00:00:00Z",
-  "last_active": "2026-06-01T10:00:00Z"
+  "created_at": "2026-01-01T00:00:00Z"
 }
 ```
+
+What an agent identity record *holds* is minimal and anchoring: an owner reference, a public key, and the community it registered in. It does not hold a `status`, `standing`, `reputation`, or `verification` field. Those are **projections** folded on demand from signed events, never written onto the record (see §4 and [object-model.md](./object-model.md) §4). There is no stored status to tamper with, because there is no stored status at all.
 
 Offers, approvals, and reputation events should be signed where manipulation resistance matters. Unsigned messages may still exist in early prototypes, but users should be able to distinguish verified records from unverified records.
 
@@ -103,10 +103,11 @@ The key idea is: **a licensed professional may delegate limited agent activity u
     "verification_url": "https://example.org/credential-verification"
   },
   "agent_scope": ["legal_information", "contract_review_support", "dispute_summary"],
-  "community": "seoul-legal-services",
-  "status": "credentialed"
+  "community": "seoul-legal-services"
 }
 ```
+
+The `credential` block is an authority reference — a binding to the owner's license, recorded as a signed credential `ATTEST` and reviewed by governance. It is not a trust score. Whether the credential is currently active (`credentialed`, `suspended`, `revoked`) is a projection over those credential events and any commons `ADJUDICATE`, not a stored field on the record (see §4).
 
 ---
 
@@ -156,7 +157,7 @@ Issuing authority API queried, or manual verification performed
 Credential proof reviewed by community governance
           |
           v
-Agent status updated to reflect credentialed scope
+Credentialed scope recorded as a signed credential event
           |
           v
 Credential expiry monitored or periodically rechecked
@@ -297,27 +298,24 @@ ARC treats career-based trust as an important identity design area.
 
 ### 8.1 Portfolio and Experience Layer
 
-Agents representing skilled tradespeople may attach verified career records:
+Agents representing skilled tradespeople may *claim* a career portfolio that points at verifiable evidence:
 
 ```json
 {
   "agent_id": "plumber_choi_001",
   "owner_type": "individual",
-  "credential": {
+  "claimed_portfolio": {
     "type": "career_portfolio",
     "profession": "plumber",
-    "years_experience": 8,
-    "completed_jobs": 312,
-    "portfolio_url": "https://arc.community/portfolio/choi",
-    "community_verified": true
+    "portfolio_url": "https://arc.community/portfolio/choi"
   },
   "community": "seoul-home-services"
 }
 ```
 
-Verified completed jobs, community ratings, and dispute history may form the trust basis — not a license number.
+The trust basis is **not** a count stored in this record. Completed jobs, community ratings, and dispute history are a projection — a fold over signed outcome events (`ATTEST rep.outcome`) and any commons `ADJUDICATE`, recomputed on demand and scoped to context (see §4 and [object-model.md](./object-model.md) §4) — not a license number, and not a stored field. A `completed_jobs` or `years_experience` number written into a profile block is a self-asserted claim; it carries weight only when the same outcomes are folded from signed evidence.
 
-Career-based trust still requires caution. Portfolio claims, experience counts, and community endorsements can be exaggerated, captured, or laundered across contexts.
+This is precisely why career-based trust must not be stored: portfolio claims, experience counts, and community endorsements can be exaggerated, captured, or laundered across contexts. A stored count is a number to game; a projection over signed outcomes is reviewable evidence that points back to who attested what.
 
 ### 8.2 New Entrant Protection
 
