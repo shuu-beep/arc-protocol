@@ -36,6 +36,17 @@ A request asserts no truth, grants no permission, contests nothing, and decides 
 
 ARC executes no payment and performs no delivery ([architecture.md](./architecture.md) §4.2, [liability-boundaries.md](./liability-boundaries.md)). A confirmed payment or a completed delivery is therefore not a native ARC state change — it is a provider's or party's **signed claim about something that happened outside ARC**.
 
+This boundary has a gradient worth naming, because a signed event proves different things at different distances from the key. Four fidelities — two ARC seals, two it can only partially expose:
+
+| Fidelity | The question | What ARC can do |
+| --- | --- | --- |
+| **Signer** | Did the expected key sign this event? | **Sealed.** The signature plus the `KEY` anchor settle it. |
+| **Byte** | Has the signed content been altered since it was signed? | **Sealed.** The content-hash id is tamper-evident; any later mutation breaks it. |
+| **Execution** | Did the runtime actually do what the event claims it did? | **Partially exposed.** `refs`, receipts, counter-attestations, `CHALLENGE`, and divergent projections can surface inconsistency — but they cannot prove the runtime ran as claimed. |
+| **Outcome** | Did the real-world result match the claim? | **Not provable from the log.** It enters only as further `ATTEST` claims — a receipt, a witness, a provider's confirmation — each itself only as good as its signer. |
+
+Signer and byte fidelity are properties of the **record**, and ARC seals them. Execution and outcome fidelity are properties of the **referent** — the world the record points at — and a signature cannot reach across that gap. A valid signature on a `commerce.fulfillment` event proves that a key *asserted* a delivery; it does not prove a delivery. This is the same wall that signer fidelity meets on the interpretation axis: a valid signature proves a key signed, not that the signer read its mandate faithfully ([key-custody.md](./key-custody.md) §5). ARC can **preserve** a claim about the world — bind it to a signer, make it tamper-evident, expose contradictions between claims — but it cannot make the claim **true**. Runtime-execution and outcome truth require external receipts, witnesses, or environment-specific verification that ARC does not supply; what is signable here is the claim, never the fact it points at ([object-model.md](./object-model.md) §3).
+
 ## 3. The Set Is Forced by the Authority Canon
 
 The taxonomy is derived from the authority domains in [authority-and-conflict.md](./authority-and-conflict.md), not invented from message semantics. The cut is by **authority source**, not by content.

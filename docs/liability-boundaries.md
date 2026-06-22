@@ -16,6 +16,8 @@ A community decision may help a local reputation system decide whether an agent 
 
 This boundary is essential. Without it, ARC governance could be mistaken for a private court, a payment arbitrator, or a substitute for public legal systems.
 
+The same boundary has an evidentiary form. A signed ARC event can settle who signed it and that its bytes are intact, but not that the runtime executed as claimed or that the real-world outcome matched — those enter only as further attestations, each only as good as its signer (the fidelity gradient in [event-registry.md](./event-registry.md) §2.4). A signed fulfillment claim is evidence that someone asserted a delivery, not proof of a delivery; ARC preserves the claim, it does not verify the world.
+
 ## 2. Payment Providers Remain Independent
 
 ARC does not create a payment network at this stage.
