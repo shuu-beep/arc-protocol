@@ -19,7 +19,7 @@ python3 probe.py
 - **Finding M** (`../reference-client/signer_fidelity_fixture.py`): a valid
   signature proves a key signed; it does **not** prove the signer read its mandate
   faithfully. The lie is in the *interpretation*.
-- **Candidate O** (this probe): a valid signature proves a key signed; it does
+- **Finding O** (this probe): a valid signature proves a key signed; it does
   **not** prove the stamped time is true. The lie is in the *evidence*.
 
 The timestamp lives inside `signing_bytes`, so it is baked into the event id and

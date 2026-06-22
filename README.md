@@ -62,7 +62,7 @@ against becoming a social-credit database.
 ARC does not decide legitimacy. Legitimacy is a relation between an observer's
 policy and the log — observers legitimately disagree, and ARC renders the
 disagreement rather than resolving it. What a log cannot prove (legitimacy,
-interpretive fidelity), ARC leaves visible rather than hidden.
+interpretive fidelity, temporal fidelity), ARC leaves visible rather than hidden.
 
 ### Applications
 
@@ -156,7 +156,7 @@ These are not only claims on paper. Five small executable probes test them — e
 - [`examples/authority-revocation-demo`](examples/authority-revocation-demo/) — isolates one open policy question: whether an act that already completed under a delegation survives its revocation. The same signed event yields different answers under an as-of-act-time fold versus a current-log fold — a policy choice, not a missing type.
 - [`examples/reference-client`](examples/reference-client/) — renders the log as the seven surfaces a human actually sees, plus one mandate-routed write path (in-scope proposals auto-sign, out-of-scope ones escalate, an agent cannot widen its own mandate). Bands probe cold-start legitimacy, key compromise (on real Ed25519), federation between communities, and the custody seam that splits the agent from the signer.
 
-The recurring result: what leaks out of the five types is always **policy or discipline, never a new primitive**. One trade-off is sharper than a policy choice — global, certain Sybil resistance cannot coexist with both anti-social-credit and value-neutrality; ARC chooses local, probabilistic, fallible review. And the deepest edges stay open: a valid signature proves a key signed, not that custody was sound or that the signer faithfully read its mandate. Those — a compromised signer, threshold custody, enclave attestation, detection latency, interpretive fidelity — remain open in [docs/key-custody.md](docs/key-custody.md) §8, left visible rather than hidden.
+The recurring result: what leaks out of the five types is always **policy or discipline, never a new primitive**. One trade-off is sharper than a policy choice — global, certain Sybil resistance cannot coexist with both anti-social-credit and value-neutrality; ARC chooses local, probabilistic, fallible review. And the deepest edges stay open: a valid signature proves a key signed, not that custody was sound, that the signer faithfully read its mandate, or that the time it stamps is true. Some — a compromised signer, threshold custody, enclave attestation, detection latency, interpretive fidelity — remain open in [docs/key-custody.md](docs/key-custody.md) §8. One layer beneath them sits **temporal fidelity**: a [probe](examples/temporal-fidelity-demo/) suggests ARC preserves a temporal claim and a partial causal order — through the `refs` DAG — but cannot seal wall-clock truth. A careful backdate that refs only the genuine past passes every check, and causally concurrent events are orderable only by an unverifiable timestamp ([docs/event-registry.md](docs/event-registry.md) §2.4). All left visible rather than hidden.
 
 ---
 
