@@ -9,8 +9,8 @@
 > Authority, delegation, and revocation live as signed events — trust is
 > computed from them, never stored as a score.
 
-> A protocol draft and research project — a philosophical declaration now backed by executable probes, not production-ready infrastructure.
-> One person's attempt to explore what an open authority-and-approval layer for the agent economy could look like.
+> An early-stage protocol research project, now backed by executable probes. Not yet production-ready infrastructure.
+> One person's attempt to build an open authority-and-approval layer for the agent economy.
 > ARC is open to research collaboration, independent implementations, commercial adoption, funding, and community stewardship. It is intended to remain open, forkable, interoperable, and uncaptured by any single operator.
 
 → Deeper reading: [Philosophy](docs/philosophy.md) · [Architecture](docs/architecture.md) · [Protocol](docs/protocol.md) · [Simulation](docs/local-commerce-simulation.md) · [Bootstrap & Incentives](docs/bootstrap-and-incentives.md) · [Liability Boundaries](docs/liability-boundaries.md) · [Future Protocol Spec](docs/future-protocol-spec.md) · [Identity](docs/identity.md) · [Reputation](docs/reputation.md) · [Governance](docs/governance.md) · [Authority & Conflict](docs/authority-and-conflict.md) · [Object Model](docs/object-model.md) · [Event Registry](docs/event-registry.md) · [Key Custody](docs/key-custody.md) · [Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md) · [Landscape & Positioning](docs/landscape-and-positioning.md) · [Trust Model Trade-offs](docs/trust-model-tradeoffs.md) · [Threat Model](docs/threat-model.md) · [Glossary](docs/glossary.md) · [Roadmap](docs/roadmap.md)
@@ -23,11 +23,11 @@ ARC is an open protocol for human-approved delegation between heterogeneous AI a
 
 ## IMPORTANT NOTICE
 
-ARC Protocol is a manifesto, protocol proposal, governance philosophy, and architecture draft. It is not yet a complete protocol specification.
+ARC Protocol is an early-stage protocol research project — a protocol proposal, governance design, and architecture draft. It is not yet a complete protocol specification.
 
 It is not production-ready infrastructure. It does not provide real payments, real delivery, verified identity, legal guarantees, or production-grade security.
 
-ARC is a research-oriented, non-profit, open-source exploration of an **authority, approval, and audit layer for AI agents** — a way for heterogeneous agents to be delegated authority, act under human approval, have that authority revoked, and leave an auditable trail, while humans always keep the final approval.
+ARC is a research-oriented, open-source exploration of an **authority, approval, and audit layer for AI agents** — a way for heterogeneous agents to be delegated authority, act under human approval, have that authority revoked, and leave an auditable trail, while humans always keep the final approval.
 
 ARC is not an AI agent, an agent runtime, an agent framework, or a closed marketplace. It is the common layer such agents can share. Commerce is its first and most developed application, not its definition.
 
@@ -106,7 +106,7 @@ ARC is application-neutral; the protocol primitives are the same across domains.
 - [10. Blockchain Boundary](#10-blockchain-boundary)
 - [11. Security Considerations](#11-security-considerations)
 - [12. Governance Model](#12-governance-model)
-- [13. Why Non-Profit and Open Source?](#13-why-non-profit-and-open-source)
+- [13. Why Open Protocol?](#13-why-open-protocol)
 - [14. Current Status](#14-current-status)
 - [15. Roadmap](#15-roadmap)
 - [16. Design Principle](#16-design-principle)
@@ -278,7 +278,7 @@ ARC is not the first attempt at open digital infrastructure. Projects such as Ac
 
 ARC learns from those efforts, but focuses specifically on human-approved delegation between agents: scoped authority, transparent recommendation, reputation portability, and community-governed coordination.
 
-ARC does not emerge in isolation. As agent coordination becomes an active area of experimentation, multiple organizations and protocols are beginning to explore interoperable agent transactions, machine-readable commerce, and agent payment coordination. ARC remains a narrower, non-profit proposal for human-approved, community-governed coordination.
+ARC does not emerge in isolation. As agent coordination becomes an active area of experimentation, multiple organizations and protocols are beginning to explore interoperable agent transactions, machine-readable commerce, and agent payment coordination. ARC remains a narrower proposal for human-approved, community-governed coordination.
 
 ---
 
@@ -585,7 +585,7 @@ See the [Threat Model](docs/threat-model.md) for the fuller treatment, including
 
 ## 12. Governance Model
 
-ARC is designed as a non-profit open protocol.
+ARC is designed as an open protocol.
 
 Possible governance layers: local community, national community, merchant association, user council, technical maintainers, dispute reviewers, and protocol contributors.
 
@@ -595,7 +595,7 @@ Community governance can inform trust and participation decisions, but it does n
 
 ---
 
-## 13. Why Non-Profit and Open Source?
+## 13. Why Open Protocol?
 
 Because the agent economy may become basic infrastructure.
 

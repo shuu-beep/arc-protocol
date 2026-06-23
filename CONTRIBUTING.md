@@ -1,6 +1,6 @@
 # Contributing to ARC Protocol
 
-> ARC Protocol is a non-profit, open-source protocol research project.
+> ARC Protocol is an open-source protocol research project.
 > It is currently stewarded by one maintainer, but is intended to remain open, forkable, interoperable, and uncaptured by any single company or operator.
 > Research collaboration, independent implementations, commercial adoption, grants, sponsorship, and community stewardship are welcome, provided they preserve human approval, interoperability, and non-capture.
 
@@ -10,7 +10,7 @@ Thank you for being here.
 
 ## What Kind of Project Is This?
 
-ARC Protocol is currently a **philosophy document and architecture proposal**, not a production codebase.
+ARC Protocol is currently an **early-stage protocol research project with working executable probes**, not yet a production codebase.
 
 That means contributions right now look less like pull requests and more like:
 

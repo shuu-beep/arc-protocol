@@ -3,7 +3,7 @@
 > **Status:** Living document
 > **Last updated:** 2026
 > This roadmap reflects current thinking, not commitments.
-> ARC is a non-profit open-source project with no funding or deadlines.
+> ARC is an open-source project. Collaboration, implementation partnerships, and funding are welcome.
 
 ---
 
@@ -253,7 +253,9 @@ ARC does not require a token economy. Sustainability questions may be studied wi
 ARC does not currently try to replace existing payment infrastructure. Payment-provider dependency is a trade-off to document, not a problem solved by this roadmap.
 
 **Monetization of the protocol itself.**
-ARC is non-profit open-source infrastructure. There is no plan to monetize the protocol itself.
+ARC is open-source infrastructure.
+
+Commercial adoption, funding, and implementation are compatible with ARC; enclosing the protocol itself under a single operator is not.
 
 **Global scale.**
 ARC does not aim to replace existing commerce infrastructure at scale. Local, limited, verifiable demonstration of the concept is sufficient.
