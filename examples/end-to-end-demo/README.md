@@ -56,14 +56,62 @@ Two things to notice:
   flow. None was hand-written, and nothing derived is stored — the standing is
   recomputed on demand each time.
 
+## A real reasoner drives it: `agent_flow.py`
+
+`flow.py` runs the interaction as a fixed script — the "agents" emit
+predetermined events and the human approval is a hard-coded line. Nobody
+reasons. `agent_flow.py` asks the load-bearing follow-up:
+
+> When an **actual reasoning agent** — not a script — drives the consumer side,
+> does the log it produces still verify and fold the way the constitution
+> requires? And can a *misbehaving* agent step outside human consent?
+
+```
+python3 agent_flow.py                                                  # scripted (stdlib only)
+ANTHROPIC_API_KEY=... ARC_AGENT_MODEL=<model-id> python3 agent_flow.py  # a real model drives the happy path
+```
+
+The consumer agent's decisions (which offer, when to seek approval, what to pay,
+what to report) come from a pluggable **decision backend**: a real Claude model
+when `ANTHROPIC_API_KEY` is set, `ARC_AGENT_MODEL` names a model, and the
+`anthropic` SDK is installed; otherwise a deterministic scripted policy so the
+probe runs anywhere. The probe pins no model id of its own — name the model you
+want via `ARC_AGENT_MODEL`, and with none set the run stays scripted. Either way the agent
+acts **only through canonical-event-emitting tools** and **holds only its own
+key** — it has no tool and no key to mint a human `AUTHORIZE`, because consent is
+the human's domain ([authority-and-conflict.md](../../docs/authority-and-conflict.md) §3).
+
+Two runs:
+
+| Run | Driver | What it shows |
+| --- | --- | --- |
+| **Happy path** | real Claude if available, else scripted | a real reasoner's log still passes `verify_log` and folds; the human's `AUTHORIZE` covers the spend |
+| **Adversarial** | always scripted (a fixed exploit) | the fold's payment audit catches a **re-aimed** payee and an **uncovered** (forged-approval) payment, and the standing guard keeps a lone self-rater from reaching `trusted` |
+
+The fold-side **payment audit** is the load-bearing check: a payment is an
+`ATTEST` signed by the agent and proves only a *claim*, so the fold audits each
+one against the human-signed `AUTHORIZE` that covers it — same offer, ceiling ≥
+amount, matching payee. An uncovered, over-scope, or re-aimed payment is a
+finding. This is findings **K/L** (the embodied approval seam — `../reference-client/`)
+exercised against a real reasoner instead of a hand-written flow: the agent's
+*reasoning* never widens its *authority*.
+
+The adversarial run is deliberately **not** delegated to the model — the point
+is whether the fold catches a violation, not whether a model can be coaxed into
+misbehaving, so the exploit is a fixed scripted sequence.
+
 ## Honest limits
 
 This is a probe, not an implementation:
 
-- stdlib only, single process, no network, no transport layer;
+- stdlib only by default, single process, no transport layer; `agent_flow.py`
+  reaches the network **only** when a real model drives it (key + SDK present);
 - signatures are **mock** (a hash, not Ed25519);
 - payment is **mock** (an `ATTEST` claim, no funds move);
-- no new event type — the five canonical types are reused as-is.
+- no new event type — the five canonical types are reused as-is;
+- the model is nondeterministic, so the *bytes* vary per run. The claim is about
+  the **invariants**: `verify_log` passes and the audit holds every run, whoever
+  generated the events.
 
-It demonstrates that the canonical events *compose into a real flow*. It does
-not demonstrate that ARC is built.
+It demonstrates that the canonical events *compose into a real flow* — now under
+an actual reasoner, not only a script. It does not demonstrate that ARC is built.
