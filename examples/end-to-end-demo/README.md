@@ -88,6 +88,8 @@ Two runs:
 | **Happy path** | real Claude if available, else scripted | a real reasoner's log still passes `verify_log` and folds; the human's `AUTHORIZE` covers the spend |
 | **Adversarial** | always scripted (a fixed exploit) | the fold's payment audit catches a **re-aimed** payee and an **uncovered** (forged-approval) payment, and the standing guard keeps a lone self-rater from reaching `trusted` |
 
+> _One verified run (2026-06-25): the Anthropic backend ran end-to-end on a real `claude-opus-4-8` — the happy path's `verify_log` passed with a CLEAN payment audit, and the adversarial scripted path surfaced the **RE-AIMED** and **UNCOVERED** findings. That is one illustrative run, not a protocol requirement: the probe pins no model, and what holds across runs are the invariants, not the bytes._
+
 The fold-side **payment audit** is the load-bearing check: a payment is an
 `ATTEST` signed by the agent and proves only a *claim*, so the fold audits each
 one against the human-signed `AUTHORIZE` that covers it — same offer, ceiling ≥
