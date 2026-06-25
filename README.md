@@ -163,9 +163,11 @@ The recurring result: what leaks out of the five types is always **policy or dis
 
 ## 3. The Problem
 
-Current digital commerce is controlled by centralized platforms.
+The central problem is not commerce. It is authority.
 
-Most platforms control:
+As software agents begin to act on our behalf, someone will own the authority layer that determines who may act, who may approve, and how those actions are audited. If that layer is captured, every application built above it inherits the same centralization.
+
+Today's digital commerce is simply the most familiar example. Centralized platforms already control:
 
 - search visibility
 - advertising exposure
@@ -188,11 +190,9 @@ This creates several problems:
 - fake reviews
 - platform-controlled visibility
 
-In the AI agent era, this problem may become even bigger.
+In the AI agent era, the stakes rise. If a few companies control the agents, the identity layer, the payment layer, and — above all — the authority layer, the agent economy simply becomes another centralized platform economy, with the same extraction and lock-in moved up a level.
 
-If a few companies control the agents, the identity layer, the payment layer, and the authority layer, then the future agent economy will simply become another centralized platform economy.
-
-ARC Protocol proposes a different direction.
+ARC proposes a different direction: keep the authority, approval, and audit layer open, inspectable, and uncaptured — with humans holding the final approval.
 
 ---
 
