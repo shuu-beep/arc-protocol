@@ -1,8 +1,8 @@
 # Local Commerce Demo
 
-> **Status:** Reference flow and mock artifacts only; not implemented as running code
+> **Status:** First runnable slice landed — `episode.py` runs the baseline happy path (see §5.1). The failure-run artifacts remain mock JSON, not yet executable.
 >
-> **Purpose:** Describe a tiny mock flow for finding unclear states, unsafe assumptions, and failure modes before any demo code is written.
+> **Purpose:** Make a tiny local-commerce flow concrete enough to examine — for finding unclear states, unsafe assumptions, and failure modes.
 
 ## 1. Purpose
 
@@ -63,6 +63,18 @@ This example does not:
 
 The happy path is a comparison point for failure runs, not a claim of successful protocol validation.
 
+### 5.1 Runnable Slice: `episode.py`
+
+The baseline happy path above is now runnable. `episode.py` generates it as a signed ARC event log and folds the log back, with nothing about the transaction stored.
+
+```
+python3 episode.py
+```
+
+It emits the lifecycle using only canonical ARC events — identity (`KEY`); intent, offers, payment, fulfillment, and outcome (`ATTEST`); and the human's approval (`AUTHORIZE`) — with no commerce-specific event type, and recomputes the order's **state** from the log after each step via `project_transaction_state`. The state climbs `pending_approval -> approved -> paid -> fulfilled` purely because the log grew; it is a projection, never a stored field, and a rating (`rep.outcome`) does not move it. `verify_log` passes at every recompute. The logistics quote rides a new predicate (`commerce.logistics_offer`), not a new type — richness grows by predicate ([event-registry.md](../../docs/event-registry.md) §2.1).
+
+**Honest limits.** Stdlib only, single process, deterministic; mock signatures (a hash, not Ed25519); mock payment and mock delivery (each an `ATTEST` claim — no money moves, no parcel ships); the canonical machinery is mirrored from [`../end-to-end-demo/flow.py`](../end-to-end-demo/flow.py) to keep the example standalone. This is the happy path only — the failure-run artifacts below are not yet executable, and a smooth mock flow is not evidence that ARC is safe, fair, or viable.
+
 ## 6. Current Mock Artifacts
 
 The `artifacts/` directory contains small JSON records. They are not executable tests. They are review objects for finding missing states, unsafe assumptions, and unresolved questions.
@@ -94,8 +106,8 @@ Later mock implementation should produce small, inspectable artifacts:
 
 ## 8. Current Status
 
-This directory defines a tiny mock reference flow and selected JSON artifacts before implementation.
+This directory began as a tiny mock reference flow plus JSON artifacts; the baseline happy path is now runnable as `episode.py` (§5.1). The failure-run artifacts remain mock JSON.
 
-No code, real transactions, real payments, real delivery, real identity verification, real reputation judgment, or real governance process exists in this example.
+No real transactions, real payments, real delivery, real identity verification, real reputation judgment, or real governance process exists in this example.
 
-The next useful step would be to turn selected artifacts into reproducible fixture checks while preserving the current rule: a smooth mock flow is not evidence that ARC is safe, fair, viable, or sustainable.
+The next useful step is to turn selected failure-run artifacts into reproducible fixture checks, preserving the current rule: a smooth mock flow is not evidence that ARC is safe, fair, viable, or sustainable.
