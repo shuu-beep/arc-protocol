@@ -36,6 +36,15 @@ This is not an implementation of ARC, and a smooth mock flow is not evidence
 that ARC is safe, fair, or viable — only that the canonical events compose into
 a local-commerce lifecycle whose state is a fold.
 
+Two runs:
+  [A] baseline happy path — the order climbs pending_approval -> approved ->
+      paid -> fulfilled as the log grows;
+  [B] stale-offer failure run — the human approves an offer that has already
+      expired. Every signature verifies (verify_log PASS), but a policy fold,
+      audit_offer_freshness, flags the approval as stale: byte-valid approval
+      is not the same as fresh approval. (Mirrors the question posed by
+      artifacts/stale-offer-approval.json.)
+
 Run:  python3 episode.py
 """
 
@@ -195,6 +204,33 @@ def project_transaction_state(events: list[Event], txn_ref: str) -> str:
     return "no_offer"
 
 
+def audit_offer_freshness(events: list[Event]) -> list[tuple[str, str]]:
+    """Policy fold: a `consent.approval` is FRESH only if every `commerce.offer`
+    it references was still inside its validity window at the approval's own
+    timestamp. The signed facts — the offer with its `expires`, the approval
+    with its `timestamp` — are preserved and verify cleanly; whether the
+    approval is fresh is a *projection* over those facts, a policy decision ARC
+    does not bake into the bytes. A stale approval is byte-valid; it is just not
+    fresh, and a commerce fold must say so rather than honor it silently."""
+    offers = {
+        e.id: e for e in events
+        if e.type == "ATTEST" and e.predicate == "commerce.offer"
+    }
+    findings: list[tuple[str, str]] = []
+    for appr in [e for e in events
+                 if e.type == "AUTHORIZE" and e.predicate == "consent.approval"]:
+        for r in appr.refs:
+            off = offers.get(r)
+            if off is None:
+                continue
+            expires = off.payload.get("expires")
+            if expires is not None and appr.timestamp > expires:
+                findings.append((appr.id,
+                    f"STALE-OFFER — approval at {appr.timestamp} refs offer {off.id} "
+                    f"that expired at {expires}"))
+    return findings
+
+
 # ===========================================================================
 # The baseline happy-path episode — generated, not authored.
 # ===========================================================================
@@ -242,8 +278,10 @@ def run() -> Ledger:
     print("\n5. Approval — the consumer agent CANNOT approve; it asks the human")
     say("consumer-agent", "gimbap 7000 + delivery 1500 = 8500, under budget; presenting it")
     say("human", "reviews the combined terms... approves")  # the hard gate
+    # refs point only at signed Events (the offer and the logistics quote);
+    # the payee is carried in scope, not as a key-id ref.
     approval = human.emit("AUTHORIZE", "consent.approval",
-                          refs=(offer.id, logi.id, "k:merchant"),
+                          refs=(offer.id, logi.id),
                           scope={"max_total_krw": 8500, "payee": "k:merchant",
                                  "context": CONTEXT})
 
@@ -252,8 +290,9 @@ def run() -> Ledger:
     print("\n6. Payment — recorded as a CLAIM about an external transfer (mock)")
     say("consumer-agent", "paid via an external provider; attesting the result")
     consumer.emit("ATTEST", "commerce.payment_result",
-                  refs=(approval.id, "k:merchant"),
-                  payload={"result": "confirmed", "amount_krw": 8500, "provider": "mock_pay"})
+                  refs=(approval.id,),  # the approval it pays against (a signed Event)
+                  payload={"result": "confirmed", "amount_krw": 8500,
+                           "payee": "k:merchant", "provider": "mock_pay"})
 
     snapshot(led, txn, "after mock payment")  # paid
 
@@ -266,8 +305,9 @@ def run() -> Ledger:
 
     print("\n8. Outcome — the consumer logs a reputation signal (not a state change)")
     say("consumer-agent", "good order; logging a positive outcome")
-    consumer.emit("ATTEST", "rep.outcome", refs=("k:merchant", approval.id),
-                  payload={"result": "positive", "context": CONTEXT})
+    consumer.emit("ATTEST", "rep.outcome", refs=(approval.id,),
+                  payload={"result": "positive", "merchant": "k:merchant",
+                           "context": CONTEXT})
 
     # rep.outcome feeds the REPUTATION projection, not the transaction state —
     # the order is already 'fulfilled'; a rating does not move the order status.
@@ -279,8 +319,78 @@ def run() -> Ledger:
     return led
 
 
+# ===========================================================================
+# Failure run 1 — stale-offer approval.
+#
+# The merchant's offer carries a short validity window. The human approves it
+# AFTER it has expired. Every signature is valid and verify_log is clean — ARC
+# preserves the signed facts. But a commerce fold must not honor the approval
+# as fresh authority: audit_offer_freshness flags it. Legitimacy is a policy
+# projection over the facts, not a property of the bytes.
+# (Mirrors the question in artifacts/stale-offer-approval.json.)
+# ===========================================================================
+
+def run_stale_offer() -> Ledger:
+    led = Ledger()
+    human = Party(led, "human", "k:human")
+    consumer = Party(led, "consumer-agent", "k:consumer_agent")
+    merchant = Party(led, "merchant-agent", "k:merchant")
+
+    print("\n1. Identity — the parties anchor keys")
+    for p in (human, consumer, merchant):
+        p.emit("KEY", "id.key_register", payload={"key": p.key})
+
+    print("\n2. Merchant offer — valid for only a short window (expires 12:04:30)")
+    say("merchant-agent", "gimbap set, 7000 KRW, valid ~30 seconds")
+    offer = merchant.emit("ATTEST", "commerce.offer",
+                          payload={"item": "gimbap_set", "price_krw": 7000,
+                                   "context": CONTEXT, "expires": "2026-06-08T12:04:30Z"})
+    txn = offer.id
+
+    print("\n3. ...the validity window closes before the human acts...")
+
+    print("\n4. Approval — the human approves the now-EXPIRED offer")
+    say("consumer-agent", "presenting the offer for approval")
+    say("human", "approves — but the offer's validity window has already closed")
+    human.emit("AUTHORIZE", "consent.approval", refs=(offer.id,),  # the offer, a signed Event
+               scope={"max_total_krw": 7000, "payee": "k:merchant", "context": CONTEXT})
+
+    # The protocol preserves the facts: every signature verifies.
+    verify_log(led.events)
+    state = project_transaction_state(led.events, txn)
+    findings = audit_offer_freshness(led.events)
+
+    print(f"\n  verify_log: PASS ({len(led.events)} signed events — the bytes are valid)")
+    print(f"  structural state: {state}   "
+          f"(the event ladder alone — only 'an approval exists')")
+    print(f"  freshness audit: {'CLEAN' if not findings else str(len(findings)) + ' FINDING(S)'}")
+    for aid, why in findings:
+        print(f"      ! {aid}  {why}")
+    print("  => the structural state reads 'approved', but that is NOT legitimate")
+    print("     authority: the freshness audit — a policy fold over the same facts —")
+    print("     marks the approval stale. The state is not consulted in isolation.")
+    return led
+
+
 if __name__ == "__main__":
     print("=" * 78)
-    print("ARC local-commerce reference episode — baseline happy path")
+    print("ARC local-commerce reference episode")
     print("=" * 78)
-    run()
+
+    print("\n" + "-" * 78)
+    print("[A] BASELINE — happy path (the offer is still fresh at approval)")
+    print("-" * 78)
+    led = run()
+    fresh = audit_offer_freshness(led.events)
+    print(f"\n  freshness audit: {'CLEAN' if not fresh else str(len(fresh)) + ' FINDING(S)'}"
+          " — the approval referenced an offer inside its validity window.")
+
+    print("\n" + "-" * 78)
+    print("[B] FAILURE RUN — stale-offer approval")
+    print("-" * 78)
+    run_stale_offer()
+
+    print("\n" + "=" * 78)
+    print("byte-valid approval != fresh approval")
+    print("ARC preserves the signed facts; freshness is a projection / policy decision.")
+    print("=" * 78)
