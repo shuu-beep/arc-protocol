@@ -1,6 +1,6 @@
 # Local Commerce Demo
 
-> **Status:** Runnable slices landed — `episode.py` runs the baseline happy path plus two failure runs, stale-offer and payment-failure (see §5.1). The remaining failure-run artifacts are still mock JSON, not yet executable.
+> **Status:** Runnable slices landed — `episode.py` runs the baseline happy path plus three failure runs: stale-offer, payment-failure, and colluding-reputation-farming (see §5.1). The remaining failure-run artifacts are still mock JSON, not yet executable.
 >
 > **Purpose:** Make a tiny local-commerce flow concrete enough to examine — for finding unclear states, unsafe assumptions, and failure modes.
 
@@ -71,15 +71,16 @@ The baseline happy path above is now runnable. `episode.py` generates it as a si
 python3 episode.py
 ```
 
-It runs three parts:
+It runs four parts:
 
 - **[A] Baseline happy path.** The lifecycle is emitted using only canonical ARC events — identity (`KEY`); intent, offers, payment, fulfillment, and outcome (`ATTEST`); and the human's approval (`AUTHORIZE`) — with no commerce-specific event type, and the order's **state** is recomputed from the log after each step via `project_transaction_state`. The state climbs `pending_approval -> approved -> paid -> fulfilled` purely because the log grew; it is a projection, never a stored field, and a rating (`rep.outcome`) does not move it. The logistics quote rides a new predicate (`commerce.logistics_offer`), not a new type — richness grows by predicate ([event-registry.md](../../docs/event-registry.md) §2.1).
 - **[B] Failure run — stale-offer approval** (the question in `artifacts/stale-offer-approval.json`). The human approves a merchant offer *after* its validity window has closed. Every signature still verifies and `verify_log` passes — ARC preserves the signed facts — but a policy fold, `audit_offer_freshness`, flags the approval as **stale**. The structural state reads `approved`, yet that is not legitimate authority: freshness is a projection over the facts, not a property of the bytes. **Byte-valid approval is not fresh approval.**
 - **[C] Failure run — payment failure before fulfillment** (the question in `artifacts/payment-failure.json`). The approved payment is declined. Two things must hold. First, the state fold reads the payment *result*, not merely its presence: a declined `commerce.payment_result` leaves the order at `payment_failed`, never `paid`. Second, fulfillment must not proceed on an unconfirmed payment — and because ARC cannot rely on a well-behaved agent simply choosing not to deliver, a policy fold, `audit_payment_before_fulfillment`, makes the rule structural: if a misbehaving agent attests delivery anyway, the structural state reads `fulfilled`, but the audit flags the claim as **unbacked** — no confirmed payment stands behind it. **Byte-valid fulfillment is not backed fulfillment.**
+- **[D] Failure run — colluding reputation farming** (the question in `artifacts/colluding-reputation-farming.json`). A few freshly-created rater agents each `ATTEST` a positive `rep.outcome` for one merchant — nothing else: no offer, approval, payment, or fulfillment, because this slice is about the reputation *projection*, not commerce settlement. Every event is byte-valid and `verify_log` passes, and the distinct-rater count even clears a naive `>= 2` guard (three colluding raters defeat it). Yet a policy fold, `audit_reputation_rater_diversity`, raises two REVIEW-NEEDED signals — `LOW_RATER_DIVERSITY` (a trusted-looking score on a thin rater pool) and `NEW_RATER_CLUSTER` (the raters' keys were registered together). Crucially this is **suspicious evidence, not a fraud verdict**: the same pattern is equally consistent with a real local promotion, so ARC does not judge intent, applies no penalty, and reports `confirmed_fraud = false`, `automatic_penalty_applied = false`, `human_or_governance_review_required = true` ([reputation.md](../../docs/reputation.md) §12, [governance.md](../../docs/governance.md) §6.2; Sybil resistance lives in the fold, [object-model.md](../../docs/object-model.md) §104). **Byte-valid `rep.outcome` is not trustworthy reputation.**
 
-`verify_log` passes at every recompute in all three runs.
+`verify_log` passes at every recompute in all four runs.
 
-**Honest limits.** Stdlib only, single process, deterministic; mock signatures (a hash, not Ed25519); mock payment and mock delivery (each an `ATTEST` claim — no money moves, no parcel ships); the canonical machinery is mirrored from [`../end-to-end-demo/flow.py`](../end-to-end-demo/flow.py) to keep the example standalone. The baseline and the first two failure runs (stale-offer, payment-failure) are executable; the remaining failure-run artifacts below are not yet. A smooth mock flow is not evidence that ARC is safe, fair, or viable.
+**Honest limits.** Stdlib only, single process, deterministic; mock signatures (a hash, not Ed25519); mock payment and mock delivery (each an `ATTEST` claim — no money moves, no parcel ships); the canonical machinery is mirrored from [`../end-to-end-demo/flow.py`](../end-to-end-demo/flow.py) to keep the example standalone. The baseline and three failure runs (stale-offer, payment-failure, colluding-reputation-farming) are executable; the remaining failure-run artifacts below are not yet. The reputation-review thresholds are deliberately coarse and admittedly arbitrary — a review trigger, not a detector. A smooth mock flow is not evidence that ARC is safe, fair, or viable.
 
 ## 6. Current Mock Artifacts
 
@@ -112,7 +113,7 @@ Later mock implementation should produce small, inspectable artifacts:
 
 ## 8. Current Status
 
-This directory began as a tiny mock reference flow plus JSON artifacts; the baseline happy path and the stale-offer and payment-failure failure runs are now runnable as `episode.py` (§5.1). The remaining failure-run artifacts are still mock JSON.
+This directory began as a tiny mock reference flow plus JSON artifacts; the baseline happy path and the stale-offer, payment-failure, and colluding-reputation-farming failure runs are now runnable as `episode.py` (§5.1). The remaining failure-run artifacts are still mock JSON.
 
 No real transactions, real payments, real delivery, real identity verification, real reputation judgment, or real governance process exists in this example.
 

@@ -36,7 +36,7 @@ This is not an implementation of ARC, and a smooth mock flow is not evidence
 that ARC is safe, fair, or viable — only that the canonical events compose into
 a local-commerce lifecycle whose state is a fold.
 
-Three runs:
+Four runs:
   [A] baseline happy path — the order climbs pending_approval -> approved ->
       paid -> fulfilled as the log grows;
   [B] stale-offer failure run — the human approves an offer that has already
@@ -51,6 +51,14 @@ Three runs:
       fold, audit_payment_before_fulfillment, as unbacked: a fulfillment claim
       that no confirmed payment stands behind. (Mirrors the question posed by
       artifacts/payment-failure.json.)
+  [D] colluding-reputation-farming failure run — a few freshly-created rater
+      agents each ATTEST a positive rep.outcome for one merchant. Every event is
+      byte-valid and verify_log passes, and the distinct-rater count clears a
+      naive `>= 2` guard, yet a policy fold, audit_reputation_rater_diversity,
+      raises REVIEW-NEEDED signals: the trust rests on a thin, freshly-created
+      rater base. This is suspicious evidence, not a fraud verdict — ARC does
+      not decide farming vs a real promotion and applies no penalty. (Mirrors
+      the question posed by artifacts/colluding-reputation-farming.json.)
 
 Run:  python3 episode.py
 """
@@ -60,6 +68,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from typing import Any
 
 # ===========================================================================
@@ -283,6 +292,77 @@ def audit_payment_before_fulfillment(events: list[Event]) -> list[tuple[str, str
                 findings.append((f.id,
                     f"UNBACKED-FULFILLMENT — fulfillment {f.id} claims delivery, "
                     f"but no confirmed payment references its approval"))
+    return findings
+
+
+# Reputation-review thresholds. These are deliberately coarse REVIEW triggers,
+# not a fraud detector: canon (reputation.md §12, governance.md §6.2) is explicit
+# that such signals must prompt review, never automatic punishment, and that
+# false positives are expected. The numbers are simple and admittedly arbitrary.
+TRUSTED_POSITIVE_BAR = 3       # positives at which a naive view starts to "look trusted"
+REVIEW_DIVERSITY_FLOOR = 3     # distinct raters at/below which a trusted-looking score is thin
+RATER_CLUSTER_WINDOW = timedelta(minutes=10)  # rater key-registrations this close = a cluster
+
+
+def _parse_ts(ts: str) -> datetime:
+    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+
+
+def audit_reputation_rater_diversity(
+        events: list[Event], merchant: str, context: str) -> list[tuple[str, str]]:
+    """Policy fold: surface REVIEW-NEEDED signals when a merchant's positive
+    reputation may be inflated by a small or freshly-created set of raters.
+
+    This is NOT a fraud detector and NOT a verdict. Every `rep.outcome` here is a
+    byte-valid signed ATTEST and verify_log is clean; ARC preserves the facts.
+    Whether the reputation is *trustworthy* is a projection over those facts, and
+    a thin or freshly-clustered rater base is suspicious evidence worth a human /
+    governance review, never proof of collusion (reputation.md §12, governance.md
+    §6.2). The same pattern is equally consistent with a genuine local launch
+    promotion; ARC does not decide which, and raises no penalty on its own.
+
+    Two signals, both computed only from KEY id.key_register and ATTEST
+    rep.outcome events:
+
+      LOW_RATER_DIVERSITY — a 'looks trusted' positive count rests on a small
+        pool of distinct raters. This fires at a HIGHER floor than a hard
+        `distinct_raters < 2` gate would: three colluding raters defeat the
+        simple gate, so diversity is treated as a review trigger, not a
+        pass/fail test.
+      NEW_RATER_CLUSTER — the distinct raters' keys were registered within a
+        short window, i.e. the accounts were created together.
+    """
+    outcomes = [
+        e for e in events
+        if e.type == "ATTEST" and e.predicate == "rep.outcome"
+        and e.payload.get("merchant") == merchant
+        and e.payload.get("context") == context
+    ]
+    positives = [e for e in outcomes if e.payload.get("result") == "positive"]
+    raters = {e.signer for e in outcomes}
+
+    findings: list[tuple[str, str]] = []
+
+    if len(positives) >= TRUSTED_POSITIVE_BAR and len(raters) <= REVIEW_DIVERSITY_FLOOR:
+        findings.append(("LOW_RATER_DIVERSITY",
+            f"{len(positives)} positive outcomes for {merchant} rest on only "
+            f"{len(raters)} distinct rater(s) — a thin base for a trusted-looking "
+            f"score (clears a `>= 2` guard, still review-worthy)"))
+
+    # Were the raters' own keys registered in a tight window?
+    reg = {
+        e.payload["key"]: e.timestamp for e in events
+        if e.type == "KEY" and e.predicate == "id.key_register"
+        and e.payload.get("key") in raters
+    }
+    if len(reg) >= 2:
+        stamps = sorted(_parse_ts(ts) for ts in reg.values())
+        span = stamps[-1] - stamps[0]
+        if span <= RATER_CLUSTER_WINDOW:
+            findings.append(("NEW_RATER_CLUSTER",
+                f"{len(reg)} raters' keys were registered within {span} "
+                f"(<= {RATER_CLUSTER_WINDOW}) — accounts created together"))
+
     return findings
 
 
@@ -510,6 +590,64 @@ def run_payment_failure() -> Ledger:
     return led
 
 
+# ===========================================================================
+# Failure run 3 — colluding reputation farming.
+#
+# A few freshly-created rater agents each ATTEST a positive rep.outcome for one
+# merchant. Every event is byte-valid and verify_log is clean — ARC preserves
+# the signed facts. The distinct-rater count even clears a naive `>= 2` guard.
+# But the reputation it builds is suspicious evidence, not trust: the raters are
+# few and were created together. A policy fold, audit_reputation_rater_diversity,
+# raises REVIEW-NEEDED signals over the same facts. It does NOT prove fraud, does
+# NOT judge intent, and applies NO penalty — the pattern is equally consistent
+# with a real local promotion, and only a human / governance review can tell.
+# This slice is about the reputation PROJECTION, not commerce settlement, so it
+# emits no offer / approval / payment / fulfillment — only KEY and rep.outcome.
+# (Mirrors the question in artifacts/colluding-reputation-farming.json.)
+# ===========================================================================
+
+def run_colluding_reputation() -> Ledger:
+    led = Ledger()
+    merchant = Party(led, "merchant-agent-A", "k:merchant_a")
+    buyers = [Party(led, f"buyer-agent-0{i}", f"k:buyer_0{i}") for i in (1, 2, 3)]
+
+    print("\n1. Identity — merchant A, then three buyer agents created together")
+    merchant.emit("KEY", "id.key_register", payload={"key": merchant.key})
+    for b in buyers:
+        b.emit("KEY", "id.key_register", payload={"key": b.key})
+
+    print("\n2. Reputation — each buyer ATTESTs a positive rep.outcome for merchant A")
+    say("note", "no offer / approval / payment here — this slice is the reputation fold")
+    # Five positive outcomes from three distinct raters (buyers 01 and 02 rate twice).
+    for b in (buyers[0], buyers[1], buyers[2], buyers[0], buyers[1]):
+        b.emit("ATTEST", "rep.outcome",
+               payload={"result": "positive", "merchant": merchant.key, "context": CONTEXT})
+
+    verify_log(led.events)
+    outcomes = [e for e in led.events
+                if e.type == "ATTEST" and e.predicate == "rep.outcome"]
+    distinct = len({e.signer for e in outcomes})
+    positives = sum(1 for e in outcomes if e.payload.get("result") == "positive")
+
+    print(f"\n  verify_log: PASS ({len(led.events)} signed events — every rep.outcome is byte-valid)")
+    print(f"  naive surface: {positives} positive outcomes, distinct_raters = {distinct}")
+    print(f"     a `distinct_raters >= 2` guard would PASS this ({distinct} >= 2);")
+    print("     a naive score would make merchant A 'look trusted'")
+
+    findings = audit_reputation_rater_diversity(led.events, merchant.key, CONTEXT)
+    print(f"  reputation audit: {'CLEAN' if not findings else str(len(findings)) + ' FINDING(S)'}")
+    for code, why in findings:
+        print(f"      ! {code}  {why}")
+    print("  => the rep.outcome events are byte-valid and verify cleanly, but the")
+    print("     reputation they build is SUSPICIOUS EVIDENCE, not fraud: a thin,")
+    print("     freshly-created rater base. ARC does not decide farming vs a real")
+    print("     promotion, and raises no penalty on its own —")
+    print("       confirmed_fraud           = false")
+    print("       automatic_penalty_applied = false")
+    print("       human_or_governance_review_required = true")
+    return led
+
+
 if __name__ == "__main__":
     print("=" * 78)
     print("ARC local-commerce reference episode")
@@ -536,8 +674,15 @@ if __name__ == "__main__":
     print("-" * 78)
     run_payment_failure()
 
+    print("\n" + "-" * 78)
+    print("[D] FAILURE RUN — colluding reputation farming")
+    print("-" * 78)
+    run_colluding_reputation()
+
     print("\n" + "=" * 78)
     print("byte-valid approval != fresh approval; byte-valid fulfillment != backed")
-    print("fulfillment. ARC preserves the signed facts; freshness and payment-backing")
-    print("are projections / policy decisions over them, not properties of the bytes.")
+    print("fulfillment; byte-valid rep.outcome != trustworthy reputation. ARC preserves")
+    print("the signed facts; freshness, payment-backing, and rater diversity are")
+    print("projections / policy decisions over them, not properties of the bytes —")
+    print("and a diversity signal is a review trigger, never a fraud verdict.")
     print("=" * 78)
