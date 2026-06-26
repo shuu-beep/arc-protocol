@@ -36,7 +36,7 @@ This is not an implementation of ARC, and a smooth mock flow is not evidence
 that ARC is safe, fair, or viable — only that the canonical events compose into
 a local-commerce lifecycle whose state is a fold.
 
-Two runs:
+Three runs:
   [A] baseline happy path — the order climbs pending_approval -> approved ->
       paid -> fulfilled as the log grows;
   [B] stale-offer failure run — the human approves an offer that has already
@@ -44,6 +44,13 @@ Two runs:
       audit_offer_freshness, flags the approval as stale: byte-valid approval
       is not the same as fresh approval. (Mirrors the question posed by
       artifacts/stale-offer-approval.json.)
+  [C] payment-failure failure run — the approved payment is declined. The state
+      fold must read the payment *result*, not just its presence, so the order
+      reads payment_failed, never paid. And if a misbehaving agent attests
+      delivery anyway, the byte-valid fulfillment claim is caught by a policy
+      fold, audit_payment_before_fulfillment, as unbacked: a fulfillment claim
+      that no confirmed payment stands behind. (Mirrors the question posed by
+      artifacts/payment-failure.json.)
 
 Run:  python3 episode.py
 """
@@ -177,7 +184,14 @@ def project_transaction_state(events: list[Event], txn_ref: str) -> str:
     canonical-event ladder, with the commons override on top.
 
       pending_approval -> approved -> paid -> fulfilled        (happy path)
+      payment_failed                                           (declined payment)
       disputed / adjudicated                                   (overrides)
+
+    A payment is an ATTEST *claim* about an external transfer, so the rung it
+    grants depends on what the claim SAYS, not merely that it exists: a
+    `commerce.payment_result` only reaches `paid` when its result is confirmed.
+    A declined payment leaves the order at `payment_failed`, not `paid` — the
+    fold reads the result, never just the predicate.
 
     (A `cancelled` state belongs here too — a `nullifies` withdrawing the offer
     or approval — but `nullifies` is left to a later failure-run slice; the
@@ -186,17 +200,25 @@ def project_transaction_state(events: list[Event], txn_ref: str) -> str:
     preds = {(e.type, e.predicate) for e in txn}
     has = lambda t, p: (t, p) in preds
 
+    payments = [e for e in txn
+                if e.type == "ATTEST" and e.predicate == "commerce.payment_result"]
+    paid = any(e.payload.get("result") == "confirmed" for e in payments)
+
     # Commons authority overrides the commercial ladder.
     if any(e.type == "ADJUDICATE" for e in txn):
         return "adjudicated"
     if has("CHALLENGE", "dispute.open"):
         return "disputed"
 
-    # The happy-path ladder — furthest rung wins.
+    # The happy-path ladder — furthest rung wins. A fulfillment CLAIM is reported
+    # structurally (an event asserts delivery); whether it is legitimate — backed
+    # by a confirmed payment — is a separate policy fold, not the ladder's job.
     if has("ATTEST", "commerce.fulfillment"):
         return "fulfilled"
-    if has("ATTEST", "commerce.payment_result"):
+    if paid:
         return "paid"
+    if payments:                       # a payment was attempted but not confirmed
+        return "payment_failed"
     if has("AUTHORIZE", "consent.approval"):
         return "approved"
     if has("ATTEST", "commerce.offer"):
@@ -228,6 +250,39 @@ def audit_offer_freshness(events: list[Event]) -> list[tuple[str, str]]:
                 findings.append((appr.id,
                     f"STALE-OFFER — approval at {appr.timestamp} refs offer {off.id} "
                     f"that expired at {expires}"))
+    return findings
+
+
+def audit_payment_before_fulfillment(events: list[Event]) -> list[tuple[str, str]]:
+    """Policy fold: a `commerce.fulfillment` is BACKED only if some confirmed
+    `commerce.payment_result` stands behind the same approval. Both the payment
+    claim and the fulfillment claim reference the human's `consent.approval`; a
+    confirmed payment and a fulfillment that share an approval are paired.
+
+    A fulfillment claim is a signed Event and verifies cleanly — ARC preserves
+    it. But a byte-valid fulfillment claim is not the same as a legitimate one:
+    if the payment behind it was declined (or never confirmed), the delivery
+    claim is *unbacked*, and a commerce fold must say so rather than let the
+    structural ladder report 'fulfilled' as if the order had really completed.
+    This is the freshness fold's sibling on the payment axis: the protocol holds
+    the facts; whether fulfillment is backed is a projection over them."""
+    approvals = {
+        e.id for e in events
+        if e.type == "AUTHORIZE" and e.predicate == "consent.approval"
+    }
+    confirmed_approvals: set[str] = set()
+    for p in events:
+        if (p.type == "ATTEST" and p.predicate == "commerce.payment_result"
+                and p.payload.get("result") == "confirmed"):
+            confirmed_approvals |= (set(p.refs) & approvals)
+
+    findings: list[tuple[str, str]] = []
+    for f in events:
+        if f.type == "ATTEST" and f.predicate == "commerce.fulfillment":
+            if not (set(f.refs) & confirmed_approvals):
+                findings.append((f.id,
+                    f"UNBACKED-FULFILLMENT — fulfillment {f.id} claims delivery, "
+                    f"but no confirmed payment references its approval"))
     return findings
 
 
@@ -372,6 +427,89 @@ def run_stale_offer() -> Ledger:
     return led
 
 
+# ===========================================================================
+# Failure run 2 — payment failure before fulfillment.
+#
+# The human approves a current offer; the consumer agent requests payment; the
+# mock provider DECLINES it. Two things must hold:
+#   (1) the order state must read the payment RESULT, not its mere presence —
+#       a declined payment leaves the order at 'payment_failed', never 'paid';
+#   (2) fulfillment must not proceed on an unconfirmed payment. A well-behaved
+#       consumer agent simply never authorizes delivery — but ARC cannot rely on
+#       good behavior, so audit_payment_before_fulfillment makes the rule a fold:
+#       a fulfillment claim with no confirmed payment behind it is UNBACKED,
+#       even though every signature verifies.
+# (Mirrors the question in artifacts/payment-failure.json.)
+# ===========================================================================
+
+def run_payment_failure() -> Ledger:
+    led = Ledger()
+    human = Party(led, "human", "k:human")
+    consumer = Party(led, "consumer-agent", "k:consumer_agent")
+    merchant = Party(led, "merchant-agent", "k:merchant")
+    logistics = Party(led, "logistics-agent", "k:logistics")
+
+    print("\n1. Identity — the parties anchor keys")
+    for p in (human, consumer, merchant, logistics):
+        p.emit("KEY", "id.key_register", payload={"key": p.key})
+
+    print("\n2. Merchant offer — a current offer (far-future expiry, not stale)")
+    say("merchant-agent", "bibimbap, 9800 + delivery; total 12300 KRW")
+    offer = merchant.emit("ATTEST", "commerce.offer",
+                          payload={"item": "bibimbap", "price_krw": 12300,
+                                   "context": CONTEXT, "expires": "2026-12-31T00:00:00Z"})
+    txn = offer.id
+
+    print("\n3. Approval — the human approves the current offer")
+    say("human", "reviews 12300 total... approves before any payment is requested")
+    approval = human.emit("AUTHORIZE", "consent.approval", refs=(offer.id,),
+                          scope={"max_total_krw": 12300, "payee": "k:merchant",
+                                 "context": CONTEXT})
+    print(f"  STATE: {project_transaction_state(led.events, txn)}   "
+          f"(an approval exists; no payment yet)")
+
+    print("\n4. Payment — the consumer attests the provider's response: DECLINED")
+    say("consumer-agent", "requested payment; the provider rejected it")
+    consumer.emit("ATTEST", "commerce.payment_result", refs=(approval.id,),
+                  payload={"result": "failed", "reason": "declined_by_provider",
+                           "amount_krw": 12300, "payee": "k:merchant",
+                           "provider": "mock_pay"})
+
+    verify_log(led.events)
+    state = project_transaction_state(led.events, txn)
+    print(f"\n  verify_log: PASS ({len(led.events)} signed events — every byte valid)")
+    print(f"  STATE: {state}   "
+          f"(the fold read the payment RESULT, not just its presence —")
+    print("         a declined payment is 'payment_failed', never 'paid')")
+
+    print("\n5. The well-behaved path: the consumer never authorizes delivery.")
+    print("   No commerce.fulfillment event is emitted; the order stops here.")
+    backed = audit_payment_before_fulfillment(led.events)
+    print(f"  fulfillment audit: {'CLEAN' if not backed else str(len(backed)) + ' FINDING(S)'}"
+          " — there is no fulfillment claim to be unbacked.")
+
+    print("\n6. But ARC does not rely on good behavior. Suppose a misbehaving")
+    print("   logistics agent attests delivery ANYWAY, with no confirmed payment:")
+    say("logistics-agent", "attesting 'delivered' despite the failed payment")
+    logistics.emit("ATTEST", "commerce.fulfillment", refs=(offer.id, approval.id),
+                   payload={"status": "delivered", "context": CONTEXT})
+
+    verify_log(led.events)
+    state = project_transaction_state(led.events, txn)
+    findings = audit_payment_before_fulfillment(led.events)
+    print(f"\n  verify_log: PASS ({len(led.events)} signed events — the claim is byte-valid)")
+    print(f"  structural state: {state}   "
+          f"(the ladder reports the delivery CLAIM at face value)")
+    print(f"  fulfillment audit: {'CLEAN' if not findings else str(len(findings)) + ' FINDING(S)'}")
+    for fid, why in findings:
+        print(f"      ! {fid}  {why}")
+    print("  => the structural state reads 'fulfilled', but that is NOT a legitimate")
+    print("     completion: the payment behind it was declined. The audit — a policy")
+    print("     fold over the same facts — marks the fulfillment unbacked. As with")
+    print("     the stale offer, the state is not consulted in isolation.")
+    return led
+
+
 if __name__ == "__main__":
     print("=" * 78)
     print("ARC local-commerce reference episode")
@@ -384,13 +522,22 @@ if __name__ == "__main__":
     fresh = audit_offer_freshness(led.events)
     print(f"\n  freshness audit: {'CLEAN' if not fresh else str(len(fresh)) + ' FINDING(S)'}"
           " — the approval referenced an offer inside its validity window.")
+    backed = audit_payment_before_fulfillment(led.events)
+    print(f"  fulfillment audit: {'CLEAN' if not backed else str(len(backed)) + ' FINDING(S)'}"
+          " — the delivery claim is backed by a confirmed payment.")
 
     print("\n" + "-" * 78)
     print("[B] FAILURE RUN — stale-offer approval")
     print("-" * 78)
     run_stale_offer()
 
+    print("\n" + "-" * 78)
+    print("[C] FAILURE RUN — payment failure before fulfillment")
+    print("-" * 78)
+    run_payment_failure()
+
     print("\n" + "=" * 78)
-    print("byte-valid approval != fresh approval")
-    print("ARC preserves the signed facts; freshness is a projection / policy decision.")
+    print("byte-valid approval != fresh approval; byte-valid fulfillment != backed")
+    print("fulfillment. ARC preserves the signed facts; freshness and payment-backing")
+    print("are projections / policy decisions over them, not properties of the bytes.")
     print("=" * 78)
