@@ -71,7 +71,18 @@ The baseline happy path above is now runnable. `episode.py` generates it as a si
 python3 episode.py
 ```
 
-It runs six parts:
+It runs six parts. At a glance:
+
+| Run | What it does | Fold | The point |
+| --- | --- | --- | --- |
+| **[A]** baseline | order state climbs as the log grows | `project_transaction_state` | state is a projection, not a stored field |
+| **[B]** stale-offer | approve an expired offer | `audit_offer_freshness` | byte-valid approval ≠ fresh approval |
+| **[C]** payment-failure | declined payment, blocked fulfillment | `audit_payment_before_fulfillment` | byte-valid fulfillment ≠ backed fulfillment |
+| **[D]** colluding reputation | three Sybil raters clear a naive guard | `audit_reputation_rater_diversity` | byte-valid `rep.outcome` ≠ trustworthy reputation |
+| **[E]** fake merchant | unanchored new merchant | `audit_merchant_identity_assurance` | byte-valid offer ≠ vetted merchant |
+| **[F]** compromised agent | agent hides warnings before approval | `audit_consent_disclosure` | byte-valid approval ≠ faithfully informed approval |
+
+The five failure runs ([B]–[F]) are one catalog of a single point — *byte-valid is not legitimate* — on five faces, against the [A] baseline. The detail for each run follows.
 
 - **[A] Baseline happy path.** The lifecycle is emitted using only canonical ARC events — identity (`KEY`); intent, offers, payment, fulfillment, and outcome (`ATTEST`); and the human's approval (`AUTHORIZE`) — with no commerce-specific event type, and the order's **state** is recomputed from the log after each step via `project_transaction_state`. The state climbs `pending_approval -> approved -> paid -> fulfilled` purely because the log grew; it is a projection, never a stored field, and a rating (`rep.outcome`) does not move it. The logistics quote rides a new predicate (`commerce.logistics_offer`), not a new type — richness grows by predicate ([event-registry.md](../../docs/event-registry.md) §2.1).
 - **[B] Failure run — stale-offer approval** (the question in `artifacts/stale-offer-approval.json`). The human approves a merchant offer *after* its validity window has closed. Every signature still verifies and `verify_log` passes — ARC preserves the signed facts — but a policy fold, `audit_offer_freshness`, flags the approval as **stale**. The structural state reads `approved`, yet that is not legitimate authority: freshness is a projection over the facts, not a property of the bytes. **Byte-valid approval is not fresh approval.**
