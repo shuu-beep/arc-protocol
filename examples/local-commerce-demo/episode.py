@@ -36,7 +36,7 @@ This is not an implementation of ARC, and a smooth mock flow is not evidence
 that ARC is safe, fair, or viable — only that the canonical events compose into
 a local-commerce lifecycle whose state is a fold.
 
-Four runs:
+Five runs:
   [A] baseline happy path — the order climbs pending_approval -> approved ->
       paid -> fulfilled as the log grows;
   [B] stale-offer failure run — the human approves an offer that has already
@@ -59,6 +59,15 @@ Four runs:
       rater base. This is suspicious evidence, not a fraud verdict — ARC does
       not decide farming vs a real promotion and applies no penalty. (Mirrors
       the question posed by artifacts/colluding-reputation-farming.json.)
+  [E] fake-merchant failure run — a newly-created merchant with no external
+      anchor and no history publishes a byte-valid (and unusually cheap) offer.
+      Before the human approves, a policy fold, audit_merchant_identity_assurance,
+      surfaces what the merchant's key does and does NOT carry: IDENTITY_UNVERIFIED
+      and NO_TRACK_RECORD. An established merchant in the same run, anchored and
+      with a prior outcome, audits CLEAN — so the signal discriminates rather than
+      penalizing every newcomer. A valid signature proves a key signed; it does
+      not prove the merchant was vetted. This is a warning to show before approval,
+      not a fraud finding. (Mirrors the question posed by artifacts/fake-merchant.json.)
 
 Run:  python3 episode.py
 """
@@ -366,6 +375,54 @@ def audit_reputation_rater_diversity(
     return findings
 
 
+def audit_merchant_identity_assurance(
+        events: list[Event], merchant: str, context: str) -> list[tuple[str, str]]:
+    """Policy fold: before a human approves a merchant's offer, surface what
+    identity assurance the merchant's key does and does NOT carry. Computed only
+    from KEY id.key_register, ATTEST id.anchor (an external cost-gate credential),
+    and ATTEST rep.outcome events.
+
+    NOT a fraud test and NOT a verdict. A byte-valid offer with a valid signature
+    proves only that a registered key signed it; it says nothing about whether the
+    key was anchored by an outside cost gate — business registration, payment
+    account, community onboarding, escrow (object-model.md §97) — or has any track
+    record. Absence of assurance is NOT proof of dishonesty: an unanchored, no-
+    history merchant is exactly what an honest newcomer also looks like, so these
+    are warnings to make visible before approval, never grounds to penalize a
+    newcomer by default (object-model.md §126: cold-start and Sybil are one dial).
+    And an anchor credential is itself only as good as its issuer's reading — a
+    valid credential is key-possession, not a guarantee of honest fulfillment.
+
+    Two signals:
+      IDENTITY_UNVERIFIED — no id.anchor credential, issued by someone other than
+        the merchant, attests this merchant's key.
+      NO_TRACK_RECORD — no prior rep.outcome for this merchant in this context.
+    """
+    anchored = any(
+        e.type == "ATTEST" and e.predicate == "id.anchor"
+        and e.payload.get("subject") == merchant
+        and e.signer != merchant            # self-anchoring does not count
+        for e in events
+    )
+    has_history = any(
+        e.type == "ATTEST" and e.predicate == "rep.outcome"
+        and e.payload.get("merchant") == merchant
+        and e.payload.get("context") == context
+        for e in events
+    )
+
+    findings: list[tuple[str, str]] = []
+    if not anchored:
+        findings.append(("IDENTITY_UNVERIFIED",
+            f"{merchant} carries no external anchor credential (id.anchor) from a "
+            f"recognized issuer — its key is self-registered only"))
+    if not has_history:
+        findings.append(("NO_TRACK_RECORD",
+            f"{merchant} has no prior rep.outcome in context '{context}' — "
+            f"no completed-order history to weigh"))
+    return findings
+
+
 # ===========================================================================
 # The baseline happy-path episode — generated, not authored.
 # ===========================================================================
@@ -648,6 +705,81 @@ def run_colluding_reputation() -> Ledger:
     return led
 
 
+# ===========================================================================
+# Failure run 4 — fake (unverified) merchant, identity assurance at approval.
+#
+# A newly-created merchant A — self-registered key, no external anchor, no
+# history — publishes a byte-valid, unusually cheap offer. An established
+# merchant B in the same run is anchored (a community-issued id.anchor credential)
+# and has a prior outcome. Before the human approves A's offer, a policy fold,
+# audit_merchant_identity_assurance, surfaces A's missing assurance
+# (IDENTITY_UNVERIFIED, NO_TRACK_RECORD) while B audits CLEAN — the signal
+# discriminates rather than penalizing every newcomer. A valid signature proves
+# a key signed; it does not prove the merchant was vetted. The warnings are shown
+# BEFORE the AUTHORIZE; ARC records that they were shown, not that the human
+# weighed them. No fraud is proven, and absence of assurance is not dishonesty.
+# This slice is about pre-approval identity legibility, so it stops at the
+# approval — the non-fulfillment / dispute / governance tail of the artifact
+# belongs to the execution-fidelity and payment-failure axes, not here.
+# (Mirrors the question in artifacts/fake-merchant.json.)
+# ===========================================================================
+
+def run_fake_merchant() -> Ledger:
+    led = Ledger()
+    community = Party(led, "community", "k:community")
+    human = Party(led, "human", "k:human")
+    consumer = Party(led, "consumer-agent", "k:consumer_agent")
+    merchant_b = Party(led, "merchant-B (established)", "k:merchant_b")
+    merchant_a = Party(led, "merchant-A (new)", "k:merchant_a")
+
+    print("\n1. Identity — every party anchors a key")
+    regs = {p.key: p.emit("KEY", "id.key_register", payload={"key": p.key})
+            for p in (community, human, consumer, merchant_b, merchant_a)}
+
+    print("\n2. Merchant B is established — an external anchor + a prior outcome")
+    say("community", "B passed an external cost gate (business registration); attesting the anchor")
+    community.emit("ATTEST", "id.anchor", refs=(regs[merchant_b.key].id,),
+                   payload={"subject": merchant_b.key, "basis": "business_registration_mock"})
+    say("consumer-agent", "B also has a completed earlier order; logging its positive outcome")
+    consumer.emit("ATTEST", "rep.outcome",
+                  payload={"result": "positive", "merchant": merchant_b.key, "context": CONTEXT})
+
+    print("\n3. Merchant A is new — self-registered only, and offers an unusually cheap deal")
+    say("merchant-A", "bibimbap 4900 KRW, delivery free — much cheaper than B")
+    offer_a = merchant_a.emit("ATTEST", "commerce.offer",
+                              payload={"item": "bibimbap", "price_krw": 4900,
+                                       "context": CONTEXT, "expires": "2026-12-31T00:00:00Z"})
+
+    print("\n4. Before approval — the consumer surfaces each merchant's identity assurance")
+    verify_log(led.events)
+    for label, mkey in [("A  (the cheap offer up for approval)", merchant_a.key),
+                        ("B  (the established alternative)", merchant_b.key)]:
+        findings = audit_merchant_identity_assurance(led.events, mkey, CONTEXT)
+        verdict = "CLEAN" if not findings else f"{len(findings)} WARNING(S)"
+        print(f"\n  merchant {label}")
+        print(f"    assurance audit: {verdict}")
+        for code, why in findings:
+            print(f"      ! {code}  {why}")
+
+    print("\n5. The human approves A anyway, after the warnings were shown")
+    say("human", "sees A's warnings, still wants the cheap offer... approves")
+    human.emit("AUTHORIZE", "consent.approval", refs=(offer_a.id,),
+               scope={"max_total_krw": 4900, "payee": merchant_a.key, "context": CONTEXT})
+
+    verify_log(led.events)
+    print(f"\n  verify_log: PASS ({len(led.events)} signed events — offer, warnings,")
+    print("     and approval are all byte-valid and on the log)")
+    print("  => A's offer verifies, but a verified signature is not a verified MERCHANT.")
+    print("     The warnings were SHOWN before the AUTHORIZE; ARC records that they")
+    print("     were shown, not that the human weighed them (the disclosure-vs-")
+    print("     cognition gap). Absence of an anchor is not dishonesty, so ARC names")
+    print("     the assurance gap and lets the human decide —")
+    print("       confirmed_fraud      = false")
+    print("       warnings_shown       = true")
+    print("       human_decided        = true")
+    return led
+
+
 if __name__ == "__main__":
     print("=" * 78)
     print("ARC local-commerce reference episode")
@@ -679,10 +811,16 @@ if __name__ == "__main__":
     print("-" * 78)
     run_colluding_reputation()
 
+    print("\n" + "-" * 78)
+    print("[E] FAILURE RUN — fake (unverified) merchant")
+    print("-" * 78)
+    run_fake_merchant()
+
     print("\n" + "=" * 78)
     print("byte-valid approval != fresh approval; byte-valid fulfillment != backed")
-    print("fulfillment; byte-valid rep.outcome != trustworthy reputation. ARC preserves")
-    print("the signed facts; freshness, payment-backing, and rater diversity are")
-    print("projections / policy decisions over them, not properties of the bytes —")
-    print("and a diversity signal is a review trigger, never a fraud verdict.")
+    print("fulfillment; byte-valid rep.outcome != trustworthy reputation; byte-valid")
+    print("offer != vetted merchant. ARC preserves the signed facts; freshness,")
+    print("payment-backing, rater diversity, and identity assurance are projections")
+    print("over them, not properties of the bytes — and each signal is a review")
+    print("trigger shown to a human, never a fraud verdict ARC reaches on its own.")
     print("=" * 78)
