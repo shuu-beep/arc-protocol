@@ -36,7 +36,7 @@ This is not an implementation of ARC, and a smooth mock flow is not evidence
 that ARC is safe, fair, or viable — only that the canonical events compose into
 a local-commerce lifecycle whose state is a fold.
 
-Five runs:
+Six runs:
   [A] baseline happy path — the order climbs pending_approval -> approved ->
       paid -> fulfilled as the log grows;
   [B] stale-offer failure run — the human approves an offer that has already
@@ -68,6 +68,18 @@ Five runs:
       penalizing every newcomer. A valid signature proves a key signed; it does
       not prove the merchant was vetted. This is a warning to show before approval,
       not a fraud finding. (Mirrors the question posed by artifacts/fake-merchant.json.)
+  [F] compromised-consumer-agent failure run — the consumer agent records a
+      commerce.disclosure claiming it showed the human no warnings, then relays a
+      byte-valid AUTHORIZE. verify_log passes. But an auditor re-folds the SAME log
+      and recovers the warnings the agent omitted (IDENTITY_UNVERIFIED,
+      NO_TRACK_RECORD): they are folds over the signed events, not part of the
+      off-log view, so they are recomputable by anyone. audit_consent_disclosure
+      marks the consent CONTESTED — not automatically invalid. This is the commerce
+      embodiment of the view-fidelity probe (../view-fidelity-demo, "What You See
+      Is Not What You Sign"), NOT a new finding: the omission is detectable
+      post-hoc but not preventable at consent-time, and a byte-valid approval is
+      not a faithfully informed approval. (Mirrors the question posed by
+      artifacts/compromised-consumer-agent.json.)
 
 Run:  python3 episode.py
 """
@@ -420,6 +432,64 @@ def audit_merchant_identity_assurance(
         findings.append(("NO_TRACK_RECORD",
             f"{merchant} has no prior rep.outcome in context '{context}' — "
             f"no completed-order history to weigh"))
+    return findings
+
+
+def audit_consent_disclosure(
+        events: list[Event], approval: Event, context: str) -> list[tuple[str, str]]:
+    """Policy fold: did the human's approval rest on a faithful view? Recompute,
+    from the SAME log, the warnings that applied to the approved offer's merchant,
+    and compare them against what the consumer agent's `commerce.disclosure`
+    claimed it showed the human before approval.
+
+    This is the commerce embodiment of the view-fidelity probe
+    (../view-fidelity-demo, "What You See Is Not What You Sign"). It is NOT a new
+    finding and NOT a fraud test. A signature seals the bytes, never the displayed
+    view, so a `consent.approval` over a doctored screen is byte-valid and, at
+    sign-time, byte-identical to an honest one. The crucial commerce difference
+    from the abstract probe: the omitted warnings are *folds over the signed log*
+    (audit_merchant_identity_assurance), not values that live only in the off-log
+    render. So although the distortion is **not preventable at consent-time**, it
+    is **detectable post-hoc** — an auditor re-runs the same folds and recovers
+    exactly what the agent withheld, with or without the agent's own disclosure
+    record. The verdict is CONTESTED, never automatically invalid: ARC exposes the
+    gap between what applied and what was shown; a human / governance review, not
+    the fold, decides what the approval is worth.
+
+    A byte-valid approval is not a faithfully informed approval.
+    """
+    offers = {
+        e.id: e for e in events
+        if e.type == "ATTEST" and e.predicate == "commerce.offer"
+    }
+    approved_offers = [offers[r] for r in approval.refs if r in offers]
+
+    # Recompute the warnings that applied — agent-independent folds over the log.
+    applicable: dict[str, str] = {}
+    for off in approved_offers:
+        merchant = off.signer            # the offer's signer is the merchant
+        for code, why in audit_merchant_identity_assurance(events, merchant, context):
+            applicable[code] = why
+
+    # What did the consumer agent claim it disclosed? A commerce.disclosure that
+    # references this approval (or its offer), listing the warning codes shown.
+    disclosed: set[str] = set()
+    disclosure_seen = False
+    refset = {approval.id} | set(approval.refs)
+    for e in events:
+        if (e.type == "ATTEST" and e.predicate == "commerce.disclosure"
+                and refset & set(e.refs)):
+            disclosure_seen = True
+            disclosed |= set(e.payload.get("shown", []))
+
+    findings: list[tuple[str, str]] = []
+    for code, why in applicable.items():
+        if code not in disclosed:
+            note = "no disclosure was recorded" if not disclosure_seen \
+                   else "the agent's disclosure did not list it"
+            findings.append(("OMITTED-DISCLOSURE",
+                f"approval {approval.id} was given without {code} being shown "
+                f"({note}); recomputed from the log: {why}"))
     return findings
 
 
@@ -780,6 +850,78 @@ def run_fake_merchant() -> Ledger:
     return led
 
 
+# ===========================================================================
+# Failure run 5 — compromised consumer agent (commerce WYSINWYS).
+#
+# The consumer agent is the surface between the signed log and the human's eyes.
+# Here it records a commerce.disclosure claiming it showed the human NO warnings,
+# then relays a byte-valid AUTHORIZE for a new, unanchored merchant's offer. Every
+# signature verifies. But the warnings the agent withheld — IDENTITY_UNVERIFIED,
+# NO_TRACK_RECORD — are FOLDS over the signed log, not values that live only in
+# the off-log view, so an auditor re-folds the same log and recovers exactly what
+# was omitted. audit_consent_disclosure marks the consent CONTESTED.
+#
+# This is the commerce embodiment of ../view-fidelity-demo ("What You See Is Not
+# What You Sign"), NOT a new finding letter. The signature seals the bytes, never
+# the displayed view: the distortion is detectable POST-HOC (the warnings are
+# recomputable) but not preventable at CONSENT-TIME (the AUTHORIZE does not bind
+# the view, and at sign-time it is byte-identical to an honest one). A byte-valid
+# approval is not a faithfully informed approval. No fraud is judged — the
+# omission could be a bug — and consent is contested, not voided.
+# (Mirrors the question in artifacts/compromised-consumer-agent.json.)
+# ===========================================================================
+
+def run_compromised_agent() -> Ledger:
+    led = Ledger()
+    human = Party(led, "human", "k:human")
+    consumer = Party(led, "consumer-agent (compromised)", "k:consumer_agent")
+    merchant_a = Party(led, "merchant-A (new)", "k:merchant_a")
+
+    print("\n1. Identity — the parties anchor keys (merchant A is self-registered only)")
+    for p in (human, consumer, merchant_a):
+        p.emit("KEY", "id.key_register", payload={"key": p.key})
+
+    print("\n2. Merchant A — new, unanchored, no history; makes a valid (current) offer")
+    say("merchant-A", "bibimbap 4900 KRW; offer is current (far-future expiry)")
+    offer = merchant_a.emit("ATTEST", "commerce.offer",
+                            payload={"item": "bibimbap", "price_krw": 4900,
+                                     "context": CONTEXT, "expires": "2026-12-31T00:00:00Z"})
+
+    print("\n3. The compromised consumer agent presents the offer and records what it")
+    print("   claims it disclosed — and it claims it showed the human NO warnings.")
+    say("consumer-agent", "hiding the new-merchant warnings; disclosing an empty set")
+    consumer.emit("ATTEST", "commerce.disclosure", refs=(offer.id,),
+                  payload={"shown": [], "context": CONTEXT})
+
+    print("\n4. The human approves over that clean-looking view")
+    say("human", "sees no warnings... approves the cheap offer")
+    approval = human.emit("AUTHORIZE", "consent.approval", refs=(offer.id,),
+                          scope={"max_total_krw": 4900, "payee": merchant_a.key,
+                                 "context": CONTEXT})
+
+    verify_log(led.events)
+    print(f"\n  verify_log: PASS ({len(led.events)} signed events — offer, disclosure,")
+    print("     and approval are all byte-valid; the view-doctoring is off-log)")
+
+    print("\n5. An auditor re-folds the SAME log to recover what was applicable:")
+    findings = audit_consent_disclosure(led.events, approval, CONTEXT)
+    verdict = f"CONTESTED ({len(findings)} FINDING(S))" if findings else "CLEAN"
+    print(f"  consent disclosure audit: {verdict}")
+    for code, why in findings:
+        print(f"      ! {code}  {why}")
+    print("  => the AUTHORIZE is byte-valid and stays valid — ARC does NOT void it.")
+    print("     But the consent rested on a view that omitted warnings the log itself")
+    print("     can reproduce, so it is CONTESTED. Detectable post-hoc (the warnings")
+    print("     are folds, recomputable by anyone), not preventable at consent-time")
+    print("     (the signature seals the bytes, never the displayed view). Binding a")
+    print("     view_hash / 'sign what you saw' would relocate trust to the renderer")
+    print("     and still not prove the human comprehended. No fraud is judged —")
+    print("       confirmed_fraud                     = false")
+    print("       consent                             = CONTESTED")
+    print("       human_or_governance_review_required = true")
+    return led
+
+
 if __name__ == "__main__":
     print("=" * 78)
     print("ARC local-commerce reference episode")
@@ -816,11 +958,18 @@ if __name__ == "__main__":
     print("-" * 78)
     run_fake_merchant()
 
+    print("\n" + "-" * 78)
+    print("[F] FAILURE RUN — compromised consumer agent (commerce WYSINWYS)")
+    print("-" * 78)
+    run_compromised_agent()
+
     print("\n" + "=" * 78)
     print("byte-valid approval != fresh approval; byte-valid fulfillment != backed")
     print("fulfillment; byte-valid rep.outcome != trustworthy reputation; byte-valid")
-    print("offer != vetted merchant. ARC preserves the signed facts; freshness,")
-    print("payment-backing, rater diversity, and identity assurance are projections")
-    print("over them, not properties of the bytes — and each signal is a review")
-    print("trigger shown to a human, never a fraud verdict ARC reaches on its own.")
+    print("offer != vetted merchant; byte-valid approval != faithfully informed")
+    print("approval. ARC preserves the signed facts; freshness, payment-backing,")
+    print("rater diversity, identity assurance, and consent disclosure are projections")
+    print("over them, not properties of the bytes — each a review trigger for a human,")
+    print("never a fraud verdict ARC reaches on its own. The signature seals the")
+    print("record; it never seals the referent or the view.")
     print("=" * 78)
