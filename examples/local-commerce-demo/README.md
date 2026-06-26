@@ -67,6 +67,8 @@ The happy path is a comparison point for failure runs, not a claim of successful
 
 The baseline happy path above is now runnable. `episode.py` generates it as a signed ARC event log and folds the log back, with nothing about the transaction stored.
 
+> **Reference flow vs runnable slice.** The reference flow in §5 describes the complete design, including a two-merchant (A/B) comparison. The runnable baseline **[A]** currently implements only the smallest executable subset of that flow: one merchant offer plus a logistics quote. Merchant B appears in the runnable examples only in failure run **[E]**. The runnable code is intentionally a faithful executable subset of the reference flow, not a complete implementation of it.
+
 ```
 python3 episode.py
 ```
