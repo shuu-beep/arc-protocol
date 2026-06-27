@@ -36,7 +36,7 @@ This is not an implementation of ARC, and a smooth mock flow is not evidence
 that ARC is safe, fair, or viable — only that the canonical events compose into
 a local-commerce lifecycle whose state is a fold.
 
-Six runs:
+Seven runs:
   [A] baseline happy path — the order climbs pending_approval -> approved ->
       paid -> fulfilled as the log grows;
   [B] stale-offer failure run — the human approves an offer that has already
@@ -80,6 +80,19 @@ Six runs:
       post-hoc but not preventable at consent-time, and a byte-valid approval is
       not a faithfully informed approval. (Mirrors the question posed by
       artifacts/compromised-consumer-agent.json.)
+  [G] discovery-bias failure run — a discovery backend ranks two offers and
+      records the recommendation as a signed event, ranking the sponsored merchant
+      first. Every signature verifies. But a ranking is a PROJECTION over the
+      offers, not a fact, so an auditor re-derives the objective order from the
+      offers' own terms: the other merchant is the better fit (cheaper, faster),
+      and the sponsored weight that displaced it was on the signed record yet
+      withheld from the subset shown to the human. audit_ranking_disclosure raises
+      OBJECTIVE-FIT-MISMATCH and RANKING-INFLUENCE-UNDISCLOSED. This is a new fold
+      target — the ranking layer — under the same disclosure jurisprudence as [F] /
+      the view-fidelity probe; it is not a finding that sponsorship is improper,
+      only that hidden influence which flips the objective order is reviewable. A
+      byte-valid ranking is not a faithfully disclosed ranking. (Mirrors the
+      question posed by artifacts/discovery-bias.json.)
 
 Run:  python3 episode.py
 """
@@ -490,6 +503,85 @@ def audit_consent_disclosure(
             findings.append(("OMITTED-DISCLOSURE",
                 f"approval {approval.id} was given without {code} being shown "
                 f"({note}); recomputed from the log: {why}"))
+    return findings
+
+
+def audit_ranking_disclosure(
+        events: list[Event], recommendation: Event, context: str) -> list[tuple[str, str]]:
+    """Policy fold: a recommendation's asserted ranking is a CLAIM over the signed
+    offers, so it can be re-derived and checked. Recompute an objective ordering of
+    the candidate offers from the same log, compare it to the order the
+    recommendation asserts, and check whether an influence that changed first place
+    was actually surfaced to the human.
+
+    A `commerce.recommendation` is a byte-valid ATTEST and verifies cleanly — ARC
+    preserves it. But a ranking is not a fact about the world; it is a PROJECTION
+    over the offers, the same way the transaction state is. The backend's asserted
+    order is one such projection; an objective-fit order recomputed from the offers'
+    own terms is another. When the two disagree and the factor that explains the
+    disagreement was recorded on the signed recommendation but withheld from the
+    subset shown to the human, the recommendation is byte-valid yet not a faithfully
+    disclosed one.
+
+    This applies the disclosure jurisprudence of audit_consent_disclosure / the
+    view-fidelity probe (../view-fidelity-demo) — the influence sits on the signed
+    record but is absent from the disclosed subset — to a NEW fold target: the
+    ranking itself, recomputable as a projection over the offers. It is NOT a
+    verdict that sponsorship is improper: the concern is hidden influence that flips
+    the objective order, not influence as such (the recommendation's own record is
+    the honest, auditable copy of what the backend did).
+
+    Two signals:
+      OBJECTIVE-FIT-MISMATCH — the offer ranked first is not the offer an objective
+        ordering (lower total price, then faster delivery) would put first. This
+        covers the listed request factors only; it does not claim a universal rule.
+      RANKING-INFLUENCE-UNDISCLOSED — a ranking factor recorded on the signed
+        recommendation favored the displacing offer over the objective-fit offer,
+        but was absent from the subset disclosed to the human.
+    """
+    ranked = recommendation.payload.get("ranked", [])              # asserted order
+    factors = recommendation.payload.get("ranking_factors", {})    # full inputs, signed
+    disclosed = set(recommendation.payload.get("inputs_disclosed_to_human", []))
+
+    offers = {
+        e.id: e for e in events
+        if e.type == "ATTEST" and e.predicate == "commerce.offer"
+        and e.id in set(ranked)
+    }
+
+    findings: list[tuple[str, str]] = []
+    if not ranked or any(oid not in offers for oid in ranked):
+        return findings
+
+    # Objective ordering recomputed from the offers' own terms: cheapest first,
+    # then fastest. Transparent and admittedly partial, by design.
+    def objective_key(oid: str) -> tuple[int, int]:
+        p = offers[oid].payload
+        return (p.get("price_krw", 0), p.get("eta_min", 0))
+
+    asserted_first = ranked[0]
+    objective_first = sorted(ranked, key=objective_key)[0]
+
+    if asserted_first != objective_first:
+        findings.append(("OBJECTIVE-FIT-MISMATCH",
+            f"recommendation ranks {offers[asserted_first].signer} first, but an "
+            f"objective ordering (lower price, then faster delivery) puts "
+            f"{offers[objective_first].signer} first"))
+
+        # Was an influence that displaced the objective fit recorded but not shown?
+        # `ranking_factors` maps a factor name -> {offer_id: weight}. A factor on
+        # the signed record, absent from the disclosed subset, that scores the
+        # asserted-first offer ABOVE the objective-fit offer is undisclosed influence.
+        for factor, weights in factors.items():
+            if factor in disclosed or not isinstance(weights, dict):
+                continue
+            if weights.get(asserted_first, 0) > weights.get(objective_first, 0):
+                findings.append(("RANKING-INFLUENCE-UNDISCLOSED",
+                    f"factor '{factor}' on the signed recommendation scored "
+                    f"{offers[asserted_first].signer} ({weights.get(asserted_first)}) "
+                    f"above {offers[objective_first].signer} "
+                    f"({weights.get(objective_first)}), but was not in the subset "
+                    f"disclosed to the human {sorted(disclosed)}"))
     return findings
 
 
@@ -922,6 +1014,102 @@ def run_compromised_agent() -> Ledger:
     return led
 
 
+# ===========================================================================
+# Failure run 6 — discovery bias (undisclosed sponsored ranking).
+#
+# A discovery backend ranks two offers for the same request and records the
+# recommendation as a signed event. It ranks merchant A first — a sponsored
+# weight on the SIGNED record put it there — but the subset it surfaces to the
+# human lists only the neutral factors. Every signature verifies. Yet a ranking
+# is not a fact; it is a PROJECTION over the offers, so the asserted order can be
+# re-derived: B is the objective fit (cheaper and faster), and the sponsored
+# weight that displaced it was on the record but withheld from the human.
+# audit_ranking_disclosure raises OBJECTIVE-FIT-MISMATCH and
+# RANKING-INFLUENCE-UNDISCLOSED. The well-behaved response is to PAUSE approval.
+#
+# This is a NEW fold target — the ranking layer — under the SAME disclosure
+# jurisprudence as [F] / the view-fidelity probe (the influence is on the signed
+# record but absent from the disclosed subset). It is NOT a finding that
+# sponsorship is improper: hidden influence that flips the objective order is the
+# concern, not influence as such, and the recommendation's own record is the
+# honest, auditable copy. ARC exposes the gap; it does not suppress the ranking
+# or decide manipulation — a human / governance review does.
+# (Mirrors the question in artifacts/discovery-bias.json.)
+# ===========================================================================
+
+def run_discovery_bias() -> Ledger:
+    led = Ledger()
+    human = Party(led, "human", "k:human")
+    consumer = Party(led, "consumer-agent", "k:consumer_agent")
+    backend = Party(led, "discovery-backend", "k:discovery")
+    merchant_a = Party(led, "merchant-A (sponsored)", "k:merchant_a")
+    merchant_b = Party(led, "merchant-B (better fit)", "k:merchant_b")
+
+    print("\n1. Identity — the parties anchor keys")
+    for p in (human, consumer, backend, merchant_a, merchant_b):
+        p.emit("KEY", "id.key_register", payload={"key": p.key})
+
+    print("\n2. Two offers for the same request (bibimbap, delivered)")
+    say("merchant-A", "bibimbap 13800 KRW total, ETA 32 min")
+    offer_a = merchant_a.emit("ATTEST", "commerce.offer",
+                              payload={"item": "bibimbap", "price_krw": 13800,
+                                       "eta_min": 32, "context": CONTEXT,
+                                       "expires": "2026-12-31T00:00:00Z"})
+    say("merchant-B", "bibimbap 12400 KRW total, ETA 24 min — cheaper and faster")
+    offer_b = merchant_b.emit("ATTEST", "commerce.offer",
+                              payload={"item": "bibimbap", "price_krw": 12400,
+                                       "eta_min": 24, "context": CONTEXT,
+                                       "expires": "2026-12-31T00:00:00Z"})
+
+    print("\n3. The discovery backend ranks the offers and records the recommendation.")
+    print("   A is ranked first — a sponsored weight on the SIGNED record put it there —")
+    print("   but the subset disclosed to the human lists only the neutral factors.")
+    say("discovery-backend", "ranking A first; recording all factors, surfacing a subset")
+    rec = backend.emit("ATTEST", "commerce.recommendation",
+                       refs=(offer_a.id, offer_b.id),
+                       payload={
+                           "ranked": [offer_a.id, offer_b.id],   # asserted order
+                           "ranking_factors": {                  # full inputs, signed
+                               "item_match":       {offer_a.id: 1.0, offer_b.id: 1.0},
+                               "price_fit":        {offer_a.id: 0.6, offer_b.id: 0.8},
+                               "delivery_fit":     {offer_a.id: 0.6, offer_b.id: 0.8},
+                               "sponsored_weight": {offer_a.id: 0.2, offer_b.id: 0.0},
+                           },
+                           # what the human actually saw — the sponsored weight omitted
+                           "inputs_disclosed_to_human": ["item_match", "price_fit",
+                                                         "delivery_fit"],
+                           "context": CONTEXT})
+
+    verify_log(led.events)
+    print(f"\n  verify_log: PASS ({len(led.events)} signed events — the recommendation,")
+    print("     with its full factors, is byte-valid and on the log)")
+
+    print("\n4. An auditor re-folds the recommendation against an objective ordering:")
+    findings = audit_ranking_disclosure(led.events, rec, CONTEXT)
+    verdict = f"{len(findings)} FINDING(S)" if findings else "CLEAN"
+    print(f"  ranking disclosure audit: {verdict}")
+    for code, why in findings:
+        print(f"      ! {code}  {why}")
+
+    print("\n5. Seeing the exposed gap, the consumer agent / human PAUSES rather than")
+    print("   approving the sponsored-first result — no AUTHORIZE is emitted.")
+    state = project_transaction_state(led.events, offer_a.id)
+    print(f"  structural state (offer A's txn): {state}   (no approval — still pending)")
+    print("  => the recommendation is byte-valid and ARC does NOT suppress it. But a")
+    print("     ranking is a PROJECTION over the offers, so the asserted order can be")
+    print("     re-derived and compared: B is the objective fit, and the sponsored")
+    print("     weight that displaced it was on the signed record yet absent from what")
+    print("     the human saw. Sponsorship is not prohibited — hidden influence that")
+    print("     flips the objective order is the concern. The human / governance, not")
+    print("     ARC, decides; here the well-behaved response is to pause —")
+    print("       confirmed_manipulation              = false")
+    print("       objective_fit_mismatch              = true")
+    print("       ranking_influence_undisclosed       = true")
+    print("       approval_completed                  = false")
+    print("       human_or_governance_review_required = true")
+    return led
+
+
 if __name__ == "__main__":
     print("=" * 78)
     print("ARC local-commerce reference episode")
@@ -963,13 +1151,19 @@ if __name__ == "__main__":
     print("-" * 78)
     run_compromised_agent()
 
+    print("\n" + "-" * 78)
+    print("[G] FAILURE RUN — discovery bias (undisclosed sponsored ranking)")
+    print("-" * 78)
+    run_discovery_bias()
+
     print("\n" + "=" * 78)
     print("byte-valid approval != fresh approval; byte-valid fulfillment != backed")
     print("fulfillment; byte-valid rep.outcome != trustworthy reputation; byte-valid")
     print("offer != vetted merchant; byte-valid approval != faithfully informed")
-    print("approval. ARC preserves the signed facts; freshness, payment-backing,")
-    print("rater diversity, identity assurance, and consent disclosure are projections")
-    print("over them, not properties of the bytes — each a review trigger for a human,")
-    print("never a fraud verdict ARC reaches on its own. The signature seals the")
-    print("record; it never seals the referent or the view.")
+    print("approval; byte-valid ranking != faithfully disclosed ranking. ARC preserves")
+    print("the signed facts; freshness, payment-backing, rater diversity, identity")
+    print("assurance, consent disclosure, and ranking disclosure are projections over")
+    print("them, not properties of the bytes — each a review trigger for a human, never")
+    print("a fraud verdict ARC reaches on its own. The signature seals the record; it")
+    print("never seals the referent or the view.")
     print("=" * 78)
