@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-ARC local-commerce reference episode — the baseline happy path, made runnable.
+ARC local-commerce reference episode — the baseline happy path plus the failure
+catalog, made runnable.
 
 Purpose
 -------
-This directory's README has long described a tiny local-commerce flow as prose
-plus mock JSON artifacts, with the explicit next step (README §8): "turn
-selected artifacts into reproducible fixture checks." This file is the first
-thin runnable slice of that — the baseline happy-path order, generated as a
-signed event log and folded back, with nothing about the transaction stored.
+This directory's README long described a tiny local-commerce flow as prose plus
+mock JSON artifacts. This file makes that flow executable: the baseline happy
+path and every failure-run artifact in this directory ([A] through [H] below)
+are generated as signed event logs and folded back, with nothing about the
+transaction stored. The mock JSON artifacts remain as review objects; producing
+the richer output artifacts the README sketches (§7) is still future work.
 
 The point it makes is the ARC point, not a commerce point:
 
@@ -28,9 +30,10 @@ Deliberately dirty and small, like the other examples:
     claim about an external transfer (event-registry.md §2.4);
   * delivery is MOCK — a logistics agent ATTESTs a delivery claim, which proves
     a claim, never the delivery itself (the execution/outcome boundary);
-  * no new event TYPE — the five canonical types are reused as-is; the logistics
-    quote rides a new PREDICATE (`commerce.logistics_offer`), which is how ARC
-    grows richness (event-registry.md §2.1: extend by predicate, not by type).
+  * no new event TYPE — the five canonical types are reused as-is; richness rides
+    new PREDICATES instead (e.g. `commerce.logistics_offer`, `commerce.disclosure`,
+    `commerce.recommendation`), which is how ARC grows (event-registry.md §2.1:
+    extend by predicate, not by type).
 
 This is not an implementation of ARC, and a smooth mock flow is not evidence
 that ARC is safe, fair, or viable — only that the canonical events compose into

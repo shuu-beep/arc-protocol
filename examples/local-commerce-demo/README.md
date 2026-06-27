@@ -103,7 +103,7 @@ The seven failure runs ([B]–[H]) are one catalog of a single point — *byte-v
 
 ## 6. Current Mock Artifacts
 
-The `artifacts/` directory contains small JSON records. They are not executable tests. They are review objects for finding missing states, unsafe assumptions, and unresolved questions.
+The `artifacts/` directory contains small JSON records. They are review objects for finding missing states, unsafe assumptions, and unresolved questions — not executable tests in themselves. Each one below now has a runnable counterpart in `episode.py` (§5.1), which poses the same question as a generated, folded event log.
 
 | Artifact | Question Exposed |
 | --- | --- |
@@ -120,7 +120,7 @@ Each run should be evaluated for missing records, unclear states, misleading sur
 
 ## 7. Expected Output Artifacts
 
-Later mock implementation should produce small, inspectable artifacts:
+The runnable episode (§5.1) emits its event log to stdout rather than writing files. Persisting small, inspectable output artifacts is still optional future work:
 
 | Artifact | Intended Contents |
 | --- | --- |
