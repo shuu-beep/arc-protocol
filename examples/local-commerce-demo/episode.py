@@ -36,7 +36,7 @@ This is not an implementation of ARC, and a smooth mock flow is not evidence
 that ARC is safe, fair, or viable — only that the canonical events compose into
 a local-commerce lifecycle whose state is a fold.
 
-Seven runs:
+Eight runs:
   [A] baseline happy path — the order climbs pending_approval -> approved ->
       paid -> fulfilled as the log grows;
   [B] stale-offer failure run — the human approves an offer that has already
@@ -93,6 +93,20 @@ Seven runs:
       only that hidden influence which flips the objective order is reviewable. A
       byte-valid ranking is not a faithfully disclosed ranking. (Mirrors the
       question posed by artifacts/discovery-bias.json.)
+  [H] approval-fatigue failure run — under one intent the merchant revises its
+      offer four times in a few minutes, each changing a material term, and the
+      human re-approves each in quick succession. Every AUTHORIZE is byte-valid and
+      verify_log passes. But a policy fold, audit_approval_cadence, reads the
+      human's own SEQUENCE of approvals — a new fold target — and flags a
+      structural consent-quality risk: many approvals in a short window
+      (REPEATED_APPROVAL_CHURN) re-approving moving terms
+      (MATERIAL_CHANGE_UNCONSOLIDATED). The well-behaved response is to pause
+      payment for a consolidated re-review. This is NOT a new finding and NOT a
+      claim that ARC can measure attention or prove fatigue — it is the same
+      disclosure-vs-cognition boundary as [E] and [F], on the temporal/sequence
+      axis: ARC records that review was rushed, never that it failed. A sequence of
+      byte-valid approvals is not a consolidated review. (Mirrors the question
+      posed by artifacts/approval-fatigue.json.)
 
 Run:  python3 episode.py
 """
@@ -169,8 +183,10 @@ class Party:
     def __init__(self, ledger: "Ledger", name: str, key: str):
         self.ledger, self.name, self.key = ledger, name, key
 
-    def emit(self, type_: str, predicate: str, **kw) -> Event:
-        ev = make(type_, self.key, predicate, self.ledger.now(), **kw)
+    def emit(self, type_: str, predicate: str, ts: str | None = None, **kw) -> Event:
+        # ts defaults to the ledger's auto-advancing clock (every existing run);
+        # a run may pass an explicit timestamp where the cadence itself matters.
+        ev = make(type_, self.key, predicate, ts or self.ledger.now(), **kw)
         self.ledger.append(ev)
         print(f"    -> {self.name} emits {type_} {predicate}  [{ev.id}]")
         return ev
@@ -582,6 +598,92 @@ def audit_ranking_disclosure(
                     f"above {offers[objective_first].signer} "
                     f"({weights.get(objective_first)}), but was not in the subset "
                     f"disclosed to the human {sorted(disclosed)}"))
+    return findings
+
+
+# Approval-cadence review thresholds. Coarse, admittedly arbitrary review triggers
+# (like the reputation thresholds), NOT a measure of attention: ARC cannot read a
+# human's mental state. They flag a structural consent-quality risk — many
+# approvals with changing terms in a short window — for a human to re-review.
+APPROVAL_CHURN_BAR = 3                            # approvals in the window that start to look like churn
+APPROVAL_CADENCE_WINDOW = timedelta(minutes=3)   # approvals this close together = a cluster
+MATERIAL_TERMS = ("price_krw", "eta_min", "free_cancellation")
+
+
+def audit_approval_cadence(events: list[Event], context: str) -> list[tuple[str, str]]:
+    """Policy fold: surface a consent-QUALITY risk when a human re-approves a rapid
+    sequence of offers whose material terms keep changing inside a short window.
+
+    This is NOT a measure of human attention and NOT a verdict. ARC cannot prove
+    fatigue or read a mental state; every approval here is a byte-valid AUTHORIZE
+    and verify_log is clean. What the fold can see is purely structural: how many
+    approvals landed within a short window, and whether the offers they approved
+    changed material terms across that window. Fast repeated approvals are equally
+    consistent with an informed, decisive user — so this records a review trigger,
+    never a finding that the consent was uninformed. It is the same disclosure-vs-
+    cognition boundary as the fake-merchant and compromised-agent runs, on a new
+    fold target: the human's own sequence of approvals over time. ARC records that
+    review was *rushed*, not that it *failed*.
+
+    Two signals, computed only from AUTHORIZE consent.approval events and the
+    commerce.offer events they reference:
+
+      REPEATED_APPROVAL_CHURN — at least APPROVAL_CHURN_BAR approvals fall within
+        APPROVAL_CADENCE_WINDOW of one another.
+      MATERIAL_CHANGE_UNCONSOLIDATED — across those clustered approvals, successive
+        approved offers changed material terms, so the human re-approved moving
+        terms without a consolidated side-by-side review.
+    """
+    offers = {
+        e.id: e for e in events
+        if e.type == "ATTEST" and e.predicate == "commerce.offer"
+    }
+    approvals = [
+        e for e in events
+        if e.type == "AUTHORIZE" and e.predicate == "consent.approval"
+        and e.scope and e.scope.get("context") == context
+    ]
+    approvals.sort(key=lambda e: e.timestamp)
+    if len(approvals) < APPROVAL_CHURN_BAR:
+        return []
+
+    # The cluster of approvals within one window of the earliest.
+    first = _parse_ts(approvals[0].timestamp)
+    cluster = [a for a in approvals
+               if _parse_ts(a.timestamp) - first <= APPROVAL_CADENCE_WINDOW]
+
+    findings: list[tuple[str, str]] = []
+    if len(cluster) < APPROVAL_CHURN_BAR:
+        return findings
+
+    span = _parse_ts(cluster[-1].timestamp) - first
+    findings.append(("REPEATED_APPROVAL_CHURN",
+        f"{len(cluster)} approvals within {span} (<= {APPROVAL_CADENCE_WINDOW}) — "
+        f"repeated approval prompts in a short window"))
+
+    # Did the approved offers' material terms change across the cluster?
+    def terms_of(appr: Event) -> dict[str, Any]:
+        for r in appr.refs:
+            off = offers.get(r)
+            if off is not None:
+                return {k: off.payload.get(k) for k in MATERIAL_TERMS}
+        return {}
+
+    changes = 0
+    changed_terms: list[str] = []
+    prev = terms_of(cluster[0])
+    for a in cluster[1:]:
+        cur = terms_of(a)
+        diff = [k for k in MATERIAL_TERMS if cur.get(k) != prev.get(k)]
+        if diff:
+            changes += 1
+            changed_terms.extend(diff)
+        prev = cur
+    if changes:
+        findings.append(("MATERIAL_CHANGE_UNCONSOLIDATED",
+            f"{changes} of the clustered approvals re-approved changed material "
+            f"terms ({', '.join(sorted(set(changed_terms)))}) without a "
+            f"consolidated re-review"))
     return findings
 
 
@@ -1110,6 +1212,98 @@ def run_discovery_bias() -> Ledger:
     return led
 
 
+# ===========================================================================
+# Failure run 7 — approval fatigue (consent-quality risk over a sequence).
+#
+# Under one intent, the merchant revises its offer four times in a few minutes —
+# each revision changing a material term (price, delivery estimate, cancellation
+# window) — and the human re-approves each in quick succession. Every AUTHORIZE
+# is byte-valid and verify_log passes. But a policy fold, audit_approval_cadence,
+# looks at the human's own SEQUENCE of approvals — a new fold target — and flags
+# a structural consent-quality risk: many approvals in a short window
+# (REPEATED_APPROVAL_CHURN) re-approving moving terms (MATERIAL_CHANGE_UNCONSOLIDATED).
+# The well-behaved response is to PAUSE payment for a consolidated re-review.
+#
+# This is NOT a new finding letter and NOT a claim that ARC can measure attention
+# or prove fatigue. It is the same disclosure-vs-cognition boundary as [E] and [F]
+# (ARC records that warnings were shown / a view was rendered, never that the human
+# weighed them), here on the temporal/sequence axis: ARC records that review was
+# *rushed*, never that it *failed*. Fast approvals are equally consistent with an
+# informed, decisive user, so this is a review trigger, never a verdict.
+# (Mirrors the question in artifacts/approval-fatigue.json.)
+# ===========================================================================
+
+def run_approval_fatigue() -> Ledger:
+    led = Ledger()
+    human = Party(led, "human", "k:human")
+    consumer = Party(led, "consumer-agent", "k:consumer_agent")
+    merchant = Party(led, "merchant-agent", "k:merchant")
+
+    print("\n1. Identity — the parties anchor keys")
+    for p in (human, consumer, merchant):
+        p.emit("KEY", "id.key_register", payload={"key": p.key})
+
+    print("\n2. One intent, then four revised offers in a few minutes — each changing")
+    print("   a material term — that the human re-approves in quick succession.")
+    say("human", "lunch: vegetable bibimbap nearby, delivered, under 15000 KRW")
+    intent = consumer.emit("ATTEST", "intent.canonical",
+                           payload={"item": "bibimbap", "max_total_krw": 15000,
+                                    "delivery": True, "context": CONTEXT})
+
+    # Timestamps are given explicitly so the cadence itself is visible; in a real
+    # flow they would simply be the signing times. The offers and their approvals
+    # cluster inside ~2.5 minutes, mirroring artifacts/approval-fatigue.json.
+    rounds = [
+        (dict(price_krw=12300, eta_min=25, free_cancellation=True),
+         "2026-06-05T12:01:20Z", "initial request"),
+        (dict(price_krw=12600, eta_min=25, free_cancellation=True),
+         "2026-06-05T12:02:10Z", "price +300"),
+        (dict(price_krw=12600, eta_min=31, free_cancellation=True),
+         "2026-06-05T12:02:55Z", "delivery estimate +6 min"),
+        (dict(price_krw=12900, eta_min=31, free_cancellation=False),
+         "2026-06-05T12:03:40Z", "price +300, free cancellation removed"),
+    ]
+
+    last_offer = None
+    for i, (terms, ts, note) in enumerate(rounds, 1):
+        offer = merchant.emit("ATTEST", "commerce.offer", ts=ts, refs=(intent.id,),
+                              payload={"item": "bibimbap", "context": CONTEXT,
+                                       "expires": "2026-12-31T00:00:00Z", **terms})
+        say("human", f"approval {i} ({note}) — a quick confirmation tap")
+        human.emit("AUTHORIZE", "consent.approval", ts=ts, refs=(offer.id,),
+                   scope={"max_total_krw": terms["price_krw"], "payee": "k:merchant",
+                          "context": CONTEXT})
+        last_offer = offer
+
+    verify_log(led.events)
+    state = project_transaction_state(led.events, last_offer.id)
+    print(f"\n  verify_log: PASS ({len(led.events)} signed events — every approval is byte-valid)")
+    print(f"  structural state (latest offer's txn): {state}   "
+          f"(an approval exists; no payment yet)")
+
+    print("\n3. A policy fold reads the human's SEQUENCE of approvals (not one consent):")
+    findings = audit_approval_cadence(led.events, CONTEXT)
+    verdict = f"{len(findings)} FINDING(S)" if findings else "CLEAN"
+    print(f"  approval cadence audit: {verdict}")
+    for code, why in findings:
+        print(f"      ! {code}  {why}")
+
+    print("\n4. The well-behaved response: PAUSE payment for a consolidated re-review —")
+    print("   no commerce.payment_result is emitted; the order does not advance.")
+    print("  => every AUTHORIZE is byte-valid and ARC does NOT void any of them. But the")
+    print("     cadence fold — over the human's own approval SEQUENCE — flags a structural")
+    print("     consent-quality risk: repeated approvals of changing terms in a short")
+    print("     window. ARC records that review was RUSHED, never that it FAILED — it")
+    print("     cannot read attention, and fast approvals may be an informed, decisive")
+    print("     user. So this is a review trigger, not a verdict —")
+    print("       confirmed_inattention                = false  (attention is unverifiable)")
+    print("       repeated_approval_churn              = true")
+    print("       material_change_unconsolidated       = true")
+    print("       payment_blocked_pending_re_review    = true")
+    print("       human_or_governance_review_required  = true")
+    return led
+
+
 if __name__ == "__main__":
     print("=" * 78)
     print("ARC local-commerce reference episode")
@@ -1156,14 +1350,20 @@ if __name__ == "__main__":
     print("-" * 78)
     run_discovery_bias()
 
+    print("\n" + "-" * 78)
+    print("[H] FAILURE RUN — approval fatigue (consent-quality over a sequence)")
+    print("-" * 78)
+    run_approval_fatigue()
+
     print("\n" + "=" * 78)
     print("byte-valid approval != fresh approval; byte-valid fulfillment != backed")
     print("fulfillment; byte-valid rep.outcome != trustworthy reputation; byte-valid")
     print("offer != vetted merchant; byte-valid approval != faithfully informed")
-    print("approval; byte-valid ranking != faithfully disclosed ranking. ARC preserves")
-    print("the signed facts; freshness, payment-backing, rater diversity, identity")
-    print("assurance, consent disclosure, and ranking disclosure are projections over")
-    print("them, not properties of the bytes — each a review trigger for a human, never")
-    print("a fraud verdict ARC reaches on its own. The signature seals the record; it")
-    print("never seals the referent or the view.")
+    print("approval; byte-valid ranking != faithfully disclosed ranking; byte-valid")
+    print("approvals != consolidated review. ARC preserves the signed facts; freshness,")
+    print("payment-backing, rater diversity, identity assurance, consent disclosure,")
+    print("ranking disclosure, and approval cadence are projections over them, not")
+    print("properties of the bytes — each a review trigger for a human, never a fraud")
+    print("verdict ARC reaches on its own. The signature seals the record; it never")
+    print("seals the referent or the view.")
     print("=" * 78)
