@@ -2,7 +2,7 @@
 
 > **What it shows:** one point on seven faces — *a byte-valid record is not a legitimate one*. In each failure run every signature verifies, yet a policy fold exposes something the signed bytes do not settle.
 >
-> **Status:** `episode.py` runs the baseline happy path plus seven failure runs ([B]–[H]): stale-offer, payment-failure, colluding-reputation-farming, fake-merchant, compromised-consumer-agent, discovery-bias, and approval-fatigue (see §5.1). Every failure-run artifact in this directory is now executable.
+> **Status:** `episode.py` now contains the complete runnable catalog ([A]–[H]). See §5.1.
 
 ## 1. Purpose
 
