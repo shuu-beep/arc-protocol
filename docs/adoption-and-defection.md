@@ -139,4 +139,6 @@ The next useful artifacts are not adoption claims but tests of the inverse:
 - a single community where the audit overlay is exercised against a real dispute
 - refusals recorded in the §6 schema from real merchants, users, or communities ([roadmap §Stage 5](roadmap.md))
 
+These three are the instruments of [pilot-design.md](pilot-design.md), which defines how a limited pilot would test the inverse — learning, not validation.
+
 A recorded "no," with its reason, is worth more to this frontier than an asserted "yes." A protocol cannot learn from the adoption it imagines.
