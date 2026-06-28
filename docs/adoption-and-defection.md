@@ -106,14 +106,37 @@ The cold-start fixture ([`examples/reference-client/coldstart_fixture.py`](../ex
 
 What changes the calculus is lived experience, not a document: a community where the audit overlay caught a real fraud, a merchant whose portable reputation actually moved, a user who recovered something a platform would have swallowed. None of that can be asserted here without misrepresenting ARC's current state.
 
-## 6. Current Position
+## 6. A Refusal-Recording Schema
 
-ARC's adoption theory is not just incomplete — its honest form is inverted. The defensible work is to enumerate why each actor declines (§3) and to hold the countering mechanisms as hypotheses (§4), not to assert that the mechanisms win.
+The §3 exits are not only an analysis; they are a measurement vocabulary. The cheapest honest experiment available before any network exists is to record refusals in a structured form, so a later pilot inherits data instead of anecdotes.
+
+A minimal record per refusal:
+
+```txt
+actor      — developer | company | merchant | user | community
+exit       — WAIT | DEFECT | FORK | REJECT
+reason     — the participant's own words, not a category we assigned
+mechanism  — which §4 candidate, if any, the participant says would have
+             changed the decision; "none" is a valid and important answer
+```
+
+The discipline is in how the fields are filled:
+
+- The schema records what a participant *says*, not what we infer. A reason paraphrased into our own category is already a claim in disguise.
+- `mechanism = none` is the most valuable cell: a refusal that no §4 candidate would have moved is a candidate falsified — which is the inverse doing exactly its job.
+- A `WAIT` is not a soft `REJECT`. It records that the calculus could flip once others move, and names *whose* move it waits on — a different datum than a flat no, and the one the bootstrap chicken-and-egg turns on.
+- The instrument must not drift into a persuasion script. Its job is to capture the refusal faithfully, not to convert it; an interviewer who argues the participant out of their reason has corrupted the record, not improved the result.
+
+This gives a concrete shape to what [roadmap §Stage 5](roadmap.md) already asks for ("Record why any merchants, logistics providers, or users declined"). It produces no adoption claim. It produces a falsification surface.
+
+## 7. Current Position
+
+ARC's adoption theory is not just incomplete — its honest form is inverted. The defensible work is to enumerate why each actor declines (§3), to hold the countering mechanisms as hypotheses (§4), and to record refusals as data (§6) — not to assert that the mechanisms win.
 
 The next useful artifacts are not adoption claims but tests of the inverse:
 
 - a measured integration cost against one real merchant stack
 - a single community where the audit overlay is exercised against a real dispute
-- recorded reasons that specific merchants, users, or communities chose an exit ([roadmap §Stage 5](roadmap.md))
+- refusals recorded in the §6 schema from real merchants, users, or communities ([roadmap §Stage 5](roadmap.md))
 
 A recorded "no," with its reason, is worth more to this frontier than an asserted "yes." A protocol cannot learn from the adoption it imagines.

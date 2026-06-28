@@ -219,7 +219,7 @@ Stage 5 would need to test this in practice. A small pilot may be relevant to vo
 - [ ] Run limited mock or real-world trials only where legally and operationally appropriate
 - [ ] Collect and analyze reputation data
 - [ ] Document what broke, what worked, what was missing
-- [ ] Record why any merchants, logistics providers, or users declined to participate
+- [ ] Record why any merchants, logistics providers, or users declined to participate (using the refusal-recording schema in [adoption-and-defection §6](adoption-and-defection.md))
 
 ---
 
