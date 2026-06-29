@@ -181,7 +181,7 @@ ARC's incentive theory is incomplete.
 
 That is acceptable at this stage if stated clearly. The next useful work is not to claim that open agent commerce will automatically attract participants, but to design small experiments that reveal what participants actually need.
 
-Where this document catalogs the gaps by network role, [`adoption-and-defection.md`](adoption-and-defection.md) takes the per-actor decision view the threat model calls the honest entry point ([§18.1](threat-model.md)): why each actor can rationally wait, defect, fork, or reject, and which mechanisms — held as hypotheses, not claims — might change that.
+Where this document catalogs the gaps by network role, [`adoption-and-defection.md`](adoption-and-defection.md) takes the per-actor decision view the threat model calls the honest entry point ([§18.1](threat-model.md)): why each actor can rationally wait, defect, fork, or reject, and which mechanisms — held as hypotheses, not claims — might change that. The historical economics behind those mechanisms — why comparable open protocols were adopted, or displaced after adopting — are surveyed in [`coordination-economics-survey.md`](coordination-economics-survey.md).
 
 Useful future artifacts may include:
 

@@ -66,7 +66,7 @@ These are not failure states to be argued away. Each is a defensible reading of 
 
 ## 4. Candidate Coordination Mechanisms
 
-Each item below is a coordination mechanism that *could* change one of the calculations in §3. None is asserted to work. Each is paired with what remains unproven, because a mechanism stated without its residue is a claim in disguise.
+Each item below is a coordination mechanism that *could* change one of the calculations in §3. None is asserted to work. Each is paired with what remains unproven, because a mechanism stated without its residue is a claim in disguise. Whether mechanisms of this shape have historically moved adoption — and how often comparable open protocols were instead displaced after adopting — is surveyed in [coordination-economics-survey.md](coordination-economics-survey.md).
 
 ### 4.1 Lower integration cost → addresses WAIT, REJECT
 
