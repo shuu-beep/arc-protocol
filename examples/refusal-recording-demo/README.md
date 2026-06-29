@@ -25,7 +25,7 @@ and a record folds.
 | ARC **can** compute from refusal records | ARC **cannot** compute |
 | --- | --- |
 | counts by actor, exit, named mechanism | whether a stated reason is *true* |
-| which candidate mechanisms are weakened / falsified for the cells they claim | whether the actor would really change behaviour later |
+| per candidate, evidence *named* by the refuser vs *cell-coincident* (reason unread) | whether the actor would really change behaviour later |
 | `mechanism = none` cases (no mechanism would have moved them) | whether adoption will or will not happen |
 | where a WAIT depends on a still-missing side (mutual-WAIT deadlock) | whether a mechanism is valid *in general* |
 | which exits no candidate mechanism even claims to address | whether a refusal was strategic, lazy, hostile, or honest |
@@ -60,26 +60,33 @@ The fixtures in [`fixtures.json`](fixtures.json) are **synthetic and
 illustrative**. They are written the way a participant might speak, but they
 are not claims about any real actor.
 
-## How a candidate gets weakened or falsified
+## How the evidence is read
 
 Each §4 candidate mechanism claims to address certain `(actor, exit)` cells.
-A `mechanism = none` refusal *inside a cell a candidate claims* is direct
-evidence against that candidate: ARC offered to move exactly this kind of
-party, and the party says nothing — including that candidate — would have.
+The fold keeps two qualities of evidence deliberately apart:
+
+- **named** — the refuser themselves pointed at this candidate as the gap.
+  Reason-relevant, because they chose it — but a lead only, since they still
+  declined.
+- **cell-coincident** — a `mechanism = none` refusal lands in a cell this
+  candidate claims. It contradicts the candidate's *claim* to address that
+  cell, but the fold does not read the reason and cannot say the refuser ever
+  weighed this candidate.
 
 ```txt
-none-in-claimed  &  not named   ->  FALSIFIED        (for its claimed cells, in this set)
-none-in-claimed  &  named       ->  WEAKENED
-named            &  no none      ->  NAMED-RELEVANT  (unvalidated; the party still declined)
-neither                          ->  UNTESTED
+named  &  cell-coincident   ->  MIXED
+named  only                  ->  NAMED-RELEVANT (still declined)
+cell-coincident  only        ->  CELL-CONTRADICTED (reason unread)
+neither                      ->  UNTESTED
 ```
 
-A candidate that claims broadly (e.g. "any actor × REJECT") is, correctly,
-the most exposed: a broad promise is the easiest to falsify.
+No candidate ever reaches "validated." The strongest a refusal can say *for*
+a mechanism is "named as the gap" — and that party still declined.
 
 ## What the run shows (synthetic set)
 
-- Every candidate lands at WEAKENED or FALSIFIED — **none reaches validated.**
+- Every candidate lands at MIXED or CELL-CONTRADICTED — **none reaches
+  validated.** The strongest reading for any candidate is "named, still declined".
 - The **company / DEFECT** record — the "embrace the open spec, then withdraw
   federation once the users are ours" case — falls in a cell **no candidate
   mechanism even claims to address.** ARC's §4 set is silent on it.
@@ -110,6 +117,40 @@ a DEFECT or FORK by an actor holding the network also forecloses others'
 exit. The fold surfaces this empirically — the company DEFECT shows up as an
 *unaddressed cell*, not as a new category. Resisting the fifth exit is the
 anti-motive discipline doing its job.
+
+## Red-team notes (known limitations)
+
+This probe was deliberately attacked after it was built. The findings are
+kept here rather than smoothed away, because the most useful are *principled*
+limits, not bugs.
+
+- **The fold matches by cell, but relevance lives in the reason.** A candidate
+  is tied to a refusal by its `(actor, exit)` cell, so a `mechanism = none`
+  refusal contradicts *every* candidate that claims its cell — even one whose
+  subject its reason has nothing to do with (a "governance is unpaid" REJECT
+  contributes cell-coincident pressure to "lower integration cost"). This is
+  not fixable by making the fold read the reason: parsing the reason to decide
+  relevance is exactly the inference [§6](../../docs/adoption-and-defection.md)
+  forbids ("a reason paraphrased into our own category is a claim in
+  disguise"). The fold is therefore only as precise as §4's claims, which are
+  written by `(actor, exit)`, not by reason. The honest response is to label
+  the two evidence qualities (NAMED vs CELL-COINCIDENT, "reason unread") and
+  leave reason-relevance to a human reading the records — not to hide the
+  coarseness behind a confident verdict.
+
+- **These are weights and directions, not verdicts.** A single `none` refusal
+  contributes contradiction *pressure*; the fold reports `n=` counts so the
+  weight is visible and never claims a candidate is settled. The data here is
+  synthetic, so nothing is contradicted "in general" — only in this set, in
+  the cells a candidate claims.
+
+- **The §4 candidate set has blind spots, and the fold surfaces them.** Two
+  refusal reasons — "governance is unpaid" and the company DEFECT that adopts
+  to capture then de-federates — are not really answered by *any* candidate.
+  The capture case shows up explicitly as an *unaddressed cell*; the unpaid-
+  governance case shows up as cell-coincident pressure on candidates that have
+  nothing to say about pay. Both point back at §4, not at the fold: the
+  candidate set is incomplete, and the probe makes that visible.
 
 ## Files
 

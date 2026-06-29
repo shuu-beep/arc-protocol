@@ -21,9 +21,10 @@ From a set of such records the fold computes a *falsification surface*:
 
   WHAT THIS FOLD COMPUTES
     - counts by actor, by exit, by named mechanism
-    - which candidate mechanisms are WEAKENED or FALSIFIED for the cells
-      they claim to address (a `mechanism = none` refusal in a cell a
-      candidate claims is evidence against that candidate)
+    - per candidate, two qualities of evidence kept apart: NAMED (the refuser
+      themselves pointed at it) and CELL-COINCIDENT (a `mechanism = none`
+      refusal in an (actor, exit) cell the candidate claims — contradiction
+      pressure, but the fold does not read the reason)
     - where a WAIT depends on another, still-missing side of the network
       (including mutual WAIT deadlock)
     - which exits no candidate mechanism even claims to address
@@ -32,13 +33,22 @@ From a set of such records the fold computes a *falsification surface*:
     - whether a stated reason is true
     - whether the actor would actually change behavior later
     - whether adoption will or will not happen
-    - whether a mechanism is valid in general (only: falsified in *this*
-      synthetic set, for the cells it claims)
+    - whether a mechanism is valid in general (only: contradicted in *this*
+      synthetic set, in the cells it claims)
     - whether a refusal was strategic, lazy, hostile, or honest
+    - whether a CELL-COINCIDENT refuser ever weighed that candidate at all —
+      reading the reason to decide would be the inference §6 forbids
 
 A candidate mechanism is never VALIDATED here. The strongest a refusal can
-say for a mechanism is "named as decisive" — and that party still declined,
-so the lead is unproven. The fold can only weaken, never confirm.
+say for a mechanism is "named as the gap" — and that party still declined,
+so the lead is unproven. The fold can only contradict or weaken, never confirm.
+
+Red-team note: the fold is only as precise as §4's claims, which are stated
+by (actor, exit), not by reason. So a `mechanism = none` refusal contradicts
+every candidate that claims its cell, even one its reason has nothing to do
+with. That coarseness is reported honestly (NAMED vs CELL-COINCIDENT, "reason
+unread") rather than hidden — and it is not fixable by making the fold read
+reasons, because that is the forbidden inference. See README "Red-team notes".
 
 The fixtures in `fixtures.json` are SYNTHETIC and illustrative. This is not
 an adoption simulator and predicts nothing. Stdlib only; no network.
@@ -46,7 +56,7 @@ an adoption simulator and predicts nothing. Stdlib only; no network.
 
 import json
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 ALL_ACTORS = ["developer", "company", "merchant", "user", "community"]
@@ -116,36 +126,45 @@ def summarize(refusals, field):
 
 
 def candidate_verdicts(refusals):
-    """For each §4 candidate, fold the refusals into a falsification verdict.
+    """Fold refusals into a per-candidate evidence picture.
 
-    - none_in_claimed : refusals in a cell the candidate claims, where the
-                        party says NO mechanism would have moved them. Direct
-                        evidence against the candidate's claim.
-    - named           : refusals (anywhere) naming this candidate as the one
-                        that would have changed the decision. A lead only —
-                        the party still declined, so never a validation.
+    Two qualities of evidence, deliberately kept apart:
+
+    - named           : the refuser themselves named this candidate as the
+                        gap. Reason-relevant, because they chose it — but a
+                        lead only, since they still declined.
+    - cell_coincident : a `mechanism = none` refusal lands in an (actor, exit)
+                        cell this candidate claims. It contradicts the
+                        candidate's *claim* to address that cell, but the fold
+                        does not read the reason and cannot say the refuser
+                        ever weighed THIS candidate.
+
+    The split matters: §4 specifies each candidate by (actor, exit), so the
+    fold can only test at that grain. Matching by the refusal's reason would
+    be the inference §6 forbids. Cell-coincident evidence is therefore
+    contradiction *pressure*, never "the refuser rejected this mechanism".
     """
     out = {}
     for cid, cand in CANDIDATES.items():
-        none_in_claimed = [
+        named = [r for r in refusals if r["mechanism"] == cid]
+        cell_coincident = [
             r for r in refusals
             if r["mechanism"] == "none" and claims_cell(cand, r["actor"], r["exit"])
         ]
-        named = [r for r in refusals if r["mechanism"] == cid]
 
-        if none_in_claimed and not named:
-            verdict = "FALSIFIED"
-        elif none_in_claimed and named:
-            verdict = "WEAKENED"
-        elif named and not none_in_claimed:
-            verdict = "NAMED-RELEVANT (unvalidated)"
+        if named and cell_coincident:
+            verdict = "MIXED"
+        elif named:
+            verdict = "NAMED-RELEVANT (still declined)"
+        elif cell_coincident:
+            verdict = "CELL-CONTRADICTED (reason unread)"
         else:
             verdict = "UNTESTED"
 
         out[cid] = {
             "verdict": verdict,
-            "none_in_claimed": none_in_claimed,
             "named": named,
+            "cell_coincident": cell_coincident,
         }
     return out
 
@@ -212,20 +231,22 @@ def main():
                 else CANDIDATES[m]["name"]
             print(f"  {m:<5} {mech[m]}   ({label})")
 
-    print(hr("[4] Candidate-mechanism falsification surface"))
-    print("  No candidate is ever VALIDATED here; at most named-relevant.")
+    print(hr("[4] Candidate-mechanism evidence surface"))
+    print("  No candidate is ever validated. Two evidence qualities, kept apart:")
+    print("  NAMED (the refuser pointed at it) vs CELL-COINCIDENT (a 'none'")
+    print("  refusal in a cell it claims — contradiction pressure, reason unread).")
     verdicts = candidate_verdicts(refusals)
     for cid, cand in CANDIDATES.items():
         v = verdicts[cid]
         actors = "any actor" if cand["actors"] is None else "/".join(sorted(cand["actors"]))
         print(f"\n  {cid} {cand['name']}  ->  {v['verdict']}")
         print(f"      claims: {actors} × {{{', '.join(sorted(cand['exits']))}}}")
-        if v["none_in_claimed"]:
-            ids = ", ".join(f"{r['id']}({r['actor']} {r['exit']})" for r in v["none_in_claimed"])
-            print(f"      none-in-claimed (evidence against): {ids}")
         if v["named"]:
             ids = ", ".join(f"{r['id']}({r['actor']} {r['exit']})" for r in v["named"])
-            print(f"      named as decisive (lead, still declined): {ids}")
+            print(f"      named as the gap (n={len(v['named'])}, still declined): {ids}")
+        if v["cell_coincident"]:
+            ids = ", ".join(f"{r['id']}({r['actor']} {r['exit']})" for r in v["cell_coincident"])
+            print(f"      cell-coincident (n={len(v['cell_coincident'])}, reason unread): {ids}")
 
     print(hr("[5] WAIT dependency map"))
     waits, deadlocks = wait_dependencies(refusals)
@@ -258,8 +279,10 @@ def main():
         "whether any stated reason is true (a reason is testimony, not fact)",
         "whether a NAMED-RELEVANT party would actually adopt if the mechanism existed",
         "whether adoption will or will not happen",
-        "whether a mechanism is valid in general (only: falsified in this set)",
+        "whether a mechanism is valid in general (only: contradicted in this set)",
         "whether a refusal was strategic, lazy, hostile, or honest",
+        "whether a CELL-COINCIDENT refuser ever weighed that candidate (the fold "
+        "does not read reasons; matching by reason would be forbidden inference)",
     ]:
         print(f"  - {line}")
     print("\n  The fold seals what was said, never that it is so: the same wall")
