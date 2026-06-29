@@ -129,6 +129,8 @@ The discipline is in how the fields are filled:
 
 This gives a concrete shape to what [roadmap §Stage 5](roadmap.md) already asks for ("Record why any merchants, logistics providers, or users declined"). It produces no adoption claim. It produces a falsification surface.
 
+An executable probe ([`examples/refusal-recording-demo`](../examples/refusal-recording-demo/)) folds synthetic records through this schema and makes the boundary literal — **adoption does not fold, but a refusal record does**: candidate mechanisms are weakened or falsified, never validated, while the reason's truth and the actor's future stay off-ledger.
+
 ## 7. Current Position
 
 ARC's adoption theory is not just incomplete — its honest form is inverted. The defensible work is to enumerate why each actor declines (§3), to hold the countering mechanisms as hypotheses (§4), and to record refusals as data (§6) — not to assert that the mechanisms win.

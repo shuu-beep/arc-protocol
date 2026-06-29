@@ -1,0 +1,104 @@
+{
+  "_note": "SYNTHETIC fixtures — illustrative refusal records, NOT real participant data and NOT claims about any real actor. They exist only to exercise the fold. Reasons are written as a participant might state them; the fold treats every reason as testimony, never as established fact.",
+  "_schema": {
+    "actor": "developer | company | merchant | user | community",
+    "exit": "WAIT | DEFECT | FORK | REJECT",
+    "reason": "the participant's own words (synthetic here)",
+    "mechanism": "which adoption-and-defection.md §4 candidate (4.1..4.6) the participant says would have changed the decision; 'none' is valid and important",
+    "waits_on": "(WAIT only) what the participant is waiting on, in their words",
+    "waits_on_actor": "(WAIT only, optional) the actor type waited on, when it is a specific side rather than the network at large"
+  },
+  "refusals": [
+    {
+      "id": "r1",
+      "actor": "merchant",
+      "exit": "WAIT",
+      "reason": "No consumer demand yet. Lowering my integration cost changes nothing while there are no buyers; I will expose structured offers when there is someone to receive them.",
+      "mechanism": "none",
+      "waits_on": "consumer demand",
+      "waits_on_actor": "user"
+    },
+    {
+      "id": "r2",
+      "actor": "merchant",
+      "exit": "REJECT",
+      "reason": "The platform already gives me support, refunds, and fraud handling. ARC asks me to give those up for an unproven channel that provides no demand of its own.",
+      "mechanism": "none"
+    },
+    {
+      "id": "r3",
+      "actor": "merchant",
+      "exit": "REJECT",
+      "reason": "I would reconsider only if my earned reputation actually moved with me across communities instead of resetting.",
+      "mechanism": "4.3"
+    },
+    {
+      "id": "r4",
+      "actor": "developer",
+      "exit": "FORK",
+      "reason": "The audit log and approval seam are genuinely useful. The community governance is overhead I do not want, so I will lift the parts I need and drop the rest.",
+      "mechanism": "none"
+    },
+    {
+      "id": "r5",
+      "actor": "developer",
+      "exit": "WAIT",
+      "reason": "I will build against ARC when there is a network to build for. Right now it is speculative work against users who may never arrive.",
+      "mechanism": "none",
+      "waits_on": "a live network with users"
+    },
+    {
+      "id": "r6",
+      "actor": "company",
+      "exit": "DEFECT",
+      "reason": "We would adopt the open spec and interoperate to gain users, then withdraw federation once the base is ours. The open phase is an on-ramp, not a commitment.",
+      "mechanism": "none"
+    },
+    {
+      "id": "r7",
+      "actor": "company",
+      "exit": "FORK",
+      "reason": "We will run the event types as a compliance veneer and skip the human-approval and disclosure discipline. We want the surface, not the constraint.",
+      "mechanism": "none"
+    },
+    {
+      "id": "r8",
+      "actor": "community",
+      "exit": "REJECT",
+      "reason": "Governance is unpaid adversarial labor: fraud reports, appeals, conflict-of-interest checks. Making rulings transparent does not make the work paid.",
+      "mechanism": "none"
+    },
+    {
+      "id": "r9",
+      "actor": "user",
+      "exit": "REJECT",
+      "reason": "A centralized app already gives me refunds, chargebacks, and support. A portable audit overlay I could actually act on might change that, but as offered it does not.",
+      "mechanism": "4.2"
+    },
+    {
+      "id": "r10",
+      "actor": "user",
+      "exit": "REJECT",
+      "reason": "Nothing you could add changes that I trust my bank's chargeback more than a community log.",
+      "mechanism": "none"
+    },
+    {
+      "id": "r11",
+      "actor": "user",
+      "exit": "WAIT",
+      "reason": "With no merchants, an ARC agent has nothing to do. I will wait until there is somewhere to use it.",
+      "mechanism": "none",
+      "waits_on": "merchants",
+      "waits_on_actor": "merchant"
+    },
+    {
+      "id": "r12",
+      "actor": "company",
+      "exit": "WAIT",
+      "reason": "The audit and portability benefits accrue to the whole ecosystem; the integration cost lands on whoever moves first. A cheaper integration would remove our first-mover penalty.",
+      "mechanism": "4.1",
+      "waits_on": "other operators moving first",
+      "waits_on_actor": null
+    }
+  ]
+}

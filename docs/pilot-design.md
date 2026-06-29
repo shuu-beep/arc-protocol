@@ -30,6 +30,7 @@ Three instruments. Each is described by what it can *falsify*, because an instru
 
 - **Instrument:** every party approached who declines is logged with the schema in [adoption-and-defection §6](adoption-and-defection.md) — `actor`, `exit` (WAIT/DEFECT/FORK/REJECT), `reason` in their own words, and which §4 candidate they say would have changed the decision.
 - **What it falsifies:** a `mechanism = none` refusal is a §4 candidate falsified for that actor — the most informative cell in the pilot. The instrument is corrupted if the recorder argues the participant out of their reason; its job is faithful capture, not conversion.
+- **Demonstrated:** the fold this instrument relies on is exercised on synthetic records in [`examples/refusal-recording-demo`](../examples/refusal-recording-demo/) — the schema yields a falsification surface (candidates weakened or falsified, never validated) before any real refusal is collected.
 
 ### 2.2 Integration-cost measurement
 
