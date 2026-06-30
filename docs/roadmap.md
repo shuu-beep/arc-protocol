@@ -199,7 +199,7 @@ Stage 2 implements the foundational identity and reputation concepts described i
 
 **Status: Not started**
 
-Goal: run a limited, real-world test with actual merchants in a defined geography. For how such a pilot would test the inverse — learning, not validation — see [pilot-design.md](pilot-design.md).
+Goal: run a limited, real-world test with actual merchants in a defined geography. For how such a pilot would test the inverse — learning, not validation — see [pilot-design.md](pilot-design.md). The step that comes *before* a pilot — recording why real parties decline, before any of them has begun to use ARC — is [first-refusal-protocol.md](first-refusal-protocol.md).
 
 **Why would merchants participate?**
 

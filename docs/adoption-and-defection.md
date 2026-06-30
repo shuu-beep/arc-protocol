@@ -139,7 +139,7 @@ The next useful artifacts are not adoption claims but tests of the inverse:
 
 - a measured integration cost against one real merchant stack
 - a single community where the audit overlay is exercised against a real dispute
-- refusals recorded in the §6 schema from real merchants, users, or communities ([roadmap §Stage 5](roadmap.md))
+- refusals recorded in the §6 schema from real merchants, users, or communities ([roadmap §Stage 5](roadmap.md)), following the operating procedure in [first-refusal-protocol.md](first-refusal-protocol.md)
 
 These three are the instruments of [pilot-design.md](pilot-design.md), which defines how a limited pilot would test the inverse — learning, not validation.
 

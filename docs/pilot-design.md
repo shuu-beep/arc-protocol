@@ -22,6 +22,8 @@ The answer is data, not endorsement. The pilot succeeds when it returns honest r
 
 A pilot also has a precondition. The mock simulation ([local-commerce-simulation.md](local-commerce-simulation.md), runnable as [`examples/local-commerce-demo`](../examples/local-commerce-demo/)) must run first, so that the folds and the approval seam are exercised against scripted failures before any real participant is asked to rely on them. A pilot is the mock's successor, not its replacement.
 
+A pilot also presumes a participant has *begun to use* ARC. The step before that — first contact with a real person who has not — is [first-refusal-protocol.md](first-refusal-protocol.md), which collects a refusal as data rather than seeking an adopter. The refusal-recording instrument in §2.1 inherits its operating procedure from there.
+
 ## 2. What the Pilot Measures
 
 Three instruments. Each is described by what it can *falsify*, because an instrument that can only confirm is a demonstration, not a measurement.
