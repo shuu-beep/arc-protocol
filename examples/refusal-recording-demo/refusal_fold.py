@@ -27,6 +27,8 @@ From a set of such records the fold computes a *falsification surface*:
       pressure, but the fold does not read the reason)
     - where a WAIT depends on another, still-missing side of the network
       (including mutual WAIT deadlock)
+    - whether any §4 lever can break a detected mutual-WAIT from one side —
+      i.e. whether a solo (counterparty-independent) lever even reaches it
     - which exits no candidate mechanism even claims to address
 
   WHAT THIS FOLD CANNOT COMPUTE
@@ -38,6 +40,8 @@ From a set of such records the fold computes a *falsification surface*:
     - whether a refusal was strategic, lazy, hostile, or honest
     - whether a CELL-COINCIDENT refuser ever weighed that candidate at all —
       reading the reason to decide would be the inference §6 forbids
+    - whether a solo-value lever, where one reaches a deadlock, is large
+      enough to seed adoption (its size is unmeasured; survey §114)
 
 A candidate mechanism is never VALIDATED here. The strongest a refusal can
 say for a mechanism is "named as the gap" — and that party still declined,
@@ -66,38 +70,77 @@ ALL_EXITS = ["WAIT", "DEFECT", "FORK", "REJECT"]
 # it CLAIMS to address. `actors = None` means "any actor". These claims are
 # transcribed from adoption-and-defection.md §4 — they are exactly what the
 # refusals get to weaken or falsify.
+#
+# `value_locus` records WHERE the mechanism's value accrues, and is also
+# transcribed, not invented — each classification quotes the candidate's own
+# §4 residue or the coordination-economics survey:
+#
+#   "network" — value requires a counterparty to also move; cannot make
+#               moving-first rational from one side alone.
+#   "solo"    — value accrues to a single adopter with zero counterparties
+#               (a counterparty-independent / single-sided lever; survey §57).
+#   "mixed"   — has a solo thread but its principal value is network.
+#
+# This matters for the WAIT deadlock: a mutual-WAIT is a standoff over
+# *network* value (each waits for the other to move), so only a solo-value
+# lever can break it from one side (survey §57, §109). See fold [6].
 CANDIDATES = {
     "4.1": {
         "name": "lower integration cost",
         "actors": None,
         "exits": {"WAIT", "REJECT"},
+        # §4.1 residue: a low cost "still buys nothing without demand on the
+        # other side" — a cost-reducer, not a counterparty-independent value.
+        "value_locus": "network",
     },
     "4.2": {
         "name": "approval and audit overlay",
         "actors": {"user", "company"},
         "exits": {"REJECT"},
+        # survey §109: an ARC audit log has *some* solo value — a party can
+        # record and recompute its own agent's approvals with no one else
+        # participating. But transaction/dispute audit (§4.2) is network and
+        # "felt mainly after a failure". Solo thread, network principal value.
+        "value_locus": "mixed",
     },
     "4.3": {
         "name": "reputation portability",
         "actors": {"merchant"},
         "exits": {"REJECT", "DEFECT"},
+        # §4.3: reputation is how counterparties see you; portability needs a
+        # network to carry it across, and meaning needs Sybil resistance.
+        "value_locus": "network",
     },
     "4.4": {
         "name": "replaceable / forkable discovery",
         "actors": None,
         "exits": {"FORK", "REJECT"},
+        # §4.4: discovery ranks others' offers; "replaceability does not
+        # create the alternative backend" and an empty network has nothing
+        # to discover.
+        "value_locus": "network",
     },
     "4.5": {
         "name": "governance transparency",
         "actors": {"community", "user"},
         "exits": {"DEFECT", "REJECT"},
+        # §4.5: "exposure only bites if some other community is willing to
+        # act on it" — value is contingent on another party.
+        "value_locus": "network",
     },
     "4.6": {
         "name": "open spec as latent counter-pressure",
         "actors": None,
         "exits": {"FORK"},
+        # §4.6: "the check only bites if a fork is viable, and viability needs
+        # the very network effects that are missing."
+        "value_locus": "network",
     },
 }
+
+# Loci that carry a counterparty-independent thread capable, in principle, of
+# breaking a mutual-WAIT from one side.
+SOLO_LOCI = {"solo", "mixed"}
 
 
 def load_refusals(path):
@@ -186,6 +229,39 @@ def wait_dependencies(refusals):
     return waits, deadlocks
 
 
+def solo_value_reach(refusals):
+    """Does any §4 lever break a detected mutual-WAIT — from one side?
+
+    A mutual-WAIT is a standoff over *network* value: each party waits for the
+    other to move, so the value each wants is exactly the value the other is
+    withholding. Lowering cost or sweetening a network benefit does not break
+    it, because at zero counterparties the benefit is still zero. Only a
+    *solo* lever — value that accrues to a single adopter with no counterparty
+    — can make moving-first rational from one side (survey §57).
+
+    This fold tests, per detected deadlock:
+      - which candidates even REACH it (claim a WAIT cell of a deadlocked
+        actor), and
+      - whether any reaching candidate carries a solo-value thread.
+
+    The survey names exactly one thin solo thread in ARC — the audit log's
+    self-delegation audit (§4.2 / survey §109). This fold makes that prose
+    claim load-bearing by checking whether it reaches the deadlock the
+    chicken-and-egg actually turns on. It predicts nothing: even a reaching
+    solo lever is a lead, not a path — its size is unmeasured (survey §114).
+    """
+    _, deadlocks = wait_dependencies(refusals)
+    results = []
+    for d in deadlocks:
+        reaching = [
+            cid for cid, cand in CANDIDATES.items()
+            if any(claims_cell(cand, a, "WAIT") for a in d)
+        ]
+        solo = [cid for cid in reaching if CANDIDATES[cid]["value_locus"] in SOLO_LOCI]
+        results.append({"deadlock": d, "reaching": reaching, "solo": solo})
+    return deadlocks, results
+
+
 def unaddressed_cells(refusals):
     """Refusal cells that NO candidate mechanism even claims to address."""
     covered = set()
@@ -265,7 +341,44 @@ def main():
     else:
         print("  (no mutual-WAIT deadlock in this set)")
 
-    print(hr("[6] Exits no candidate mechanism even claims to address"))
+    print(hr("[6] Does any §4 lever break a mutual-WAIT?"))
+    print("  A mutual-WAIT is a standoff over NETWORK value — each waits for the")
+    print("  other to move. Only a counterparty-independent (solo) lever breaks it")
+    print("  from one side. ARC's one named solo thread is the audit log's")
+    print("  self-delegation audit (4.2 / survey §109); the rest are network-value.")
+    deadlocks, reach = solo_value_reach(refusals)
+    if not deadlocks:
+        print("  (no mutual-WAIT deadlock in this set; nothing to break)")
+    for res in reach:
+        d = res["deadlock"]
+        print(f"\n  deadlock {{{', '.join(sorted(d))}}}:")
+        if res["reaching"]:
+            for cid in res["reaching"]:
+                cand = CANDIDATES[cid]
+                print(f"      reached by {cid} {cand['name']}  [{cand['value_locus']}]")
+        else:
+            print("      reached by no candidate at all")
+        if res["solo"]:
+            print(f"      => a solo-value lever reaches it: {', '.join(res['solo'])}")
+            print("         (a lead only — solo value is unmeasured; survey §114,")
+            print("         a hypothesis, not a path)")
+        else:
+            print("      => NO solo-value lever reaches it. The reaching candidates")
+            print("         are network-value, so §4 does not break this deadlock")
+            print("         from one side.")
+    solo_ids = [cid for cid, c in CANDIDATES.items() if c["value_locus"] in SOLO_LOCI]
+    if deadlocks and solo_ids:
+        print("\n  Where ARC's solo thread actually sits:")
+        for cid in solo_ids:
+            cand = CANDIDATES[cid]
+            has_wait = "incl. WAIT" if "WAIT" in cand["exits"] else "no WAIT cell"
+            print(f"    {cid} {cand['name']} claims {{{', '.join(sorted(cand['exits']))}}}"
+                  f"  ({has_wait})")
+        print("  The only solo lever ARC has is aimed at REJECT, not the WAIT the")
+        print("  chicken-and-egg turns on: the deadlock-breaking lever and the")
+        print("  deadlock do not meet.")
+
+    print(hr("[7] Exits no candidate mechanism even claims to address"))
     gaps = unaddressed_cells(refusals)
     if gaps:
         for r in gaps:
@@ -274,7 +387,7 @@ def main():
     else:
         print("  (every refusal cell is claimed by some candidate)")
 
-    print(hr("[7] What this fold cannot compute (standing residue)"))
+    print(hr("[8] What this fold cannot compute (standing residue)"))
     for line in [
         "whether any stated reason is true (a reason is testimony, not fact)",
         "whether a NAMED-RELEVANT party would actually adopt if the mechanism existed",
@@ -283,6 +396,8 @@ def main():
         "whether a refusal was strategic, lazy, hostile, or honest",
         "whether a CELL-COINCIDENT refuser ever weighed that candidate (the fold "
         "does not read reasons; matching by reason would be forbidden inference)",
+        "whether a solo-value lever, where one reaches a deadlock, is large "
+        "enough to seed adoption (unmeasured; survey §114, hypothesis not path)",
     ]:
         print(f"  - {line}")
     print("\n  The fold seals what was said, never that it is so: the same wall")

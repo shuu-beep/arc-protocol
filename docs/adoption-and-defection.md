@@ -129,7 +129,7 @@ The discipline is in how the fields are filled:
 
 This gives a concrete shape to what [roadmap §Stage 5](roadmap.md) already asks for ("Record why any merchants, logistics providers, or users declined"). It produces no adoption claim. It produces a falsification surface.
 
-An executable probe ([`examples/refusal-recording-demo`](../examples/refusal-recording-demo/)) folds synthetic records through this schema and makes the boundary literal — **adoption does not fold, but a refusal record does**: candidate mechanisms are contradicted in the cells they claim, or named as a gap, never validated, while the reason's truth and the actor's future stay off-ledger.
+An executable probe ([`examples/refusal-recording-demo`](../examples/refusal-recording-demo/)) folds synthetic records through this schema and makes the boundary literal — **adoption does not fold, but a refusal record does**: candidate mechanisms are contradicted in the cells they claim, or named as a gap, never validated, while the reason's truth and the actor's future stay off-ledger. The same probe also folds the §4 candidates by *where their value accrues* and asks whether any of them can break a detected mutual-WAIT from one side — i.e. whether a counterparty-independent (solo) lever even reaches the deadlock. Under §4 as written it does not: the only WAIT-claiming candidate is network-value (§4.1), and the one solo thread ([survey §109](coordination-economics-survey.md)) is aimed at REJECT (§4.2), not WAIT.
 
 ## 7. Current Position
 
