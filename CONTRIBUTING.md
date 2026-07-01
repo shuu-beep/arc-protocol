@@ -15,7 +15,7 @@ ARC Protocol is currently an **early-stage protocol research project with workin
 That means contributions right now look less like pull requests and more like:
 
 - Feedback on the design
-- Criticism of the philosophy
+- Criticism of the protocol model and its stated boundaries
 - Threat models and attack scenarios
 - Suggestions for the protocol specification
 - Ideas for the governance model
@@ -29,7 +29,7 @@ Code contributions will matter more as the project moves toward MVP. For now, th
 
 ### 1. Open an Issue
 
-Found a flaw in the philosophy? A contradiction in the architecture? A governance edge case we haven't considered?
+Found a flaw in the protocol model? A contradiction in the architecture? A governance edge case we haven't considered?
 
 Open an issue. Describe the problem clearly. We take all serious criticism seriously.
 
@@ -50,10 +50,10 @@ ARC sits at the intersection of several fields. Contributions from adjacent disc
 - **Threat models** — what attacks does the current design miss?
 - **Protocol comparisons** — how does ARC compare to existing agent communication standards?
 - **Governance research** — what can ARC learn from existing federated governance models?
-- **Economic analysis** — does the reputation economy hypothesis hold under adversarial conditions?
+- **Economic analysis** — does recomputed, unstored reputation hold up under adversarial conditions?
 - **Papers and critiques** — academic or informal writing that engages with the core ideas
 
-If you've thought carefully about agent commerce, decentralized governance, or attention economy dynamics — that thinking is welcome here.
+If you've thought carefully about agent delegation, decentralized governance, or authority and audit design — that thinking is welcome here.
 
 ### 3. Improve the Documentation
 
@@ -99,7 +99,7 @@ ARC Protocol is written in English but the problems it addresses are global. If 
 - Fully autonomous agent systems without human approval
 - Anything that reduces human sovereignty over economic decisions
 
-ARC has a clear philosophical position. Contributions that contradict the core principles will not be merged — but debate about those principles is always welcome in issues.
+ARC has a clear set of core principles. Contributions that contradict them will not be merged — but debate about those principles is always welcome in issues.
 
 ---
 
@@ -122,7 +122,7 @@ When the codebase grows, we'll add specific style guides. For now:
 4. Write a clear PR description explaining what you changed and why
 5. Submit
 
-There is no SLA on reviews right now. This is a one-person project. Patience appreciated.
+There is no SLA on reviews right now. The project is currently stewarded by a single maintainer. Patience appreciated.
 
 ---
 
@@ -151,7 +151,7 @@ For now, contribution remains entirely human-directed. ARC does not support unso
 
 ## A Note on Scale
 
-This project has zero contributors right now besides the author.
+This project is stewarded by a single maintainer, with no other contributors yet.
 
 If you're reading this and considering contributing — even just opening an issue with a critique — that matters. The point of open-sourcing a design document is to expose it to people who will find the holes.
 

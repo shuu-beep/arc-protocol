@@ -2,7 +2,7 @@
 
 > **Status:** Exploratory positioning note
 >
-> **Purpose:** Locate ARC among the agent and commerce systems emerging in 2026 — beginning with what ARC is *not* — so external readers do not mistake it for a tool-use layer, an agent-interop layer, a checkout standard, a marketplace, a payment network, or a blockchain protocol.
+> **Purpose:** ARC is an open layer for human-approved delegation, portable authority, and recomputable audit; commerce is its first implementation, and therefore the arena where it must be told apart from its neighbors. This note locates ARC among the agent and commerce systems emerging in 2026 — beginning with what ARC is *not* — so external readers do not mistake it for a tool-use layer, an agent-interop layer, a checkout standard, a marketplace, a payment network, or a blockchain protocol.
 >
 > This is positioning, not comparison-for-advantage. ARC does not claim to replace or outperform any system named here. Descriptions of external systems reflect ARC's current understanding and may be imprecise or out of date; they are not authoritative and may change.
 >
@@ -20,10 +20,13 @@ It also makes the surrounding landscape explicit. Earlier ARC documents referred
 
 ## 2. What ARC Is
 
-ARC is, as currently understood:
+ARC is, as currently understood, an open layer for three things ([README](../README.md)):
 
-- **A human-approved commerce coordination layer** — a way for agents to negotiate and prepare commerce while humans keep final approval, and while identity, reputation, dispute, and governance records remain inspectable.
-- **An agent-mediated commerce protocol exploration** — not a finished protocol but a design exploration of the records, approvals, and boundaries such commerce would need (see [future-protocol-spec.md](./future-protocol-spec.md)).
+- **Human-approved delegation** — agents negotiate and prepare; the human holds the final signed step. Delegation is scoped and never self-widening.
+- **Portable authority** — authority routes between agents and across communities without being minted by any single operator, and a community may honor another's or decline it.
+- **Recomputable audit** — only signed events are stored; identity, reputation, dispute, and governance standing are recomputed from them on demand, never saved as a score.
+
+Commerce is ARC's **first implementation, not its definition**, and the domain in which the comparisons below (§4–§11) are drawn — because that is where ARC first meets neighboring systems. A human-approved purchase folds to the same primitives as any other delegation: a merchant's offer is an `ATTEST`, the human's approval an `AUTHORIZE`, a dispute a `CHALLENGE`, a community ruling an `ADJUDICATE`. It remains an exploration, not a finished protocol ([future-protocol-spec.md](./future-protocol-spec.md)).
 
 In Canon terms ([object-model.md](./object-model.md), [authority-and-conflict.md](./authority-and-conflict.md)), ARC reasons over signed **Events**, computes relationships and reputation as on-demand **Projections**, and locates final authority with humans (over their own action) and communities (over the commons) — never with an algorithm. Trust in ARC is governed and projected, not stored as a universal score.
 
@@ -127,11 +130,11 @@ ARC's stance is overlay, not replacement. It is most useful when these other lay
 
 ## 12. Current ARC Scope
 
-ARC today is a Stage 0 documentation baseline plus a small mock artifact set, not a running system ([roadmap.md](./roadmap.md), [README](../README.md) §26). The Canon (Relationship → Event → Projection → Authority) and the canonical event set (`KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE`) are exploratory drafts, not an implemented protocol or a finalized wire format ([future-protocol-spec.md](./future-protocol-spec.md)).
+ARC today is a **Stage 0.8 executable reference implementation** of its protocol model — beyond the Stage 0 documentation baseline, short of a running product ([roadmap.md](./roadmap.md) Stage 0.8, [README](../README.md)). The Canon (Relationship → Event → Projection → Authority) and the canonical event set (`KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE`) are exercised by a corpus of small runnable probes — canonical folds, an end-to-end flow on real Ed25519, a browser reference client, an eight-run commerce failure catalog, and the adoption/refusal experiments — but remain exploratory drafts, not a finalized wire format or conformance suite ([future-protocol-spec.md](./future-protocol-spec.md)).
 
 In scope:
 
-- human-approved commerce coordination
+- human-approved delegation and its audit, with commerce as the first implementation
 - identity, reputation, dispute, and governance expressed as signed events and projections
 - failure analysis of the above
 

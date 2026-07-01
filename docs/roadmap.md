@@ -306,10 +306,10 @@ ARC does not aim to replace existing commerce infrastructure at scale. Local, li
 
 ## A Note on This Roadmap
 
-Most of this roadmap will probably never be completed by the original author alone.
+Most of this roadmap will probably never be completed by its current maintainer alone, and it is not meant to be — ARC is intended to be built by independent implementers.
 
 That is fine.
 
-Stage 0 — the initial philosophy, architecture proposal, governance model, and limitation documents — is itself a contribution. If this project does nothing but articulate clearly what open agent commerce infrastructure should look like, and someone else builds it better, that is a good outcome.
+Stage 0 — the initial design, architecture proposal, governance model, and limitation documents — is itself a contribution. If this project does nothing but articulate clearly what an open, human-approved authority, approval, and audit layer for agents should look like, and someone else builds it better, that is a good outcome.
 
-The roadmap exists to show that the thinking extends beyond the manifesto. Not to promise delivery.
+The roadmap exists to show that the thinking extends beyond the proposal itself. Not to promise delivery.

@@ -21,7 +21,7 @@ ARC remains exploratory. The purpose of this draft is to make questions about me
 - **Signed offers and approvals where manipulation resistance matters.** Signatures may help establish which party presented or approved a material term.
 - **Timeout-aware negotiation.** Requests, offers, and approval windows may expire and should be handled explicitly.
 - **Failure-first design.** Missing responses, stale offers, failed payments, delivery problems, and disputes are normal protocol concerns, not edge cases to ignore.
-- **DB-first / blockchain-minimal.** Normal databases and existing payment infrastructure remain the primary path; blockchain is optional only where a shared checkpoint is justified.
+- **Storage-neutral.** ARC prescribes no storage backend; it requires signed events and recomputable projections, not a specific database or ledger ([README §9](../README.md#9-protocol-boundaries), [architecture.md §1.1](./architecture.md)). Ordinary databases are sufficient for many deployments; a shared cryptographic checkpoint is an optional implementation choice, never a requirement.
 - **Community-visible dispute records where appropriate.** Verified dispute outcomes may inform trust while privacy and jurisdictional constraints remain under review.
 
 ## 3. Core Actors
