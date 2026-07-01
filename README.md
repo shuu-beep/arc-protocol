@@ -116,6 +116,13 @@ never a stored permission record.
 
 ## 5. Event & Projection
 
+<p align="center">
+  <img src="assets/arc-canon-flow.svg" width="880" alt="The ARC Canon: KEY, ATTEST, AUTHORIZE, CHALLENGE, and ADJUDICATE as a flow with human approval (AUTHORIZE) at the center. Only signed events are stored; trust, reputation, and standing are projections recomputed on demand.">
+</p>
+
+> *Example (commerce): offer → `ATTEST`, approval → `AUTHORIZE`, dispute →
+> `CHALLENGE`, ruling → `ADJUDICATE`.*
+
 ARC stores only signed **Events**. Trust, reputation, standing, and identity
 status are **Projections** — deterministic folds recomputed on demand over the
 event log, then discarded.

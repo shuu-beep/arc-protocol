@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" width="960" height="300" role="img" aria-labelledby="ct cd">
+  <title id="ct">The ARC Canon — five signed event types</title>
+  <desc id="cd">KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE as a flow with human approval at the center; only signed events are stored, everything else is a projection.</desc>
+
+  <rect x="0.5" y="0.5" width="959" height="299" rx="18" fill="#F4EFE3" stroke="#E2DBC8"/>
+
+  <!-- header -->
+  <text x="70" y="50" fill="#5C544A" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="12" letter-spacing="0.26em">THE CANON · FIVE SIGNED EVENT TYPES</text>
+  <text x="890" y="50" text-anchor="end" fill="#948B78" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="11" letter-spacing="0.16em">EVERYTHING ELSE IS A PROJECTION</text>
+
+  <!-- connectors -->
+  <g fill="none" stroke="#D8D0BC" stroke-width="1.5">
+    <path d="M164 130 A 130 130 0 0 1 256 130"/>
+    <path d="M344 130 A 130 130 0 0 1 436 130"/>
+    <path d="M524 130 A 130 130 0 0 1 616 130"/>
+    <path d="M704 130 A 130 130 0 0 1 796 130"/>
+  </g>
+  <g fill="#B9AE93">
+    <circle cx="210" cy="123" r="2.2"/><circle cx="390" cy="123" r="2.2"/>
+    <circle cx="570" cy="123" r="2.2"/><circle cx="750" cy="123" r="2.2"/>
+  </g>
+
+  <!-- AUTHORIZE emphasis -->
+  <text x="480" y="72" text-anchor="middle" fill="#2F6A4A" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="10.5" letter-spacing="0.22em">HUMAN · FINAL SIGNATURE</text>
+
+  <!-- node rings -->
+  <g fill="#F4EFE3" stroke="#D8CDB0" stroke-width="1.5">
+    <circle cx="120" cy="130" r="34"/>
+    <circle cx="300" cy="130" r="34"/>
+    <circle cx="660" cy="130" r="34"/>
+    <circle cx="840" cy="130" r="34"/>
+  </g>
+  <circle cx="480" cy="130" r="42" fill="none" stroke="#2F6A4A" stroke-width="1" stroke-dasharray="2 4"/>
+  <circle cx="480" cy="130" r="34" fill="#F4EFE3" stroke="#2F6A4A" stroke-width="2"/>
+
+  <!-- icons -->
+  <g transform="translate(120,130)" fill="none" stroke="#14110C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="-8" cy="-1" r="5.5"/><line x1="-2.5" y1="-1" x2="12" y2="-1"/>
+    <line x1="8.5" y1="-1" x2="8.5" y2="4.5"/><line x1="12" y1="-1" x2="12" y2="3.5"/>
+  </g>
+  <g transform="translate(300,130)" fill="none" stroke="#14110C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="-8" y="-12" width="16" height="24" rx="2.5"/>
+    <line x1="-4" y1="-5" x2="4" y2="-5"/><line x1="-4" y1="0" x2="4" y2="0"/><line x1="-4" y1="5" x2="2" y2="5"/>
+  </g>
+  <g transform="translate(480,130)" fill="#2F6A4A">
+    <circle cx="0" cy="-7" r="6"/><path d="M-11 11 a11 11 0 0 1 22 0 z"/>
+  </g>
+  <g transform="translate(660,130)" fill="none" stroke="#14110C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-11 -8 h22 a3 3 0 0 1 3 3 v8 a3 3 0 0 1 -3 3 h-12 l-6 5 v-5 h-1 a3 3 0 0 1 -3 -3 v-8 a3 3 0 0 1 3 -3 z"/>
+    <line x1="0" y1="-4" x2="0" y2="2"/><circle cx="0" cy="6" r="1.1" fill="#14110C" stroke="none"/>
+  </g>
+  <g transform="translate(840,130)" fill="#14110C" stroke="none">
+    <g transform="rotate(-38)"><rect x="-4" y="-12" width="8" height="11" rx="2"/><rect x="-1.6" y="-2" width="3.2" height="15" rx="1.6"/></g>
+    <rect x="-12" y="12" width="16" height="2.6" rx="1.3"/>
+  </g>
+
+  <!-- names + glosses -->
+  <g text-anchor="middle" font-family="'Spectral', Georgia, serif" font-weight="500" font-size="21" fill="#14110C">
+    <text x="120" y="192">KEY</text><text x="300" y="192">ATTEST</text>
+    <text x="660" y="192">CHALLENGE</text><text x="840" y="192">ADJUDICATE</text>
+  </g>
+  <text x="480" y="192" text-anchor="middle" font-family="'Spectral', Georgia, serif" font-weight="600" font-size="21" fill="#2F6A4A">AUTHORIZE</text>
+  <g text-anchor="middle" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="11.5" letter-spacing="0.08em" fill="#5C544A">
+    <text x="120" y="214">identity</text><text x="300" y="214">claim</text>
+    <text x="480" y="214" fill="#2F6A4A">approval</text>
+    <text x="660" y="214">dispute</text><text x="840" y="214">ruling</text>
+  </g>
+
+  <!-- footer principle -->
+  <line x1="70" y1="248" x2="890" y2="248" stroke="#E2DBC8" stroke-width="1"/>
+  <text x="480" y="276" text-anchor="middle" font-family="'Spectral', Georgia, serif" font-style="italic" font-size="15" fill="#5C544A">Only signed events are stored. Trust, reputation, and standing are projections — recomputed on demand, never saved.</text>
+</svg>
