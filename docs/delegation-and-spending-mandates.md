@@ -16,7 +16,7 @@ Humans acting through agents will face many small, repetitive economic decisions
 
 Delegation is the question of whether a human can decide *in advance*, within limits, so not every action needs a fresh prompt — without surrendering authority. This document bounds that question using the Canon: how far delegation can go before it stops being an exercise of human authority and becomes its abdication.
 
-ARC does not treat delegation as the preferred mode. Manual approval remains the default ([philosophy.md](./philosophy.md) belief 1, [README](../README.md) §9). Delegation is an explicit, bounded, revocable exception.
+ARC does not treat delegation as the preferred mode. Manual approval remains the default ([philosophy.md](./philosophy.md) belief 1, [README](../README.md) §4). Delegation is an explicit, bounded, revocable exception.
 
 ## 2. Human Approval as a Constraint
 
@@ -43,7 +43,7 @@ The first is sovereignty exercised ahead of time; the second is sovereignty remo
 
 A spending mandate is an `AUTHORIZE` (predicate `consent.mandate`) that authorizes a *class* of future actions within explicit limits, instead of a single offer. It is the same primitive as an approval, with a wider referent — not a new event type.
 
-It is the consumer-side counterpart to the provider-side credential scope already in [identity.md](./identity.md) §2.3 (`agent_scope`). Earlier documents mentioned consumer delegation but never specified it ([philosophy.md](./philosophy.md) §5.1, [README](../README.md) §9); here it is expressed in Canon terms.
+It is the consumer-side counterpart to the provider-side credential scope already in [identity.md](./identity.md) §2.3 (`agent_scope`). Earlier documents mentioned consumer delegation but never specified it ([philosophy.md](./philosophy.md) §5.1, [README](../README.md) §4); here it is expressed in Canon terms.
 
 A mandate is **evidence** — a signed `AUTHORIZE`. Whether a given action is *covered* by it is a **projection** ([object-model.md](./object-model.md) §4): fold the mandate, the actions already taken under it, and any `nullifies`, then check the candidate action against the remaining scope. The "state" of a mandate (active, expired, exhausted, revoked) is therefore a projected view, not a stored field.
 
