@@ -38,6 +38,48 @@ Completed baseline documents:
 
 ---
 
+## Stage 0.8 — Executable Reference Corpus
+
+**Status: Ongoing, not a product**
+
+Between the documentation baseline (Stage 0) and a running MVP (Stage 1) sits a
+layer the baseline list does not capture: a body of small, dependency-light
+executable probes that *exercise* the documented model rather than merely
+describe it. This is why the README calls ARC an executable reference
+implementation of its protocol model. It is not the Stage 1 MVP — there is no
+persistent server, no database, no real agents transacting, no product.
+
+What exists:
+- [x] Canonical event/projection probes — the five event types fold a hand-built
+  log; no scenario has forced a sixth (`examples/canon-fold-demo`), and a
+  TypeScript discriminated union makes the compiler reject a sixth type, a
+  non-`ADJUDICATE` verdict, an over-scope hot key, and a honored post-revoke act
+  (`examples/canon-ts`)
+- [x] End-to-end flow on real Ed25519 — four parties each sign their own events;
+  standing moves only by `ADJUDICATE`, never by mutating stored state, with an
+  optional real-reasoner consumer verified once on `claude-opus-4-8`
+  (`examples/end-to-end-demo`)
+- [x] Browser reference client — the log rendered as the surfaces a human sees,
+  with a mandate-routed write path and bands probing cold-start legitimacy, key
+  compromise, federation, and the custody seam (`examples/reference-client`)
+- [x] Commerce failure catalog — an eight-run [A]–[H] catalog where byte-valid
+  events are shown to be not thereby legitimate (`examples/local-commerce-demo`)
+- [x] Custody, revocation, and fidelity experiments — including the
+  interpretation, temporal, world, and presentation fidelity walls
+- [x] Adoption / refusal experiments — the refusal-recording fold, which
+  contradicts or names as gaps candidate adoption mechanisms and never validates
+  them (`examples/refusal-recording-demo`)
+
+What this stage does **not** establish:
+- These probes exercise the model; they do not validate the protocol, prove
+  adoption, or constitute a specification.
+- A probe passing means the documented model is internally coherent under that
+  scenario, not that ARC works in the world.
+- The normative wire format and conformance suite remain future work
+  (`docs/future-protocol-spec.md`).
+
+---
+
 ## Stage 1 — Local MVP
 
 **Status: Not started**

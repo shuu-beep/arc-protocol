@@ -1,13 +1,18 @@
 # ARC Protocol: Philosophy
 
-> **Status:** Draft v1.0
+> **Status:** Draft v1.0 — founding argument, commerce-framed
 > **Purpose:** Philosophical foundation of the ARC Protocol
 > For a quick overview, see the [README](../README.md).
 >
-> **Scope note:** This document argues ARC's philosophy through commerce, the
-> application that birthed it. Commerce is ARC's flagship application, not its
-> definition — at its core ARC is an open authority, approval, and audit layer
-> for AI agents.
+> **Read this as ARC's origin argument, not its current definition.** It was
+> written when commerce *was* the project, and it argues everything through
+> commerce. The protocol has since been stated independently of it: the current
+> spine is **human-approved delegation, portable authority, and recomputable
+> audit**, with commerce as ARC's first implementation, not its definition
+> ([README §1](../README.md#1-what-arc-is)). Nothing below is retracted — the
+> attention-economy critique and the design axioms still hold — but where this
+> document says "commerce," read "the first application of a general authority,
+> approval, and audit layer for AI agents."
 
 ---
 

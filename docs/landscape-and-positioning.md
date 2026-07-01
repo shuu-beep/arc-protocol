@@ -86,7 +86,7 @@ So ARC depends on payment networks rather than competing with them. Payment exec
 
 Blockchain protocols provide shared, manipulation-resistant ledgers and consensus. Some target agent trust directly, for example on-chain identity and reputation registries.
 
-ARC is DB-first and blockchain-minimal ([philosophy.md](./philosophy.md) belief 5, [architecture.md](./architecture.md) §1.1): a chain is optional, used only for checkpoints where shared manipulation-resistance is worth the added cost. ARC stores signed Events and computes trust as a Projection on demand, rather than placing a global score or persistent profile on a shared ledger ([object-model.md](./object-model.md)).
+ARC does not prescribe a storage backend and treats a chain as optional ([philosophy.md](./philosophy.md) belief 5, [architecture.md](./architecture.md) §1.1): a chain is used only for checkpoints where shared manipulation-resistance is worth the added cost. ARC stores signed Events and computes trust as a Projection on demand, rather than placing a global score or persistent profile on a shared ledger ([object-model.md](./object-model.md)).
 
 This is a design difference, not a verdict. Where some systems bet that trust can be *computed* on shared infrastructure, ARC explores trust as *governed* — a community process over evidence, with no stored universal score. "Computed" and "governed" are used here only as positioning language, not as ARC protocol primitives. Both bets are unproven, and ARC does not claim its choice is the better one.
 

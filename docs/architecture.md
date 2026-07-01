@@ -12,6 +12,16 @@ ARC is not designed to replace existing infrastructure.
 
 It is designed to connect existing infrastructure — payment providers, map APIs, identity systems, communication protocols — into an open, interoperable layer for agent-to-agent commerce.
 
+> **Scope: commerce reference architecture, not the full protocol architecture.**
+> This is drawn for commerce because that is ARC's first implementation, not
+> because the layer is commerce-specific. Two things are mixed here on purpose:
+> commerce-specific roles (consumer / merchant / logistics / payment) and
+> protocol-general seams (communication, discovery, identity, human approval,
+> audit) that carry any human-approved delegation. Read "commerce" throughout as
+> the first load placed on those general seams — the first application of a
+> general authority, approval, and audit layer for AI agents — not as the
+> protocol's boundary ([README §7](../README.md#7-first-implementation-commerce)).
+
 Three principles guide every architectural decision:
 
 - **Speed over purity.** Real-time commerce cannot wait for blockchain consensus. Use existing fast infrastructure wherever possible.
@@ -19,12 +29,20 @@ Three principles guide every architectural decision:
 - **Human approval as a hard constraint.** No architectural shortcut should bypass the requirement for explicit human confirmation of significant transactions.
 - **Idle by default.** Agents are not continuously reasoning processes. Presence is established on contact, not maintained around the clock, keeping the cost of participation proportional to use (see §5.5).
 
-### 1.1 Database-First Boundary
+### 1.1 Storage Boundary
 
-ARC's hybrid approach starts with standard databases and existing infrastructure. Blockchain remains optional and should be considered only where shared verification is worth its additional complexity.
+ARC does not prescribe storage infrastructure. The protocol requires signed
+events and recomputable projections, not a specific backend — ordinary
+databases, append-only logs, and checkpointing mechanisms are all valid
+implementation choices, selected per deployment.
 
-| Use Case | Blockchain | Standard DB |
-|----------|------------|-------------|
+The table below is a non-normative illustration of one consequence: no core
+commerce flow needs on-chain execution. A shared cryptographic checkpoint (a
+chain among them) is at most an optional aid where cross-party verification is
+worth its added complexity — never a requirement of the protocol.
+
+| Use Case | Shared checkpoint (optional) | Ordinary store |
+|----------|------------------------------|----------------|
 | Real-time offer negotiation | No | Primary |
 | Session and payment state | No | Primary |
 | Routine reputation records | No | Primary |
@@ -32,8 +50,6 @@ ARC's hybrid approach starts with standard databases and existing infrastructure
 | Dispute transparency checkpoints | Optional | Primary |
 | Agent identity proof | Optional | Primary |
 | Governance transparency checkpoints | Optional | Primary |
-
-ARC is DB-first and blockchain-minimal. No core commerce flow depends on on-chain execution or governance.
 
 ---
 
@@ -247,7 +263,7 @@ This sequence spans three concerns that should not be conflated:
 
 - **Transport.** The contact, presence, and capability messages are ephemeral transport, not events. They assert no truth, grant no permission, and enter no log or projection ([event-registry.md](./event-registry.md) §2.3 — requests are not events). No signed Event exists until negotiation yields one: an `ATTEST` offer or an `AUTHORIZE` approval. Any of §5.1–§5.3 (P2P, relay, async inbox) may carry the wake.
 - **Architecture.** Presence is established on contact rather than maintained continuously. The handshake is the bridge between discovery (§6, which locates an endpoint) and the message layer (§5.4, which carries signed exchanges). It introduces no new message type beyond a reachability probe and a capability response.
-- **Economics.** Continuous reasoning is an agent's dominant operating cost, and an always-on reasoning process per merchant is infeasible for small local participants. Idle-by-default makes the cost of presence proportional to actual contact rather than wall-clock uptime — the same DB-first, low-cost stance as §1.1, and a precondition for the local-commerce cost model ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md)).
+- **Economics.** Continuous reasoning is an agent's dominant operating cost, and an always-on reasoning process per merchant is infeasible for small local participants. Idle-by-default makes the cost of presence proportional to actual contact rather than wall-clock uptime — the same ordinary-infrastructure, low-cost stance as §1.1, and a precondition for the local-commerce cost model ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md)).
 
 Real-time availability — whether the merchant is open, the kitchen is ready, an item is in stock — belongs in the capability response, not in a signed record: it is volatile live state, not an Event. Durable capabilities (service categories, delivery radius, accepted payment methods, hours) may instead be carried as ordinary `ATTEST` evidence where a counterparty needs them after the fact.
 
@@ -440,7 +456,13 @@ Any pre-authorized low-risk rule remains user-defined, reviewable, and subordina
 
 ---
 
-## 10. Technical Stack (Recommended)
+## 10. Non-Normative MVP Stack Sketch
+
+> **Not prescribed by the protocol.** ARC defines protocol semantics, not
+> infrastructure — none of the choices below are required for an implementation
+> to be ARC-conformant. This is one illustrative stack for the Stage 1 commerce
+> MVP, recorded so that build is concrete. Any equivalent stack that produces
+> signed events and recomputable projections is equally valid.
 
 ### Frontend
 - Next.js + React

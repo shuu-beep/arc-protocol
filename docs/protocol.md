@@ -10,6 +10,8 @@
 
 This document is not a finalized protocol rulebook. It describes early mechanics for human-approved agent commerce and identifies the transaction boundaries that an implementation would need to test.
 
+**Commerce-scope note.** The mechanics below are worked through commerce — the offer/approval/dispute lifecycle — because that is ARC's first implementation, not because the protocol is commerce-specific. Underneath, an offer is an `ATTEST`, an approval an `AUTHORIZE`, a dispute a `CHALLENGE`, and a ruling an `ADJUDICATE`; those canonical primitives (`docs/event-registry.md`) are general, and the same lifecycle applies to any human-approved delegation. Read the transaction language as the first concrete instance of a general authority, approval, and audit flow, not as the protocol's boundary ([README §7](../README.md#7-first-implementation-commerce)).
+
 ARC remains exploratory. The purpose of this draft is to make questions about messages, states, timeouts, and failures concrete enough for review without claiming that one schema or transport is complete.
 
 ## 2. Design Constraints
