@@ -290,21 +290,19 @@ A community may not:
 
 ---
 
-## 8. Non-Profit Governance Rationale
+## 8. Governance Stewardship Rationale
 
-ARC is designed as non-profit open-source infrastructure.
+ARC does not reject commercial adoption. Companies can implement ARC, fund it, and build on it; merchants and platforms can adopt it. What ARC constrains is narrower and specific: the governance of the protocol itself should not be owned by, or subordinate to, any single for-profit operator.
 
 The reasoning is straightforward:
 
-If agent-to-agent commerce becomes a significant layer of the economy, the governance of that layer has enormous power. It determines who can participate, whose disputes are resolved fairly, whose reputation is protected, and whose is destroyed.
+If agent-to-agent commerce becomes a significant layer of the economy, the governance of that layer has enormous power. It determines who can participate, whose disputes are resolved fairly, whose standing is protected, and whose standing is harmed.
 
-That power should not be held by a single corporation with shareholders and profit motives.
+That power should not be captured by a single operator whose interests can override the participants'. It should rest with accountable, transparent, and replaceable stewardship — community or public-interest structures where possible — that any participant can inspect and, if it fails, route around.
 
-It should be held by accountable, transparent, and replaceable community or public-interest structures where possible.
+This is an aspirational position based on observed platform failures, not a guarantee against capture, bureaucracy, donor influence, or operational failure. Open stewardship does not solve governance; it keeps the failure modes visible and the stewards replaceable.
 
-This is an aspirational position based on observed platform failures, not a guarantee against capture, bureaucracy, donor influence, or operational failure.
-
-ARC proposes a different structure. Not because it is easy, and not because non-profit status solves governance, but because closed platform governance creates risks worth challenging.
+ARC proposes this separation — commercial participation welcome, protocol governance uncaptured — not because it is easy, but because closed platform governance creates risks worth challenging.
 
 ### 8.1 The Sustainability Problem
 

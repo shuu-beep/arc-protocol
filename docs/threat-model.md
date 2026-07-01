@@ -320,7 +320,7 @@ Possible mitigations:
 - cross-community review for serious disputes
 
 ARC should not assume that local governance is automatically fair
-or that non-profit orientation prevents capture.
+or that open stewardship prevents capture.
 
 ---
 
@@ -660,9 +660,9 @@ A fixture in the reference client ([`examples/reference-client`](../examples/ref
 
 ---
 
-## 14. Threats to Non-Profit Governance
+## 14. Threats to Protocol Stewardship
 
-ARC's non-profit and open-source orientation reduces some platform incentives, but it does not eliminate power concentration.
+ARC's open, uncaptured-stewardship orientation reduces some platform incentives, but it does not eliminate power concentration.
 
 Possible risks:
 
@@ -682,7 +682,7 @@ Possible mitigations:
 * clear maintainer boundaries
 * separation between protocol governance and local dispute governance
 
-Non-profit status is not a security guarantee.
+Open stewardship is not a security guarantee.
 
 ---
 
