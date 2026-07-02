@@ -13,7 +13,7 @@
 
 ## Table of Contents
 
-1. [What ARC Is](#1-what-arc-is) · 2. [What ARC Is Not](#2-what-arc-is-not) ·
+[Quick Start](#quick-start) · 1. [What ARC Is](#1-what-arc-is) · 2. [What ARC Is Not](#2-what-arc-is-not) ·
 3. [Protocol Foundations](#3-protocol-foundations) ·
 4. [Authority & Delegation](#4-authority--delegation) ·
 5. [Event & Projection](#5-event--projection) ·
@@ -23,6 +23,29 @@
 9. [Protocol Boundaries](#9-protocol-boundaries) ·
 10. [Current Status](#10-current-status) · 11. [Roadmap](#11-roadmap) ·
 12. [Further Reading](#12-further-reading) · 13. [License](#13-license)
+
+---
+
+## Quick Start
+
+New to ARC? Start by running the executable probe catalog. No services, API
+keys, or database required for the default catalog — Python 3 alone:
+
+```sh
+git clone https://github.com/shuu-beep/arc-protocol.git
+cd arc-protocol
+python3 run_demos.py          # all 14 probes, ~10s, offline
+python3 run_demos.py --list   # each probe's name and one-line thesis
+```
+
+Then inspect one probe in full:
+
+```sh
+python3 run_demos.py refusal  # e.g. the refusal-recording fold (§8)
+```
+
+Each probe is a single stdlib-only Python file next to its own README under
+[`examples/`](examples/); [§6](#6-reference-implementation) maps the catalog.
 
 ---
 
@@ -151,13 +174,7 @@ faces of that one wall and leaves each visible rather than hidden:
 
 These are not only claims on paper. A body of small, dependency-light executable
 probes tests them — each a single-purpose slice, not a product. One command runs
-the whole catalog:
-
-```sh
-python3 run_demos.py          # all 14 probes, ~10s, stdlib only, offline
-python3 run_demos.py --list   # name + thesis of each
-python3 run_demos.py refusal  # stream one probe in full
-```
+the whole catalog — `python3 run_demos.py` ([Quick Start](#quick-start)).
 
 ```txt
 Current Reference Implementation
