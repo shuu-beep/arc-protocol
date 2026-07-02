@@ -150,7 +150,14 @@ faces of that one wall and leaves each visible rather than hidden:
 ## 6. Reference Implementation
 
 These are not only claims on paper. A body of small, dependency-light executable
-probes tests them — each a single-purpose slice, not a product.
+probes tests them — each a single-purpose slice, not a product. One command runs
+the whole catalog:
+
+```sh
+python3 run_demos.py          # all 14 probes, ~10s, stdlib only, offline
+python3 run_demos.py --list   # name + thesis of each
+python3 run_demos.py refusal  # stream one probe in full
+```
 
 ```txt
 Current Reference Implementation
