@@ -196,10 +196,10 @@ Stated as standing boundaries, in the same spirit as ARC's off-ledger wall
 
 ## 7. The Output
 
-The existing fold already consumes records of this shape. Today it runs over
-[`fixtures.json`](../examples/refusal-recording-demo/) — synthetic. The first
-real refusals populate a sibling `fixtures_real.json`, and the same fold runs
-over both:
+The existing fold already consumes records of this shape — both the synthetic
+[`fixtures.json`](../examples/refusal-recording-demo/) and the sibling
+`fixtures_real.json`, which exists and is empty. The first real refusals
+populate it, and the same fold runs over both:
 
 ```txt
 synthetic  12        synthetic  12
@@ -210,7 +210,13 @@ The first real fold's job is not to measure anything. It is to prove the
 pipeline end-to-end on **one real datum** — real refusal → §6 record →
 provenance envelope → fold → falsification surface — and to surface any reason
 that breaks the schema (§2). Three real refusals that fold cleanly prove the
-instrument holds; one that does not fold is the more valuable result.
+instrument holds; one that does not fold is the more valuable result. The fold
+already anticipates that asymmetry: a real record whose vocabulary does not
+fit is reported as a **schema-break** — excluded from the folds (its cells are
+undefined) but reported as the headline, never discarded — while a missing
+provenance field is flagged as a recording *gap*, an interviewer error rather
+than a finding. The two kinds of misfit mean opposite things, and the report
+keeps them apart.
 
 ## 8. Why Refusal Studies
 
@@ -226,7 +232,11 @@ first contact with a real person.
 
 ## 9. Current Position
 
-No refusal has been collected. This note is design only.
+No refusal has been collected. The recording pipeline, however, is no longer
+design only: `fixtures_real.json` exists (empty), the fold consumes it
+alongside the synthetic set, and the operational materials for the first
+round are prepared (Appendix B). Everything before the send exists; the send
+does not.
 
 The next artifact is not a document but an event: one real refusal, recorded in
 this protocol, folded against the synthetic set. That is the first contact
@@ -267,3 +277,86 @@ is strictly limited:
   indefinitely. The whole experiment exists to *make first contact*, and Phase 0
   is the most plausible way to never make it. Treat it as a dress rehearsal with
   a hard stop, or skip it.
+
+---
+
+## Appendix B — Field Kit (operational materials for round 1)
+
+> Everything above is design; this appendix is the send. It operationalizes
+> §3 for the first round of contact, so that when the message goes out,
+> nothing about the recording discipline is improvised. Round 1 targets the
+> `developer` actor (§3.1, first row).
+
+### B.1 Stimulus discipline
+
+Whatever the person actually sees **is** the `stimulus` value — it is chosen
+deliberately and recorded exactly (§5). For round 1 the stimulus is the
+message in B.2 plus the linked README. Because the two cannot be separated
+from the outside, the follow-up thanks (B.3) asks one factual question —
+"did you get as far as the README, or is this from the message alone?" — and
+the answer is recorded as `stimulus: README + email-pitch` or
+`stimulus: email-pitch`. A refusal recorded against the two-paragraph pitch
+alone is weaker evidence about ARC than one recorded against the README, and
+the field keeps that difference visible instead of flattening it.
+
+### B.2 The approach message (send-ready draft)
+
+Subject: **one question about why you wouldn't use this**
+
+> I've been building ARC Protocol — an open protocol for delegated agent
+> authority: human-approved delegation, portable authority records, and
+> recomputable audit logs. Repo: <https://github.com/shuu-beep/arc-protocol>.
+>
+> I'm not asking you to adopt it, try it, or star it. I'm collecting the
+> opposite signal: **if you wouldn't use this today, why not?**
+>
+> Any reason is a complete answer — "too speculative," "wrong layer," "no
+> network," "this will never work." I record refusals verbatim as data, and
+> I won't argue with yours.
+>
+> One logistics question: may I record your answer verbatim, and may it
+> appear in the public repo — attributed or de-identified, your choice?
+
+What the draft deliberately does **not** contain: any request to try ARC,
+any adoption metric, and — most importantly — the mechanism question (B.3).
+
+### B.3 Question order under asynchrony
+
+§3.3's order survives an async channel only if the mechanism question is
+**absent from the first message**. Both questions in one email would pressure
+the reply toward a manufactured mechanism and bias the data against
+`mechanism = none` — the single most informative cell. So the first message
+asks *why not* and nothing else. Only after the reason has arrived and been
+recorded verbatim does the optional follow-up go out:
+
+> Thank you — recorded verbatim, as promised. One optional follow-up, and
+> "nothing would" is an expected, complete answer: would anything change
+> that answer? (Also: did you get as far as the README, or is this from my
+> message alone? Recording what you actually saw is part of the method.)
+
+If the participant never replies to the follow-up, `mechanism` is left
+unasked — never inferred from the reason (§3.5).
+
+### B.4 Recording sheet
+
+Filled top-to-bottom; the classification block is a separate, later, human
+step (§3.5). The completed record enters
+[`fixtures_real.json`](../examples/refusal-recording-demo/fixtures_real.json)
+and the fold consumes it on the next run.
+
+```txt
+-- capture (at contact time, verbatim) ------------------------
+reason        "..."              (their words, unedited)
+mechanism     4.x | none | (not asked / not volunteered)
+source        github_issue | email | x_reply | interview | ...
+date          YYYY-MM-DD
+visibility    public | private   (their explicit consent)
+stimulus      what they actually saw (B.1)
+
+-- classification (later, by a human) -------------------------
+actor         developer | company | merchant | user | community
+exit          WAIT | DEFECT | FORK | REJECT
+waits_on / waits_on_actor        (WAIT only)
+schema-break? anything that does not fit -> record it raw (§2);
+              a misfit falsifies the schema, not the refusal
+```

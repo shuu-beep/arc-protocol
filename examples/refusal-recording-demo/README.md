@@ -61,6 +61,32 @@ The fixtures in [`fixtures.json`](fixtures.json) are **synthetic and
 illustrative**. They are written the way a participant might speak, but they
 are not claims about any real actor.
 
+## Real records
+
+Real refusals of ARC — collected under the
+[first-refusal protocol](../../docs/first-refusal-protocol.md) — live in the
+sibling [`fixtures_real.json`](fixtures_real.json), currently **empty**: ARC's
+contact with reality is still zero, and the empty file is the honest record of
+that. The same fold consumes both files; real records are marked `*`
+throughout the report and carry a provenance envelope
+(`source`, `date`, `visibility`, `stimulus` — protocol §5).
+
+Two kinds of misfit in a real record mean opposite things, and the fold's
+section `[0]` keeps them apart:
+
+- **schema-break** — a value outside the schema's vocabulary (a fifth exit, a
+  dual actor, an unlisted mechanism). Excluded from the folds, because its
+  cells are undefined — but reported as the headline, never discarded: per
+  protocol §2, a real refusal the schema cannot hold **falsifies the schema,
+  not the refusal**, and is the most valuable possible result.
+- **recording gap** — a missing reason or provenance field. An interviewer
+  error to repair, not a finding; the record still folds.
+
+`visibility = private` records trigger a consent-gate warning: this file is a
+public artifact, so a private verbatim reason must be de-identified or
+consented *before* it is committed — a render-time redaction cannot
+un-publish the repository.
+
 ## How the evidence is read
 
 Each §4 candidate mechanism claims to address certain `(actor, exit)` cells.
@@ -210,3 +236,5 @@ limits, not bugs.
 
 - [`refusal_fold.py`](refusal_fold.py) — the fold and its report
 - [`fixtures.json`](fixtures.json) — synthetic refusal records
+- [`fixtures_real.json`](fixtures_real.json) — real refusals of ARC (empty
+  until the first real record lands; see the first-refusal protocol §7)

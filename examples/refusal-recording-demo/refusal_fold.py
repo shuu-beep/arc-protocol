@@ -54,8 +54,14 @@ with. That coarseness is reported honestly (NAMED vs CELL-COINCIDENT, "reason
 unread") rather than hidden — and it is not fixable by making the fold read
 reasons, because that is the forbidden inference. See README "Red-team notes".
 
-The fixtures in `fixtures.json` are SYNTHETIC and illustrative. This is not
-an adoption simulator and predicts nothing. Stdlib only; no network.
+The fixtures in `fixtures.json` are SYNTHETIC and illustrative. Real
+refusals of ARC — collected under docs/first-refusal-protocol.md — live in
+the sibling `fixtures_real.json`, and the same fold consumes both. A real
+record additionally carries a provenance envelope (source, date, visibility,
+stimulus; protocol §5). A real record whose vocabulary does not fit the
+schema is reported as a SCHEMA-BREAK — the protocol's §2 calls that the most
+valuable possible result, not an error. This is not an adoption simulator
+and predicts nothing. Stdlib only; no network.
 """
 
 import json
@@ -143,9 +149,60 @@ CANDIDATES = {
 SOLO_LOCI = {"solo", "mixed"}
 
 
+MECHANISM_VOCAB = set(CANDIDATES) | {"none"}
+
+# The provenance envelope every REAL record must carry (protocol §5). It is
+# metadata about where the record came from, never an interpretation of it.
+PROVENANCE_FIELDS = ["source", "date", "visibility", "stimulus"]
+
+
 def load_refusals(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     return data["refusals"]
+
+
+def load_sets(here):
+    """Load synthetic fixtures, plus real records if the sibling file exists."""
+    synthetic = load_refusals(here / "fixtures.json")
+    real_path = here / "fixtures_real.json"
+    real = load_refusals(real_path) if real_path.exists() else []
+    for r in real:
+        r["_real"] = True
+    return synthetic, real
+
+
+def validate_real(r):
+    """Split a real record's problems into two kinds that mean opposite things.
+
+    - breaks : a value outside the schema's vocabulary. Per protocol §2 this
+      is the most valuable possible result — a real refusal the schema cannot
+      hold falsifies the schema. Broken records are excluded from the folds
+      (their cells are undefined) but reported prominently, never discarded.
+    - gaps   : a missing reason or provenance field. This is a recording
+      error by the interviewer, not a finding about the schema. Gapped
+      records still fold (the fold needs only actor/exit/mechanism) but are
+      flagged for repair.
+    """
+    breaks, gaps = [], []
+    if r.get("actor") not in ALL_ACTORS:
+        breaks.append(f"actor {r.get('actor')!r} not in vocabulary")
+    if r.get("exit") not in ALL_EXITS:
+        breaks.append(f"exit {r.get('exit')!r} not in WAIT/DEFECT/FORK/REJECT")
+    if r.get("mechanism") not in MECHANISM_VOCAB:
+        breaks.append(f"mechanism {r.get('mechanism')!r} not in 4.1..4.6/none")
+    if r.get("waits_on_actor") is not None and r["waits_on_actor"] not in ALL_ACTORS:
+        breaks.append(f"waits_on_actor {r['waits_on_actor']!r} not in vocabulary")
+    if not r.get("reason"):
+        gaps.append("reason missing or empty (verbatim capture failed)")
+    for f in PROVENANCE_FIELDS:
+        if not r.get(f):
+            gaps.append(f"provenance field '{f}' missing (protocol §5)")
+    return breaks, gaps
+
+
+def rid(r):
+    """Record id for report listings; real records are marked with '*'."""
+    return r.get("id", "?") + ("*" if r.get("_real") else "")
 
 
 def claims_cell(cand, actor, exit_):
@@ -284,12 +341,48 @@ def hr(title):
 
 def main():
     here = Path(__file__).resolve().parent
-    refusals = load_refusals(here / "fixtures.json")
+    synthetic, real = load_sets(here)
 
-    print("ARC — Refusal-Recording Fold  (synthetic data)")
+    # Vocabulary-broken real records cannot enter the folds (their cells are
+    # undefined) — but they are the headline of section [0], not discards.
+    validated = [(r, *validate_real(r)) for r in real]
+    broken = [(r, breaks) for r, breaks, _ in validated if breaks]
+    foldable_real = [r for r, breaks, _ in validated if not breaks]
+    refusals = synthetic + foldable_real
+
+    label = "synthetic data" if not real else "synthetic + real data"
+    print(f"ARC — Refusal-Recording Fold  ({label})")
     print("=" * 48)
     print("Adoption does not fold. Refusals can.\n")
-    print(f"Loaded {len(refusals)} synthetic refusal records.")
+    print(f"Loaded {len(synthetic)} synthetic + {len(real)} real refusal records.")
+    if real:
+        print("Real records are marked '*' throughout the report.")
+
+    print(hr("[0] Real records: provenance and schema survival"))
+    if not real:
+        print("  fixtures_real.json: 0 records.")
+        print("  ARC's contact with reality is still zero (protocol §9). The")
+        print("  pipeline below runs end-to-end; what is missing is the event.")
+    for r, breaks, gaps in validated:
+        print(f"\n  {rid(r)}  {r.get('actor')} / {r.get('exit')} / "
+              f"mechanism={r.get('mechanism')}")
+        print(f"      source={r.get('source')}  date={r.get('date')}  "
+              f"visibility={r.get('visibility')}")
+        print(f"      stimulus: {r.get('stimulus')}")
+        for b in breaks:
+            print(f"      SCHEMA-BREAK: {b}")
+        for g in gaps:
+            print(f"      recording gap: {g}")
+        if r.get("visibility") == "private":
+            print("      CONSENT GATE: this file is a public artifact. A private")
+            print("      verbatim reason must be de-identified or consented BEFORE")
+            print("      it is committed here (protocol §6) — a render-time")
+            print("      redaction cannot un-publish the repository.")
+    if broken:
+        print(f"\n  {len(broken)} record(s) broke the schema — excluded from the")
+        print("  folds below, but per protocol §2 this is the most valuable")
+        print("  possible result: a real refusal the schema cannot hold")
+        print("  falsifies the schema, not the refusal.")
 
     print(hr("[1] By actor"))
     for actor, n in summarize(refusals, "actor").most_common():
@@ -318,10 +411,10 @@ def main():
         print(f"\n  {cid} {cand['name']}  ->  {v['verdict']}")
         print(f"      claims: {actors} × {{{', '.join(sorted(cand['exits']))}}}")
         if v["named"]:
-            ids = ", ".join(f"{r['id']}({r['actor']} {r['exit']})" for r in v["named"])
+            ids = ", ".join(f"{rid(r)}({r['actor']} {r['exit']})" for r in v["named"])
             print(f"      named as the gap (n={len(v['named'])}, still declined): {ids}")
         if v["cell_coincident"]:
-            ids = ", ".join(f"{r['id']}({r['actor']} {r['exit']})" for r in v["cell_coincident"])
+            ids = ", ".join(f"{rid(r)}({r['actor']} {r['exit']})" for r in v["cell_coincident"])
             print(f"      cell-coincident (n={len(v['cell_coincident'])}, reason unread): {ids}")
 
     print(hr("[5] WAIT dependency map"))
@@ -382,7 +475,7 @@ def main():
     gaps = unaddressed_cells(refusals)
     if gaps:
         for r in gaps:
-            print(f"  {r['actor']} / {r['exit']} : {r['id']}  \"{r['reason'][:60]}...\"")
+            print(f"  {r['actor']} / {r['exit']} : {rid(r)}  \"{r['reason'][:60]}...\"")
         print("  (these refusals fall in cells the §4 set is silent on)")
     else:
         print("  (every refusal cell is claimed by some candidate)")

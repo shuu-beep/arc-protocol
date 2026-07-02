@@ -1,0 +1,18 @@
+{
+  "_note": "REAL refusal records of ARC, collected under docs/first-refusal-protocol.md. Empty is the honest current state: ARC's contact with reality is zero until the first record lands (protocol §9). Reserved for refusals OF ARC only — Phase 0 calibration records (refusals of adjacent protocols) never enter this file (protocol Appendix A). Reasons are stored verbatim, in the participant's own words; paraphrase is already inference (protocol §3.4).",
+  "_consent_gate": "This file is a public artifact. A record with visibility=private must be de-identified or explicitly consented BEFORE being committed here (protocol §6). Committing first and redacting later cannot un-publish the repository.",
+  "_schema": {
+    "id": "R1, R2, ... (real records are marked '*' in the fold's report)",
+    "actor": "developer | company | merchant | user | community — attached by a human AFTER the reason is recorded (protocol §3.5)",
+    "exit": "WAIT | DEFECT | FORK | REJECT — same later human step",
+    "reason": "the participant's own words, verbatim and unedited",
+    "mechanism": "a §4 candidate (4.1..4.6) ONLY if the participant volunteered it when asked the optional follow-up; 'none' if they said nothing would change the answer; never inferred from the reason text (protocol §3.3, §3.5)",
+    "waits_on": "(WAIT only) what the participant is waiting on, in their words",
+    "waits_on_actor": "(WAIT only, optional) the actor type waited on, when it is a specific side",
+    "source": "github_issue | github_discussion | email | x_reply | reddit | conference | interview | ... (protocol §5)",
+    "date": "YYYY-MM-DD — when the refusal was recorded",
+    "visibility": "public | private — the participant's explicit consent state",
+    "stimulus": "what the refuser actually saw before refusing: README | README-summary | email-pitch | GitHub-issue-thread | ... (protocol §5 — a refusal is a refusal OF something, and the something may not be ARC)"
+  },
+  "refusals": []
+}
