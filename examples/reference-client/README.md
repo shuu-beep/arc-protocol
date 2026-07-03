@@ -45,7 +45,7 @@ Every panel is sourced from the same log:
 | cold-start matrix | a separate 30-event fixture log (`coldstart_fixture.py`), folded by 3 observers |
 | compromise band | a separate 12-event fixture log (`compromise_fixture.py`, **real Ed25519**), folded at 2 moments × 2 revoke readings |
 | federation band | a separate 15-event fixture log (`federation_fixture.py`), folded by 5 observers at 3 moments × 2 severance readings |
-| custody seam band | a separate 6-event fixture log (`approval_seam_fixture.py`, **real Ed25519**), the sign-time wall + an approval judged under 2 readings (proposal-bound / scope-only) |
+| custody seam band | a separate 7-event fixture log (`approval_seam_fixture.py`, **real Ed25519**), the sign-time wall + an approval judged under 2 readings (proposal-bound / scope-only) |
 
 The projection viewer's snapshot toggle shows the central fact directly:
 governance is `in_good_standing → in_good_standing → warned`, moving **only on
@@ -254,8 +254,8 @@ probe finding, not doctrine.
 
 The newest band is the second on **real Ed25519**, and it descends from a
 question the compromise band left standing: if the key lives behind a separate
-signer, what does *escalation* carry? Its fixture (`approval_seam_fixture.py`, 6
-events, runnable standalone) splits the agent from the signer so the agent holds
+signer, what does *escalation* carry? Its fixture (`approval_seam_fixture.py`,
+runnable standalone) splits the agent from the signer so the agent holds
 no key — it can only *propose*. The first panel is that **sign-time wall**: an
 in-scope payment is SIGNED, an over-ceiling one is ROUTED to a human, and an
 out-of-domain forgery and a self-mint-as-root attempt are REFUSED — the last two
@@ -268,7 +268,11 @@ with the cold key. Then the **same approval, in flight back through the untruste
 agent**, is judged under two readings, and the toggle *is* the point: under
 **proposal-bound** the approval is tied to the one proposal's content hash, so a
 re-aim (different hash), a replay (already spent), and a bare scope token (names
-no proposal) all die at sign-time; flip to **scope-only** — the context+amount
+no proposal) all die at sign-time — and before any binding is read, the signer
+authenticates the carried approval itself (its own Ed25519 signature, the
+mandate's granter as signer, membership on the log), so a forged or off-log
+approval object dies even earlier (the standalone run shows both); flip to
+**scope-only** — the context+amount
 token the embodiment fixture carried — and all three turn **SIGNED**. That grid
 is the fixture's own `scope_only_would_sign()`, a *computed counterfactual*: a
 scope token is a bearer token, and binding is exactly what removes it.

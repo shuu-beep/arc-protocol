@@ -35,6 +35,12 @@ The fix, and its residue:
     the exact bytes shown at the inbox. Now the approval is single-use and
     non-transferable: it validates against that one proposal and no other. A
     compromised agent can at most cause the act the human already consented to.
+  * and trust no carried approval until the seam AUTHENTICATES it: the signer
+    verifies the approval's own Ed25519 signature, that its signer is the
+    mandate's granter (the cold root), and that it is on the log — an approval
+    is a RECORD, not a message. A self-constructed approval object naming the
+    right hash, or a validly signed one that never became a record, dies before
+    its binding is even read.
   * but this makes the HUMAN a second signer. The approval is only as good as
     what the human SAW. The inbox must show the human the same bytes the signer
     would sign; if it shows less (a friendly summary that omits the recipient),
@@ -329,9 +335,12 @@ def scope_only_would_sign(p: Proposal, approval: Event) -> bool:
 
 class SignerProcess:
     """Holds the HOT key and the mandate. Auto-signs in-scope proposals; routes
-    over-ceiling ones to the inbox. When an approval rides back, it signs ONLY if
-    the approval is bound to THIS proposal's content hash and has not been spent —
-    the binding and the consumption both live in the signer's trusted base."""
+    over-ceiling ones to the inbox. When an approval rides back, it first
+    AUTHENTICATES it — the approval's own Ed25519 signature, signer == the
+    mandate's granter, membership on the log — and only then signs, and ONLY if
+    the approval is bound to THIS proposal's content hash and has not been spent.
+    Authentication, binding, and consumption all live in the signer's trusted
+    base; a carried approval is untrusted bytes until they pass."""
 
     def __init__(self, *, hot_pub: str, hot_secret: bytes, mandate: Event,
                  clock: Clock, log: list[Event]) -> None:
@@ -364,6 +373,27 @@ class SignerProcess:
         amount = p.payload.get("amount_krw")
 
         if approval is not None:
+            # A carried approval is untrusted bytes until authenticated: verify
+            # its signature, its signer, and that it is a RECORD on the log —
+            # only then read its binding. Without these, a compromised agent
+            # could hand a self-constructed approval object naming the right
+            # ph: hash and be signed at sign-time.
+            try:
+                sig_ok = ed25519_verify(bytes.fromhex(approval.signature),
+                                        approval.signing_bytes(),
+                                        bytes.fromhex(approval.signer))
+            except ValueError:
+                sig_ok = False
+            if not sig_ok:
+                return Decision("refused", "the approval's own signature does not verify — "
+                                "a carried approval is a claim until its bytes prove their signer")
+            if approval.signer != self.mandate.signer:
+                return Decision("refused", "the approval is not signed by the mandate's granter "
+                                "— the hot key honors approvals from the cold root only")
+            on_log = next((e for e in self.log if e.id == approval.id), None)
+            if on_log is None or on_log != approval:
+                return Decision("refused", "the approval is not on the log — consent that never "
+                                "became a record is a message, not an approval")
             # The whole point of the fixture: an approval is consent to ONE act.
             bound = self._approved_hash(approval)
             if bound is None:
@@ -571,7 +601,26 @@ def generate() -> dict:
     show("scope-only bearer 90000", agent.propose(payment(90000, "attacker-self"),
                                                   approval=bearer), attacker=True)
 
-    say("omniscient", "all three refused at SIGN-TIME. The approval is consent to ONE act:")
+    print("\n   (d) FORGE: self-construct an approval OBJECT naming the right hash.")
+    target = payment(90000, payee="attacker-self")
+    forged = Event(id="ev:forged", type="AUTHORIZE", signer=root_pub,
+                   predicate="consent.approval", timestamp="2026-06-10T10:59:00Z",
+                   refs=(target.content_hash(),),
+                   scope={"context": "market", "max_total_krw": 90000},
+                   signature="00" * 64)
+    say("omniscient", "the attacker knows the hash it wants approved; it does not know")
+    say("omniscient", "the root secret — the object is right-shaped, the bytes are not")
+    show("forged bound approval", agent.propose(target, approval=forged), attacker=True)
+
+    print("\n   (e) OFF-LOG: a validly signed approval that never became a record.")
+    offlog = _mint(root_secret, root_pub, "2026-06-10T10:58:00Z", type_="AUTHORIZE",
+                   predicate="consent.approval", refs=(target.content_hash(),),
+                   scope={"context": "market", "max_total_krw": 90000})
+    say("omniscient", "(generator mints one with the root secret and does NOT append it —")
+    say("omniscient", " standing in for consent captured out-of-band, off the log)")
+    show("off-log bound approval", agent.propose(target, approval=offlog), attacker=True)
+
+    say("omniscient", "all five refused at SIGN-TIME. The approval is consent to ONE act:")
     say("omniscient", "the human's, on the log, byte-for-byte what they reviewed.")
 
     verify_log(log)
@@ -668,14 +717,13 @@ def band_data() -> dict:
                     "scope_only": {"verdict": "signed" if cf else "refused",
                                    "reason": cf_reason}}}
 
-    # the bearer prop is built OFF-LOG: it is not a real cold-root act, just a
-    # scope-only token shape an attacker might harvest. handle never checks an
-    # approval's signature (it refuses on the missing proposal binding first), so
-    # an unsigned stand-in exercises exactly the path under test without polluting
-    # the log's "what reached it" story.
-    bearer = Event(id="(scope-only token)", type="AUTHORIZE", signer=root_pub,
-                   predicate="consent.approval", timestamp="",
-                   scope={"context": "market", "max_total_krw": 90000})
+    # the bearer token is a REAL cold-root act on the log — a scope-only approval
+    # an attacker might harvest. It passes the seam's authentication (signature,
+    # granter, log membership); what the signer refuses is its SHAPE: it names no
+    # proposal, so it is consent to a class of acts, not to one. (handle now
+    # authenticates every carried approval, so an unsigned stand-in would be
+    # refused for the wrong reason — the bearer leak is the reason under test.)
+    bearer = ceremony.approve_scope_only(90000, "market")
     attempts = [
         attempt("re-aim to a new payee", payment(90000, "attacker-self"), approval, kind="reaim"),
         attempt("replay the approved act", honest, approval, kind="replay"),
@@ -736,12 +784,17 @@ def main() -> None:
 
   Binding the approval to the proposal's content hash closes it. The approval names
   the exact bytes the human saw; the signer signs only the proposal that matches,
-  exactly once (consumption in its trusted base). All three attacks die at sign-
+  exactly once (consumption in its trusted base) — and only after AUTHENTICATING
+  the carried approval itself: its own signature verifies, its signer is the
+  mandate's granter, and it is a record on the log. All five attacks die at sign-
   time:
 
     * re-aim to a new payee   -> REFUSED  (bound to a different proposal hash)
     * replay the approved act  -> REFUSED  (the approval was already spent)
     * a scope-only bearer token-> REFUSED  (names no proposal; not honored)
+    * a forged approval object -> REFUSED  (its own signature does not verify)
+    * an off-log approval      -> REFUSED  (consent that never became a record
+                                            is a message, not an approval)
 
   The residue is where it lands. Binding makes the HUMAN a second signer. The
   approval is only as good as what the human SAW — so the inbox must show the human
