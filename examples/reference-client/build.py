@@ -599,7 +599,7 @@ def render_compromise_band(moments: list, forged_ids: set, blast: dict,
         f'<div class="omni">{"".join(omni_rows)}</div>')
 
     note = (
-        '<p class="note">A fourth generated fixture log (12 events, '
+        '<p class="note">A fourth generated fixture log (14 events, '
         '<code>compromise_fixture.py</code>) — the only one on <strong>real '
         'Ed25519</strong>, not a mock hash, because custody\'s claim ("a signature '
         'proves a key signed, not how it was kept") cannot be tested on a fake '
@@ -610,7 +610,10 @@ def render_compromise_band(moments: list, forged_ids: set, blast: dict,
         'cold root, so cannot mint authority), the post-revoke act to time. No new '
         'event type: theft is the absence of custody, revocation is '
         '<code>consent.withdraw</code> + <code>nullifies</code>, the dispute is '
-        '<code>CHALLENGE</code> + <code>ADJUDICATE</code>. A probe finding extending '
+        '<code>CHALLENGE</code> (the root, as disputant) + <code>ADJUDICATE</code> '
+        '(the market community\'s key — the fold honors a per-act void only from an '
+        'adjudicator the reader honors, so the disputant\'s own on-log ruling moves '
+        'nothing; event-registry §4.5). A probe finding extending '
         '<code>docs/key-custody.md</code> §5/§8, not settled doctrine.</p>')
 
     inspector = ('<div id="xinspector"><div class="ins-empty">click any [ev:…] id in '
@@ -1331,11 +1334,16 @@ def main() -> None:
                     for label, asof in coldstart.CUTS}
     moves = coldstart.changed_cells(coldstart_events)
 
-    # the compromise band: fold the stolen-key log at two moments x two readings
+    # the compromise band: fold the stolen-key log at two moments x two readings.
+    # The reader's policy honors the market community's adjudicating key — a
+    # per-act void counts only from an honored adjudicator (registry §4.5), so
+    # the disputant's own on-log ruling moves nothing in these grids.
     comp_events, comp_forged, _comp_kr, comp_meta = capture_compromise_log()
     c_root, c_agent = comp_meta["root"], comp_meta["agent"]
+    c_honors = (comp_meta["community"],)
     comp_pre = [e for e in comp_events if e.type not in ("CHALLENGE", "ADJUDICATE")]
-    proj = lambda log, r: compromise.project_compromise(log, root=c_root, agent=c_agent, reading=r)
+    proj = lambda log, r: compromise.project_compromise(
+        log, root=c_root, agent=c_agent, reading=r, honored_adjudicators=c_honors)
     comp_moments = [
         {"label": "just after the revocation",
          "projs": {r: proj(comp_pre, r) for r in compromise.READINGS}},
@@ -1343,7 +1351,8 @@ def main() -> None:
          "projs": {r: proj(comp_events, r) for r in compromise.READINGS}},
     ]
     comp_blast = {r: compromise.blast_radius(comp_pre, comp_forged, root=c_root,
-                                             agent=c_agent, reading=r)
+                                             agent=c_agent, reading=r,
+                                             honored_adjudicators=c_honors)
                   for r in compromise.READINGS}
     base = comp_moments[0]["projs"]["time_scoped"]
     comp = {"events": comp_events, "forged": comp_forged, "moments": comp_moments,

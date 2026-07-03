@@ -24,11 +24,18 @@ The cast (real keys):
 
     root      cold ceremonial key — the human. Signs rarely: the mandate, the
               revocation, the challenge. NEVER resident where a runtime reaches
-              it, so the attacker never holds it.
+              it, so the attacker never holds it. The DISPUTANT — it invokes the
+              commons; it does not judge its own challenge.
     agent     hot device key — narrow mandate (context "market", <= 30000).
               Signs the in-scope acts the mandate covers, without re-asking.
     attacker  holds NO key of its own that matters — it holds the agent's
               stolen secret, and signs AS the agent.
+    community the market community's adjudicating key — the commons authority
+              (event-registry §4.5: ADJUDICATE's authority source is a community
+              process, not an individual key). The only signer whose per-act
+              void the fold honors, and WHICH adjudicator a reader honors is the
+              reader's policy choice (A&C §9), exactly like coldstart's
+              honored-adjudicator knob.
 
 The flow:
 
@@ -63,9 +70,13 @@ What the fold computes, and what it forces:
     pre-revocation window is UNRECOVERABLE BY REVOCATION ALONE. Time-scoped
     revocation preserves the forgery; cascade would void the honest history too.
     Surgically removing only the compromised act needs per-act ADJUDICATION — the
-    human files a CHALLENGE, an honored ADJUDICATE voids that one event. The
-    three-layer split again: signature valid (log) / scope honored (fold) /
-    adjudicated void (authority).
+    human files a CHALLENGE, and an ADJUDICATE from the community adjudicator the
+    reader honors voids that one event. The disputant cannot be the judge: the
+    root's own ADJUDICATE lands on the log and verifies (events are evidence),
+    but the fold counts rulings only from an honored adjudicator, so a
+    self-ruling moves nothing (registry §4.5, A&C §5). The three-layer split
+    again: signature valid (log) / scope honored (fold) / adjudicated void
+    (authority).
 
 Refusals (as deliberate as the content):
   * who is the attacker is GROUND TRUTH the generator holds because it wrote the
@@ -311,8 +322,17 @@ def verify_log(events: list[Event]) -> None:
 # ===========================================================================
 
 def project_compromise(events: list[Event], *, root: str, agent: str,
-                       reading: str = "time_scoped") -> dict:
+                       reading: str = "time_scoped",
+                       honored_adjudicators: tuple[str, ...] = ()) -> dict:
     """Fold the log into a per-event honoring decision, as seen from `root`.
+
+    `honored_adjudicators` is the reader's POLICY-layer choice (A&C §9) of whose
+    ADJUDICATE rulings count — the same honored-adjudicator knob the cold-start
+    fixture folds by. Default is none: a per-act void moves nothing unless the
+    reader honors its signer. In particular a disputant's ruling on its OWN
+    challenge is just an event on the log — evidence, not authority (registry
+    §4.5: ADJUDICATE's authority source is a community process, not an
+    individual key).
 
     `honored` means: a counterparty folding from this root would treat the act as
     carrying the root's authority. The rule, in order:
@@ -340,10 +360,14 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
     revoke = next((e for e in events
                    if e.type == "AUTHORIZE" and e.predicate == "consent.withdraw"
                    and e.signer == root and mandate and mandate.id in e.nullifies), None)
-    # per-event adjudications: an honored ADJUDICATE that voids a specific event
+    # per-event adjudications: an HONORED ADJUDICATE that voids a specific event.
+    # Honored = signed by an adjudicator this reader's policy names; any other
+    # ADJUDICATE (including the disputant ruling on its own challenge) stays on
+    # the log as evidence and moves nothing here.
     adjudicated_void = {e.refs[0] for e in events
                         if e.type == "ADJUDICATE" and e.predicate == "gov.ruling"
-                        and e.payload.get("ruling") == "void" and e.refs}
+                        and e.payload.get("ruling") == "void" and e.refs
+                        and e.signer in honored_adjudicators}
 
     mscope = (mandate.scope or {}) if mandate else {}
     ceiling = mscope.get("max_total_krw")
@@ -408,13 +432,15 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
 
 
 def blast_radius(events: list[Event], ground_truth_forged: set[str], *,
-                 root: str, agent: str, reading: str = "time_scoped") -> dict:
+                 root: str, agent: str, reading: str = "time_scoped",
+                 honored_adjudicators: tuple[str, ...] = ()) -> dict:
     """The actual damage: forged events the fold HONORS. Computed by INTERSECTING
     the fold (which cannot see `ground_truth_forged`) with the omniscient set
     (which no observer can see). The point of separating them: an observer
     folding the log gets the `honored` column WITHOUT the `forged` column — it
     cannot tell a compromised honored act from a legitimate one."""
-    proj = project_compromise(events, root=root, agent=agent, reading=reading)
+    proj = project_compromise(events, root=root, agent=agent, reading=reading,
+                              honored_adjudicators=honored_adjudicators)
     forged_rows = [r for r in proj["rows"] if r["id"] in ground_truth_forged]
     honored_damage = [r for r in forged_rows if r["honored"]]
     krw = sum(r["amount"] or 0 for r in honored_damage)
@@ -473,10 +499,11 @@ def say(who: str, msg: str) -> None:
 
 def generate_log() -> tuple[list[Event], set[str], Keyring, dict]:
     kr = Keyring()
-    for name in ("root", "agent", "attacker_key"):
+    for name in ("root", "agent", "attacker_key", "community"):
         kr.generate(name)
     led = Ledger(kr)
     root_pub, agent_pub = kr.pub("root"), kr.pub("agent")
+    community_pub = kr.pub("community")
 
     print("\n1. Identity — the cold root anchors itself and its hot agent key")
     led.emit(holder="root", signer_name="root", type_="KEY", predicate="id.key_register",
@@ -532,16 +559,29 @@ def generate_log() -> tuple[list[Event], set[str], Keyring, dict]:
 
     print("\n8. The residue — the human KNOWS (out of band) that (a) was not theirs,")
     print("   and disputes that ONE event. Revocation could not reach it; adjudication can.")
+    print("   The dispute routes to the commons: the market community anchors its key.")
+    led.emit(holder="community", signer_name="community", type_="KEY",
+             predicate="id.key_register", payload={"key": community_pub})
     led.emit(holder="root", signer_name="root", type_="CHALLENGE", predicate="gov.dispute",
              refs=(forge_a.id,), payload={"reason": "not_authorized_by_holder"})
-    led.emit(holder="root", signer_name="root", type_="ADJUDICATE", predicate="gov.ruling",
-             refs=(forge_a.id,), payload={"ruling": "void", "context": "market"})
+    say("root", "tempted to close its own case, the disputant signs a ruling itself —")
+    say("root", "it verifies (events are evidence), but no honoring fold will count it")
+    self_ruling = led.emit(holder="root", signer_name="root", type_="ADJUDICATE",
+                           predicate="gov.ruling", refs=(forge_a.id,),
+                           payload={"ruling": "void", "context": "market"})
+    say("community", "the commons rules on the disputed act (registry §4.5: community")
+    say("community", "process, not an individual key — and not the disputant)")
+    ruling = led.emit(holder="community", signer_name="community", type_="ADJUDICATE",
+                      predicate="gov.ruling", refs=(forge_a.id,),
+                      payload={"ruling": "void", "context": "market"})
 
     verify_log(led.events)
     print(f"\nGenerated log: {len(led.events)} signed events, real Ed25519, none hand-written.")
     print("verify_log PASSES — every forgery included. A valid signature is a log fact;")
     print("it proves the agent's key signed. It cannot prove the human held the key.")
-    meta = {"root": root_pub, "agent": agent_pub, "legit_id": legit.id, "forge_a_id": forge_a.id}
+    meta = {"root": root_pub, "agent": agent_pub, "community": community_pub,
+            "legit_id": legit.id, "forge_a_id": forge_a.id,
+            "self_ruling_id": self_ruling.id, "ruling_id": ruling.id}
     return led.events, led.forged, kr, meta
 
 
@@ -558,6 +598,8 @@ def main() -> None:
     events, forged, kr, meta = generate_log()
     root, agent = meta["root"], meta["agent"]
     legit_id, forge_a_id = meta["legit_id"], meta["forge_a_id"]
+    # this reader's policy-layer choice (A&C §9): whose ADJUDICATE counts
+    honors = (meta["community"],)
 
     # Two views of the same log. `pre` is the world right after the revocation,
     # before the human disputes individual acts — this is where the blast radius
@@ -583,7 +625,8 @@ def main() -> None:
     print("scope is honored, whoever held the secret.")
     print("=" * 72)
     for reading in READINGS:
-        proj = project_compromise(pre, root=root, agent=agent, reading=reading)
+        proj = project_compromise(pre, root=root, agent=agent, reading=reading,
+                                  honored_adjudicators=honors)
         print(f"\n  reading = {reading}   (mandate: {proj['mandate_context']} <= "
               f"{proj['mandate_ceiling']}; revoked @ {proj['revoke_ts']})")
         for r in proj["rows"]:
@@ -596,7 +639,8 @@ def main() -> None:
     print("intersecting the fold with the omniscient set the observer cannot see.")
     print("=" * 72)
     for reading in READINGS:
-        br = blast_radius(pre, forged, root=root, agent=agent, reading=reading)
+        br = blast_radius(pre, forged, root=root, agent=agent, reading=reading,
+                          honored_adjudicators=honors)
         print(f"\n  reading = {reading}")
         for r in br["forged_rows"]:
             amt = f"{r['amount']} KRW" if r["amount"] else "-"
@@ -608,8 +652,10 @@ def main() -> None:
     print("\n" + "=" * 72)
     print("THE FINDING — blast radius = mandate scope x DETECTION LATENCY")
     print("=" * 72)
-    ts = project_compromise(pre, root=root, agent=agent, reading="time_scoped")
-    cas = project_compromise(pre, root=root, agent=agent, reading="cascade")
+    ts = project_compromise(pre, root=root, agent=agent, reading="time_scoped",
+                            honored_adjudicators=honors)
+    cas = project_compromise(pre, root=root, agent=agent, reading="cascade",
+                             honored_adjudicators=honors)
     row = lambda proj, eid: next(r for r in proj["rows"] if r["id"] == eid)
     print("\n  The legitimate act and the in-scope forgery, side by side (pre-dispute):")
     for label, eid in (("legitimate (20000)", legit_id), ("FORGED in-scope (25000)", forge_a_id)):
@@ -641,17 +687,32 @@ def main() -> None:
     print("\n" + "=" * 72)
     print("RECOVERY THE REVOCATION COULD NOT REACH — per-act adjudication")
     print("=" * 72)
-    full_ts = project_compromise(events, root=root, agent=agent, reading="time_scoped")
+    upto_self = events[:next(i for i, e in enumerate(events)
+                             if e.id == meta["self_ruling_id"]) + 1]
+    mid = project_compromise(upto_self, root=root, agent=agent, reading="time_scoped",
+                             honored_adjudicators=honors)
+    fm = row(mid, forge_a_id)
+    print("\n  First, the guard: the DISPUTANT'S OWN ruling is on the log — and moves")
+    print("  nothing (registry §4.5: adjudication is honored by WHO signed it):")
+    print(f"    FORGED in-scope (25000)    {_verdict(fm['honored'])}  [{forge_a_id}] — {fm['basis']}")
+    print(f"    (the root's self-ruling [{meta['self_ruling_id']}] verifies as an event;")
+    print(f"     it is not an honored adjudicator, so the fold does not count it)")
+    full_ts = project_compromise(events, root=root, agent=agent, reading="time_scoped",
+                                 honored_adjudicators=honors)
     lt, ft = row(full_ts, legit_id), row(full_ts, forge_a_id)
-    print(f"\n  After the human disputes the ONE event out of band (full log, time_scoped):")
+    print(f"\n  Then the COMMUNITY rules on the disputed event (full log, time_scoped):")
     print(f"    legitimate (20000)         {_verdict(lt['honored'])}  [{legit_id}] — {lt['basis']}")
     print(f"    FORGED in-scope (25000)    {_verdict(ft['honored'])}  [{forge_a_id}] — {ft['basis']}")
     print("""
   Now they separate — but only because the human supplied, off the log, the one
-  fact the log never held: that 25000 was not theirs. The CHALLENGE + ADJUDICATE
-  void exactly that event while the genuine 20000 stays honored. Three layers,
-  the same split every ARC probe finds: signature valid (log) / scope honored
-  (fold) / void (authority).
+  fact the log never held (that 25000 was not theirs), and because the COMMONS
+  ruled on it: the root's CHALLENGE invoked the community, and the community's
+  ADJUDICATE voids exactly that event while the genuine 20000 stays honored.
+  The root's own attempted self-ruling counted for nothing — an adjudication is
+  honored by WHO signed it, not by its shape (registry §4.5; which adjudicator a
+  reader honors is the reader's policy choice, A&C §9). Three layers, the same
+  split every ARC probe finds: signature valid (log) / scope honored (fold) /
+  void (authority).
 
   No new event type was needed — theft is the absence of custody, revocation is
   consent.withdraw + nullifies, the dispute is CHALLENGE + ADJUDICATE. Offered as

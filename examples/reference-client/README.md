@@ -43,7 +43,7 @@ Every panel is sourced from the same log:
 | event log | all 11 generated events (+ any auto-signed proposal, tagged) |
 | delegation graph | a separate 21-event fixture log (`delegation_fixture.py`), folded two ways |
 | cold-start matrix | a separate 30-event fixture log (`coldstart_fixture.py`), folded by 3 observers |
-| compromise band | a separate 12-event fixture log (`compromise_fixture.py`, **real Ed25519**), folded at 2 moments × 2 revoke readings |
+| compromise band | a separate 14-event fixture log (`compromise_fixture.py`, **real Ed25519**), folded at 2 moments × 2 revoke readings |
 | federation band | a separate 15-event fixture log (`federation_fixture.py`), folded by 5 observers at 3 moments × 2 severance readings |
 | custody seam band | a separate 7-event fixture log (`approval_seam_fixture.py`, **real Ed25519**), the sign-time wall + an approval judged under 2 readings (proposal-bound / scope-only) |
 
@@ -196,8 +196,11 @@ residue revocation cannot reach — just after the revoke, the legitimate 20000 
 the forged 25000 are **byte-indistinguishable**, identical verdicts under both
 readings, because on the log they *are* the same act. They separate only *after
 the adjudication*, and only because the human supplied off the log the one fact
-the log never held — that the 25000 was not theirs (a `CHALLENGE` + an honored
-`ADJUDICATE` voiding that single event). The same three-layer split the
+the log never held — that the 25000 was not theirs (the root's `CHALLENGE` + an
+honored `ADJUDICATE` voiding that single event, signed by the market
+community's adjudicating key — the fold counts a per-act void only from an
+adjudicator the reader honors, so the disputant's own on-log self-ruling moves
+nothing; event-registry §4.5). The same three-layer split the
 revocation probes draw: **signature valid (log) / scope honored (fold) / void
 (authority).**
 

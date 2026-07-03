@@ -39,7 +39,11 @@ What the runtime split moves, and what it cannot:
     byte-indistinguishable from honest ones, exactly as in compromise_fixture.
     finding I survives the split intact: revocation bounds the future, the
     pre-detection in-scope acts stay, and excising only the compromised one still
-    needs per-act CHALLENGE + ADJUDICATE.
+    needs per-act CHALLENGE + ADJUDICATE — the root disputes, the COMMUNITY
+    adjudicator rules (registry §4.5: adjudication's authority source is a
+    community process, not an individual key; the disputant does not judge its
+    own challenge), and the fold counts only rulings from an adjudicator the
+    reader honors.
   * the trusted base shrinks to exactly ONE process — the signer. Its compromise
     is compromise_fixture's world again: key-custody.md §8's open "compromised
     signer," now localized to a single boundary instead of spread across the
@@ -63,7 +67,7 @@ Refusals (as deliberate as the content):
   * no new event type. A proposal is not an event (it carries no signature and
     never reaches the log unless the signer signs it). Approval is the existing
     consent.approval; revocation is consent.withdraw + nullifies; the dispute is
-    CHALLENGE + ADJUDICATE.
+    CHALLENGE (the disputant) + ADJUDICATE (the community adjudicator).
   * who drives the agent is GROUND TRUTH the generator holds. It is rendered as
     "the omniscient view, available to no observer"; the signer never reads it. A
     valid in-scope proposal is the same object whether the agent or an attacker
@@ -422,8 +426,9 @@ class AgentProcess:
 class ColdRootCeremony:
     """The human with the cold key. NOT resident in the agent or the signer — it
     is invoked for the rare ceremonial acts (mandate, approval, withdrawal,
-    dispute, ruling) and otherwise absent. Modeled as a separate object holding
-    the only copy of the root secret."""
+    dispute) and otherwise absent. Modeled as a separate object holding the only
+    copy of the root secret. It DISPUTES; it does not rule — adjudication
+    belongs to the community (registry §4.5), never to the disputant."""
 
     def __init__(self, *, root_pub: str, root_secret: bytes, clock: Clock,
                  log: list[Event]) -> None:
@@ -457,9 +462,27 @@ class ColdRootCeremony:
         return self._emit(type_="CHALLENGE", predicate="gov.dispute", refs=(event_id,),
                           payload={"reason": "not_authorized_by_holder"})
 
+
+class CommunityAdjudicator:
+    """The commons authority — the market community's adjudicating key, held by
+    its own process (registry §4.5: ADJUDICATE's authority source is a community
+    process, not an individual key). It rules on disputed acts; it grants
+    nothing and spends nothing. The disputant (the root) is a different key: a
+    party does not judge its own challenge."""
+
+    def __init__(self, *, pub: str, secret: bytes, clock: Clock,
+                 log: list[Event]) -> None:
+        self._secret = secret
+        self.pub = pub
+        self.clock = clock
+        self.log = log
+
     def rule_void(self, event_id: str) -> Event:
-        return self._emit(type_="ADJUDICATE", predicate="gov.ruling", refs=(event_id,),
-                          payload={"ruling": "void", "context": "market"})
+        ev = _mint(self._secret, self.pub, self.clock.now(), type_="ADJUDICATE",
+                   predicate="gov.ruling", refs=(event_id,),
+                   payload={"ruling": "void", "context": "market"})
+        self.log.append(ev)
+        return ev
 
 
 # ===========================================================================
@@ -468,18 +491,22 @@ class ColdRootCeremony:
 # ground truth.
 # ===========================================================================
 
-def honored_from_root(events: list[Event], *, root: str, agent: str) -> dict:
+def honored_from_root(events: list[Event], *, root: str, agent: str,
+                      honored_adjudicators: tuple[str, ...] = ()) -> dict:
     """Fold the log into per-act honoring from `root`, time-scoped. Because the
     signer already enforced scope at sign-time, almost everything on the log is in
     bounds; the one thing the fold still decides is whether a per-act ADJUDICATE
-    has voided a specific event."""
+    from an adjudicator this reader HONORS has voided a specific event.
+    `honored_adjudicators` is the reader's policy choice (A&C §9); an ADJUDICATE
+    from anyone else — the disputant included — is evidence, not authority."""
     by_id = {e.id: e for e in events}
     mandate = next((e for e in events if e.type == "AUTHORIZE"
                     and e.predicate == "consent.mandate" and e.signer == root), None)
     revoke = next((e for e in events if e.type == "AUTHORIZE"
                    and e.predicate == "consent.withdraw" and e.signer == root), None)
     voided = {e.refs[0] for e in events if e.type == "ADJUDICATE"
-              and e.payload.get("ruling") == "void" and e.refs}
+              and e.payload.get("ruling") == "void" and e.refs
+              and e.signer in honored_adjudicators}
     ceiling = (mandate.scope or {}).get("max_total_krw") if mandate else None
     mctx = (mandate.scope or {}).get("context") if mandate else None
 
@@ -539,6 +566,7 @@ def generate() -> dict:
 
     root_secret, root_pub = keypair("root")
     agent_secret, agent_pub = keypair("agent")
+    community_secret, community_pub = keypair("community")
 
     print("\n1. OFFLINE CEREMONY — the cold root anchors keys and grants a mandate,")
     print("   then goes away. From here the cold key is NOT in any running process.")
@@ -605,12 +633,19 @@ def generate() -> dict:
 
     print("\n6. THE RESIDUE REVOCATION COULD NOT REACH — the in-scope 25000 is on the")
     print("   log, honored, byte-indistinguishable from honest acts. Per-act dispute:")
+    print("   the dispute routes to the commons — the community's key anchors, the")
+    print("   root disputes, and the COMMUNITY rules (registry §4.5: not the disputant).")
+    ceremony.register(community_pub)
+    community = CommunityAdjudicator(pub=community_pub, secret=community_secret,
+                                     clock=clock, log=log)
     ch = ceremony.dispute(d_inscope.event.id)
-    ruling = ceremony.rule_void(d_inscope.event.id)
-    say("root", f"CHALLENGE [{ch.id}] + ADJUDICATE void [{ruling.id}] on that ONE event")
+    ruling = community.rule_void(d_inscope.event.id)
+    say("root", f"CHALLENGE [{ch.id}] filed on that ONE event — the disputant's move")
+    say("community", f"ADJUDICATE void [{ruling.id}] — the commons' ruling, not the root's")
 
     verify_log(log)
     return {"log": log, "root": root_pub, "agent": agent_pub,
+            "community": community_pub,
             "inscope_id": d_inscope.event.id, "mandate_id": mandate.id}
 
 
@@ -627,7 +662,8 @@ def main() -> None:
     print("WHAT ACTUALLY REACHED THE LOG — every event here has a valid signature")
     print("and is in bounds, because the signer enforced scope BEFORE signing.")
     print("=" * 72)
-    proj = honored_from_root(log, root=root, agent=agent)
+    proj = honored_from_root(log, root=root, agent=agent,
+                             honored_adjudicators=(ctx["community"],))
     print(f"\n  mandate: {proj['context']} <= {proj['ceiling']}")
     for r in proj["rows"]:
         amt = f"{r['amount']} KRW" if r["amount"] else "-"
@@ -659,9 +695,11 @@ def main() -> None:
   whoever composed them, so the attacker's 25000 was signed exactly like the
   honest 20000 — finding I, intact at runtime. Revocation bounds the future; the
   acts signed before detection stay; excising only the compromised one still needs
-  the human to supply, off the log, the one fact it never held (CHALLENGE +
-  ADJUDICATE void). The runtime split cleans up the out-of-scope blast radius; it
-  cannot shrink the in-scope one.
+  the human to supply, off the log, the one fact it never held (the root's
+  CHALLENGE + the community adjudicator's ADJUDICATE void — the disputant does
+  not judge its own challenge, and the fold counts only rulings from an
+  adjudicator the reader honors). The runtime split cleans up the out-of-scope
+  blast radius; it cannot shrink the in-scope one.
 
   Two residues the split surfaces:
 
