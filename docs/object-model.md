@@ -63,6 +63,8 @@ Projection(context, parties, window) = fold(relevant_events)
     -> relationship | reputation | authority | trust
 ```
 
+"Deterministic" is a claim about a **named** fold, not about the log alone. The same **event set**, folded by the same **projection function and version**, under the same **policy parameters** — an observer's honors, a revocation reading, a quorum-counting rule — yields the same view. Change any of the three and two readers can each be perfectly deterministic and still disagree; that disagreement is the policy layer of [authority-and-conflict.md](./authority-and-conflict.md) §9 doing its job, not a broken replay. Every executable probe that folds one log two ways (the revocation readings, the cold-start observers, the threshold counting rules) is an instance of this: same events, same function, different policy — different, equally valid answers.
+
 Reputation, current authority, identity status, and transaction state are **not stored objects and not Events**. They are different reductions of the same Event log:
 
 - **reputation** = fold of outcome Events, scoped by context, down-weighted by adversarial graph shape
@@ -77,10 +79,10 @@ A Projection has no authority of its own. Per [authority-and-conflict.md](./auth
 Because Events are signed and Projections are deterministic, relationship state is verifiable **without** a stored relationship object:
 
 1. verify each Event's signature and key provenance
-2. apply the same Projection function to the same Event set
-3. anyone folding the same Events obtains the same view
+2. apply the same Projection — same fold function and version, same policy parameters — to the same Event set
+3. anyone folding the same Events under the same Projection identity obtains the same view
 
-This yields verifiable relationship state with nothing relationship-shaped on disk. Disagreement reduces to two checkable questions: *which Events do we each hold?* and *which Projection did we each run?*
+This yields verifiable relationship state with nothing relationship-shaped on disk. Disagreement reduces to three checkable questions: *which Events do we each hold?*, *which Projection function and version did we each run?*, and *which policy parameters did we each fold under?* None of the three is mystery state; all three are nameable, which is what keeps an audit recomputable.
 
 ## 6. Why ARC Never Stores the Relationship
 

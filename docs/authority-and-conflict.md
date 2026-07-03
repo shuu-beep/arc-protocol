@@ -105,7 +105,7 @@ Suppose community A suspends a merchant while community B, reviewing the same me
 
 This separates two layers:
 
-- **The Event Layer records facts** — signed claims, approvals, and adjudications. It is shared, replayable, and deterministic: any party folding the same events sees the same rulings. It can represent a conflict faithfully, but it cannot, by itself, choose a winner.
+- **The Event Layer records facts** — signed claims, approvals, and adjudications. It is shared, replayable, and deterministic: any party holding the same events sees the same recorded rulings, and the same projection function under the same policy parameters returns the same reading of them ([object-model.md](./object-model.md) §4 — determinism is a property of the named fold, not of the log alone). It can represent a conflict faithfully, but it cannot, by itself, choose a winner.
 - **The Policy Layer chooses which authority to honor.** It is plural and local: a reader, a community, or a federation decides whose ruling it accepts, and different readers may legitimately choose differently and reach different — equally valid — answers. This choice lives *outside* the event canon.
 
 **Event Layer = facts. Policy Layer = choice.** ARC fixes the first and deliberately declines to fix the second. There is no canonical winner — the resolution is left open — because selecting one would reinstate the single final authority that section 2 refuses.

@@ -150,9 +150,13 @@ ARC stores only signed **Events**. Trust, reputation, standing, and identity
 status are **Projections** — deterministic folds recomputed on demand over the
 event log, then discarded.
 
-This is the recomputable-audit pillar: any party holding the same log recomputes
-the same projection, so a surface is never an authority's private claim — it is a
-fold anyone can re-run and check.
+This is the recomputable-audit pillar: any party holding the same log, running
+the same projection function, and folding under the same policy parameters
+(an observer's honors, a revocation reading) recomputes the same result — so a
+surface is never an authority's private claim; it is a fold anyone can re-run
+and check. When two honest readers disagree, the disagreement itself is
+checkable: different events, a different fold, or a different policy — never
+mystery state.
 
 What it does **not** buy is referent-truth. A valid signature proves a key
 signed a record; it does not prove the record's referent is true. ARC names four
