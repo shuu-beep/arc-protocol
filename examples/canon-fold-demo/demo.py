@@ -107,6 +107,38 @@ def verify_log(events: list[Event]) -> None:
             registered.add(ev.payload["new_key"])
 
 
+def _rotation_successors(events: list[Event]) -> dict[str, set[str]]:
+    """key -> every key downstream of it in the KEY rotation chain (§4.1).
+
+    A rotation is signed by the OLD key and anchors the NEW one, so the holder's
+    authority over a key's history carries FORWARD along the chain: whoever
+    rotated k1 -> k2 still authors k1's statements through k2."""
+    nxt: dict[str, str] = {}
+    for ev in events:
+        if ev.type == "KEY" and ev.predicate == "id.key_rotate":
+            nxt[ev.signer] = ev.payload["new_key"]
+    succ: dict[str, set[str]] = {}
+    for k in nxt:
+        chain: set[str] = set()
+        cur = k
+        while cur in nxt and nxt[cur] not in chain:
+            cur = nxt[cur]
+            chain.add(cur)
+        succ[k] = chain
+    return succ
+
+
+def _may_nullify(nuller: str, author: str, successors: dict[str, set[str]]) -> bool:
+    """The event-registry §4.6 nullifier-authority rule.
+
+    Withdrawal is a self-domain act (authority-and-conflict §3): only the
+    target's author — or a key downstream of it in the rotation lineage — may
+    nullify it. Any other `nullifies` stays on the log as evidence but is not
+    honored by the fold; invalidating another party's event is an ADJUDICATE
+    (authority-and-conflict §9), never a `nullifies` side effect."""
+    return nuller == author or nuller in successors.get(author, set())
+
+
 def _revocations(events: list[Event]) -> dict[str, str]:
     """Revoked keys -> earliest revoke timestamp.
 
@@ -114,8 +146,11 @@ def _revocations(events: list[Event]) -> dict[str, str]:
     register event — same KEY type, the existing `nullifies` field, no sixth
     type (event-registry §4.6). The revoked key is read from that register, and
     the revoke's timestamp is kept because withdrawal is *time-scoped*: "going
-    forward" from the revoke, not retroactively over the key's whole history."""
+    forward" from the revoke, not retroactively over the key's whole history.
+    Honored only from an authorized nullifier (§4.6): the revoked key itself or
+    a key downstream of it in the rotation lineage."""
     by_id = {ev.id: ev for ev in events}
+    succ = _rotation_successors(events)
     revs: dict[str, str] = {}
     for ev in events:
         if ev.type == "KEY" and ev.predicate == "id.key_revoke":
@@ -123,6 +158,8 @@ def _revocations(events: list[Event]) -> dict[str, str]:
                 reg = by_id.get(reg_id)
                 if reg is not None and reg.type == "KEY" and "key" in reg.payload:
                     k = reg.payload["key"]
+                    if not _may_nullify(ev.signer, k, succ):
+                        continue  # §4.6: not the key's holder lineage -> not honored
                     revs[k] = ev.timestamp if k not in revs else min(revs[k], ev.timestamp)
     return revs
 
@@ -130,23 +167,33 @@ def _revocations(events: list[Event]) -> dict[str, str]:
 def active(events: list[Event]) -> list[Event]:
     """Drop events withdrawn by a later `nullifies` (event-registry §4.6).
 
-    `nullifies` means "withdrawn going forward", read two ways from the SAME
-    field:
-      * an ordinary withdrawal (a void approval, a superseded offer) removes its
-        target outright — withdrawal is timeless;
+    A `nullifies` is honored only from an AUTHORIZED nullifier — the target's
+    author or a key downstream of it in the KEY rotation lineage (§4.6). Anyone
+    else's withdrawal stays on the log as evidence but drops nothing here.
+
+    An honored `nullifies` means "withdrawn going forward", read two ways from
+    the SAME field:
+      * an ordinary withdrawal (a void approval, a superseded offer) takes its
+        target out of force however old the target is — this fold's
+        current-standing reading drops it outright; whether a COMPLETED act
+        under the target survives a re-fold is the authority-and-conflict §9
+        projection choice (see authority-revocation-demo);
       * a `KEY` `id.key_revoke` is time-scoped: the revoked key's register and
         everything it signed BEFORE the revoke stay readable, but anything it
         signs AT/AFTER the revoke timestamp is dropped. The register is kept, so
         the key's past history and its rotation lineage remain walkable.
     """
     revs = _revocations(events)
-    timeless = {
+    by_id = {ev.id: ev for ev in events}
+    succ = _rotation_successors(events)
+    withdrawn = {
         ref for ev in events for ref in ev.nullifies
         if not (ev.type == "KEY" and ev.predicate == "id.key_revoke")
+        and ref in by_id and _may_nullify(ev.signer, by_id[ref].signer, succ)
     }
     kept: list[Event] = []
     for ev in events:
-        if ev.id in timeless:
+        if ev.id in withdrawn:
             continue
         is_revoke = ev.type == "KEY" and ev.predicate == "id.key_revoke"
         rt = revs.get(ev.signer)

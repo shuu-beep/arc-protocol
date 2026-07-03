@@ -196,9 +196,11 @@ fall after the cutoff, orphaning the new key; ordering is the policy lever, not 
 new type.
 
 `nullifies` carries two readings of "going forward" from the same field: an
-ordinary withdrawal voids its target outright (timeless), while a key revoke is
-time-scoped against the revoke timestamp. That distinction is the one notable
-finding — it is a fold-policy nuance, not a missing primitive.
+ordinary withdrawal takes its target out of force however old it is, while a key
+revoke is time-scoped against the revoke timestamp. That distinction is the one
+notable finding — it is a fold-policy nuance, not a missing primitive. Either
+way the fold honors a `nullifies` only from the target's author or its rotation
+lineage (event-registry §4.6); anyone else's withdrawal is evidence, not effect.
 
 A seventh scenario probes **replay cost / projection caching** — a different
 axis: not "is the event canon enough?" but "does an optimization on *derived*
@@ -307,9 +309,9 @@ the eleventh, which is sharper):
   existing `nullifies` field withdrew the old key's forward authority without
   mutating any prior event or erasing its history. The one nuance worth naming:
   `nullifies` had to be read *time-scoped* for a key revoke (honored before the
-  revoke, dropped at/after) versus *timeless* for an ordinary withdrawal — a
-  fold-policy distinction, not a missing primitive. Holder authority over one's
-  own key stayed separate from commons `ADJUDICATE`.
+  revoke, dropped at/after) versus *effective-outright* for an ordinary
+  withdrawal — a fold-policy distinction, not a missing primitive. Holder
+  authority over one's own key stayed separate from commons `ADJUDICATE`.
 - Caching was nuanced, not free: it adds no event type, but it is only safe when
   the cache is ephemeral, or event-bound (`event_set_hash`) and treated as a
   hint. A durable, unbound cache *is* the stored profile/score/status the model

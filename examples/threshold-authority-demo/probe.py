@@ -23,7 +23,9 @@ is only honored when **two of three named members approve** a candidate act:
     agent      --AUTHORIZE consent.execute------->  candidate spend (refs mandate)
     m1         --ATTEST   consent.approve-------->  candidate            [1 of 3]
     m2         --ATTEST   consent.approve-------->  candidate            [2 of 3]  quorum
-    principal  --AUTHORIZE consent.withdraw------>  nullifies m2's approval
+    principal  --AUTHORIZE consent.withdraw------>  tries to nullify m2's approval
+                                                    (NOT honored: not the author, §4.6)
+    m2         --AUTHORIZE consent.withdraw------>  nullifies m2's OWN approval
 
 Nothing here is a new event type. The joint set is recorded as **scope on one
 ordinary AUTHORIZE** (members + threshold are parameters, exactly like
@@ -38,7 +40,7 @@ as an approval, whether non-members or duplicates count, how a later revocation
 re-reads the count — does NOT. It lives in the fold. So joint authority opens a
 fresh observer-relative boundary, on two independent axes the probe crosses:
 
-  * revocation reading (the finding-G axis): revoke a signer after quorum, and
+  * revocation reading (the finding-G axis): withdraw an approval after quorum, and
       - as-of-act-time / time-scoped  -> quorum stood -> authorized;
       - retroactive cascade           -> the approval is voided -> below threshold.
   * counting policy (the new axis): the SAME approvals
@@ -46,6 +48,11 @@ fresh observer-relative boundary, on two independent axes the probe crosses:
       - lenient  (any anchored signer)         -> a stray key restores quorum.
     A party holding ONE member key plus a stray key can manufacture a "valid"
     quorum against any counterparty whose fold uses the lenient rule.
+
+One boundary is NOT policy: who may withdraw. The fold honors a `nullifies` only
+from the target's own author (event-registry §4.6) — the principal's attempt to
+void m2's approval is recorded but changes no count; only m2's own withdrawal
+does. Voiding another party's event is ADJUDICATE business, not a `nullifies`.
 
 And one guard, shown cheaply: quorum cannot *widen* scope. A spend over the
 mandate's ceiling is unauthorized even at a full 3-of-3.
@@ -166,10 +173,17 @@ def project_quorum(events: list[Event], candidate_id: str, *,
                  and candidate_id in e.refs]
 
     # withdrawals: which approvals are voided, under the chosen reading?
+    # Nullifier authority is NOT one of the policy knobs (event-registry §4.6):
+    # only the approval's own author may withdraw it (this probe has no key
+    # rotation, so lineage reduces to the author). An unauthorized withdrawal
+    # stays on the log as evidence but voids nothing.
     voided: set[str] = set()
     for w in events:
         if w.type == "AUTHORIZE" and w.predicate == "consent.withdraw":
             for nid in w.nullifies:
+                target = by_id.get(nid)
+                if target is None or w.signer != target.signer:
+                    continue  # §4.6: not the target's author -> not honored
                 # retroactive cascade voids over all history; time-scoped voids
                 # only for acts at/after the withdrawal (this act predates it).
                 if retroactive or w.timestamp <= act.timestamp:
@@ -223,8 +237,8 @@ class Ledger:
 
     def now(self) -> str:
         self._clock += 1
-        # the board's whole morning of approvals lands at hour 10; the principal's
-        # later withdrawal (the only afternoon event) lands at hour 16.
+        # the board's whole morning of approvals lands at hour 10; the two
+        # afternoon withdrawal events land at hour 16.
         hour = 10 if self._clock <= 16 else 16
         return f"2026-06-09T{hour:02d}:{self._clock:02d}:00Z"
 
@@ -295,12 +309,19 @@ def run() -> None:
     print("\n   --- guard: QUORUM CANNOT WIDEN SCOPE — 3-of-3 but over the ceiling ---")
     show(project_quorum(led.events, candB.id, retroactive=False, counting="strict"))
 
-    print("\n5. Revocation after quorum — principal withdraws member-2's approval on A")
-    say("principal", "member-2 should no longer count toward candidate A; withdrawing that approval")
+    print("\n5. Withdrawal after quorum — first WHO may withdraw, then how it re-reads")
+    say("principal", "member-2 should no longer count toward candidate A; trying to void that approval")
     principal.emit("AUTHORIZE", "consent.withdraw", refs=("k:m2", mandate.id),
                    nullifies=(appr2.id,), payload={"reason": "member_standing_withdrawn"})
+    print("\n   --- (3) NULLIFIER AUTHORITY (event-registry §4.6): the principal is not the")
+    print("       approval's author, so the fold does NOT honor this withdrawal ---")
+    show(project_quorum(led.events, candA.id, retroactive=True, counting="strict"))
 
-    print("\n   --- (3) SIGNER REVOKED AFTER QUORUM, and (4) the readings DIVERGE on candidate A ---")
+    say("member-2", "reconsidering; withdrawing my own approval — the §4.6-authorized shape")
+    m2.emit("AUTHORIZE", "consent.withdraw", refs=(appr2.id, mandate.id),
+            nullifies=(appr2.id,), payload={"reason": "approval_reconsidered"})
+
+    print("\n   --- (4) APPROVAL WITHDRAWN AFTER QUORUM, and (5) the readings DIVERGE on candidate A ---")
     print("   asof = the moment of reliance (payment recorded):", payA.timestamp)
     rows = [
         ("as-of-act-time          (strict)", as_of(led.events, payA.timestamp), False, "strict"),
@@ -331,10 +352,16 @@ What this probe exposes
       Not in any event. The threshold *number* is recorded, but "did this reach
       quorum?" is a PROJECTION — a fold that counts approvals on demand. The
       counting rule (distinct? members-only? non-members?) is a fold policy.
+  * Who may withdraw an approval?
+      Only its author (or the author's rotation lineage) — the nullifier-authority
+      rule of event-registry §4.6, and it is NOT a policy knob. The principal's
+      attempt to void m2's approval is recorded evidence and changes no count;
+      voiding another party's event is ADJUDICATE business, never a `nullifies`
+      side effect. Only m2's own withdrawal moves the fold.
   * Does that make joint authority observer-relative?
       Yes, on two independent axes the probe crosses:
-        - revocation reading (finding-G axis): revoke a signer after quorum, and
-          as-of-act-time / time-scoped preserve the act while a retroactive
+        - revocation reading (finding-G axis): withdraw an approval after quorum,
+          and as-of-act-time / time-scoped preserve the act while a retroactive
           cascade drops it below threshold — the SAME nullify, two answers;
         - counting policy: strict (distinct named members) rejects a stray key
           that lenient (any anchored signer) counts. A party with ONE member key

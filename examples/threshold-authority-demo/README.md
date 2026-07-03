@@ -30,8 +30,13 @@ A 2-of-3 treasury board.
    referencing the mandate).
 3. Board members approve by signing ordinary `ATTEST consent.approve` events that
    reference the candidate.
-4. The **principal** later withdraws one member's approval (`AUTHORIZE
-   consent.withdraw` carrying `nullifies` — the existing field).
+4. The **principal** later tries to withdraw member-2's approval (`AUTHORIZE
+   consent.withdraw` carrying `nullifies` — the existing field). It is recorded
+   but **not honored**: a fold honors a `nullifies` only from the target's
+   author or its rotation lineage ([event-registry.md](../../docs/event-registry.md)
+   §4.6).
+5. **Member-2** then withdraws their **own** approval — the §4.6-authorized
+   shape — and that one moves the fold.
 
 "Did this candidate reach quorum?" is asked only as a **projection** — a fold that
 counts approvals against the recorded threshold. It is never stored.
@@ -43,10 +48,11 @@ counts approvals against the recorded threshold. It is never stored.
 | 1 | **below threshold** — one approval | `authorized=False` (1/2) |
 | 2 | **quorum satisfied** — two distinct members | `authorized=True` (2/2) |
 | — | **guard:** candidate B over the ceiling at a full **3-of-3** | `authorized=False` (out of scope) |
-| 3 | **signer revoked after quorum** — current-log cascade | `authorized=False` (1/2) |
-| 4 | **divergent readings** of the same revoked log | see below |
+| 3 | **nullifier authority** — the principal tries to void m2's approval | `authorized=True` (still 2/2 — not honored, §4.6) |
+| 4 | **approval withdrawn after quorum** (by m2 itself) — current-log cascade | `authorized=False` (1/2) |
+| 5 | **divergent readings** of the same withdrawn-approval log | see below |
 
-The divergence on candidate A, after one approval is withdrawn:
+The divergence on candidate A, after m2 withdraws its own approval:
 
 | reading | counting | authorized? |
 |---------|----------|-------------|
@@ -62,9 +68,14 @@ The divergence on candidate A, after one approval is withdrawn:
 - **Where does the quorum *rule* live?** Not in any event. The threshold *number*
   is recorded; "did it reach quorum?" is a **fold**, and the counting rule
   (distinct? members-only? non-members?) is a **fold policy**.
+- **Who may withdraw is not policy.** The fold honors a `nullifies` only from
+  the target's author or its rotation lineage ([event-registry.md](../../docs/event-registry.md)
+  §4.6). The principal's cross-party attempt is recorded evidence, not effect —
+  voiding another party's event is `ADJUDICATE` business, never a `nullifies`
+  side effect.
 - **So joint authority is observer-relative on two axes:**
-  - *revocation reading* (the finding-G axis): revoke a signer after quorum and
-    as-of-act-time / time-scoped preserve the act, while a retroactive cascade
+  - *revocation reading* (the finding-G axis): withdraw an approval after quorum
+    and as-of-act-time / time-scoped preserve the act, while a retroactive cascade
     drops it below threshold — the same `nullifies`, two answers;
   - *counting policy* (new): a party holding **one** member key plus a **stray**
     key can manufacture a "valid" quorum against any counterparty whose fold uses

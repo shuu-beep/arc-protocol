@@ -83,7 +83,7 @@ AUTHORIZE (mandate M)
 later event with nullifies: [M]   →   M is no longer in force going forward
 ```
 
-Revocation is forward-looking: it stops future coverage. Actions validly taken under M before revocation remain attributable events — under the object model, events are immutable and history cannot be un-signed ([object-model.md](./object-model.md)). Whether an *in-flight* transaction is affected is an open question (§10).
+Revocation is forward-looking: it stops future coverage. Actions validly taken under M before revocation remain attributable events — under the object model, events are immutable and history cannot be un-signed ([object-model.md](./object-model.md)). Whether a *completed* act stays honored when a reader later re-folds the full log is the cascade-vs-preserve projection choice of [authority-and-conflict.md](./authority-and-conflict.md) §9 — the fact of withdrawal is canon, that reading is policy — and voiding a specific past act requires an `ADJUDICATE`, not a `nullifies`. Only the mandate's author — the granting key or its rotation lineage — may issue the revocation ([event-registry.md](./event-registry.md) §4.6): a `nullifies` from anyone else is recorded evidence, not a withdrawal. Whether an *in-flight* transaction is affected is an open question (§10).
 
 Key compromise interacts with this: revoking or rotating the signing key (a `KEY` event) also ends the mandates that depended on it ([reputation.md](./reputation.md) §9, [identity.md](./identity.md) §6.2).
 
