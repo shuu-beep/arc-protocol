@@ -18,7 +18,10 @@ Honest scope (deliberate)
     `examples/end-to-end-demo/flow.py` and reused verbatim — so what the viewer
     shows is real generated data, not a mock.
   * The write path (run_proposals / evaluate) signs with the probe's MOCK scheme,
-    and only to show the mandate -> sign/escalate DECISION. It does not address
+    and only to show the mandate -> sign/escalate DECISION. Its auto-sign basis
+    is an explicit consent.mandate minted for the write path; the base log's
+    one-time consent.approval licenses only its own transaction (event-registry
+    §6) and is never read as standing authority. It does not address
     the two deferred questions — key custody, and cold-start vs unrooted. The
     key never crosses the proposal boundary; the runtime proposes, the client
     signs. Proposals are scripted, not produced by a live runtime or an MCP wire.
@@ -271,11 +274,13 @@ def render_event_log(events, proposed=()) -> str:
             f'<td class="evid">{esc(e.id)}</td></tr>')
     for j, e in enumerate(proposed):
         i = len(events) + j
+        tag = ("write-path mandate · human-granted"
+               if e.predicate == "consent.mandate" else "proposed · auto-signed")
         rows.append(
             f'<tr class="proposed" data-i="{i}"><td>{i}</td>'
             f'<td class="t-{esc(e.type)}">{esc(e.type)}</td>'
             f'<td>{esc(name(e.signer))}</td><td><code>{esc(e.predicate)}</code> '
-            f'<span class="tag ok">proposed · auto-signed</span></td>'
+            f'<span class="tag ok">{tag}</span></td>'
             f'<td class="evid">{esc(e.id)}</td></tr>')
     return ('<table class="log"><thead><tr><th>#</th><th>type</th><th>signer</th>'
             '<th>predicate</th><th>id</th></tr></thead><tbody>'
@@ -1206,8 +1211,18 @@ def evaluate(p: Proposal, mandate) -> tuple[str, str]:
 
 
 def run_proposals(events) -> tuple[list, list]:
-    mandate = next(e for e in events if e.type == "AUTHORIZE")
-    proposer = next((e.signer for e in events if mandate.id in e.refs), mandate.signer)
+    # The base log's AUTHORIZE is a consent.approval — consent to ONE
+    # transaction (event-registry §6). It is never standing authority, so the
+    # boundary does not evaluate proposals against it. Auto-sign authority is
+    # an explicit consent.mandate: the same human who approved the lunch
+    # transaction grants the agent a standing mandate with the same bounds,
+    # and THAT is what evaluate() reads.
+    approval = next(e for e in events if e.type == "AUTHORIZE")
+    assert approval.predicate == "consent.approval"
+    proposer = next((e.signer for e in events if approval.id in e.refs), approval.signer)
+    mandate = flow.make("AUTHORIZE", approval.signer, "consent.mandate",
+                        "2026-06-08T10:11:30Z", refs=(proposer,),
+                        scope=dict(approval.scope or {}))
     proposals = [
         Proposal(proposer, "ATTEST", "rep.outcome",
                  {"result": "positive", "context": "lunch"},
@@ -1219,7 +1234,7 @@ def run_proposals(events) -> tuple[list, list]:
                  {"context": "lunch"},
                  "grant itself a wider mandate"),
     ]
-    results, signed = [], []
+    results, signed = [], [mandate]   # the mandate itself enters the log first
     for p in proposals:
         decision, reason = evaluate(p, mandate)
         ev = None
@@ -1231,10 +1246,26 @@ def run_proposals(events) -> tuple[list, list]:
     return results, signed
 
 
-def render_proposal_flow(results) -> str:
+def render_proposal_flow(results, signed=()) -> str:
     badges = {"auto_sign": ("AUTO-SIGNED", "ok", "→ event log"),
               "escalate": ("ESCALATED", "warn", "→ approval inbox")}
     rows = []
+    mandate = next((e for e in signed if e.predicate == "consent.mandate"), None)
+    if mandate is not None:
+        sc = mandate.scope or {}
+        rows.append(
+            f'<div class="prop"><div class="head">'
+            f'<span class="who">{esc(name(mandate.signer))}</span> · '
+            f'<code>AUTHORIZE consent.mandate</code> '
+            f'<span class="ctx">({esc(sc.get("context", ""))} &le; '
+            f'{esc(sc.get("max_total_krw"))} KRW)</span></div>'
+            f'<div class="intent">basis: the human grants standing auto-sign authority '
+            f'for this window — the one-time <code>consent.approval</code> in the base '
+            f'log licenses only its own transaction (event-registry §6) and is never '
+            f'read as a mandate</div>'
+            f'<div class="decision"><span class="tag ok">GRANTED</span> '
+            f'<span class="evid">[{esc(mandate.id)}]</span> '
+            f'<span class="route">→ event log</span></div></div>')
     for p, decision, reason, ev in results:
         label, cls, route = badges[decision]
         amt = p.payload.get("amount_krw")
@@ -1249,7 +1280,10 @@ def render_proposal_flow(results) -> str:
             f'<div class="decision"><span class="tag {cls}">{label}</span> '
             f'{esc(reason)}{evid} <span class="route">{esc(route)}</span></div></div>')
     note = ('<p class="note">One verb — <code>propose_event(type, payload)</code> — for '
-            'every type; a BYO runtime proposes, the boundary routes. The key never '
+            'every type; a BYO runtime proposes, the boundary routes. The boundary\'s '
+            'basis is the explicit <code>consent.mandate</code> above: an approval is '
+            'consent to one transaction, a mandate is standing scoped authority, and '
+            'the write path never blurs the two (event-registry §6). The key never '
             'crosses this line. Signing here reuses the probe\'s mock scheme; '
             '<em>where</em> keys live (custody) is still out of scope. The base '
             'projection is left unchanged — this panel is the write path, not the read.</p>')
@@ -1294,7 +1328,7 @@ every panel is a recomputed projection; the boundary signs, the key never leaves
 <div class="col">{right}</div>
 </div>
 <div class="full"><div class="card band"><h2>live proposal — the write path (the boundary decides)</h2>
-<div class="in">{render_proposal_flow(results)}</div></div></div>
+<div class="in">{render_proposal_flow(results, signed)}</div></div></div>
 <div class="full"><div class="card"><h2>event log — the source the seven surfaces fold over</h2>
 <div class="in">{render_event_log(events, signed)}</div></div></div>
 <div class="full"><div class="card band"><h2>delegation graph — authority as a visible object (one fixture log, two readings)</h2>
@@ -1382,10 +1416,17 @@ def main() -> None:
         print(f"  [{label}] governance={s['governance_standing']} "
               f"open_disputes={s['open_disputes']}")
     print("proposal routing through the boundary:")
+    wp_mandate = next((e for e in signed if e.predicate == "consent.mandate"), None)
+    if wp_mandate is not None:
+        sc = wp_mandate.scope or {}
+        print(f"  basis     AUTHORIZE consent.mandate [{wp_mandate.id}] — human-granted "
+              f"standing authority ({sc.get('context')} <= {sc.get('max_total_krw')}); "
+              f"the base log's consent.approval covers one transaction only (registry §6)")
     for p, decision, reason, ev in results:
         evid = f" [{ev.id}]" if ev else ""
         print(f"  {decision:9} {p.type} {p.predicate}{evid} — {reason}")
-    # the auto-signed proposals verify against the same log they extend
+    # the write-path mandate and the auto-signed proposals verify against the
+    # same log they extend
     flow.verify_log(events + signed)
     fixture.verify_log(fixture_events)  # the fixture log verifies independently
     coldstart.verify_log(coldstart_events)

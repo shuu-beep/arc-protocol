@@ -40,7 +40,7 @@ Every panel is sourced from the same log:
 | signed commitments | `ATTEST commerce.offer / payment_result / fulfillment` |
 | projection viewer | `project_merchant_standing` at three cuts of the log |
 | challenge / adjudication | `CHALLENGE dispute.open` + `ADJUDICATE gov.warning` |
-| event log | all 11 generated events (+ any auto-signed proposal, tagged) |
+| event log | all 11 generated events (+ the write-path mandate and any auto-signed proposal, tagged) |
 | delegation graph | a separate 21-event fixture log (`delegation_fixture.py`), folded two ways |
 | cold-start matrix | a separate 30-event fixture log (`coldstart_fixture.py`), folded by 3 observers |
 | compromise band | a separate 14-event fixture log (`compromise_fixture.py`, **real Ed25519**), folded at 2 moments × 2 revoke readings |
@@ -58,7 +58,10 @@ mutating stored state.
 Below the panels, a band shows what happens when a BYO runtime *proposes* events.
 There is exactly one verb — `propose_event(type, payload)` — closed the same way
 the Canon is (no writer per event type). The ARC client checks each proposal
-against the active mandate and routes it:
+against the active mandate — an explicit `AUTHORIZE consent.mandate` the human
+grants for the write path; the base log's one-time `consent.approval` licenses
+only its own transaction ([event-registry.md](../../docs/event-registry.md) §6)
+and is never read as standing authority — and routes it:
 
 | proposal | decision | why |
 | --- | --- | --- |
@@ -69,7 +72,8 @@ against the active mandate and routes it:
 This is the operational meaning of a mandate: in-scope proposals are signed
 autonomously; out-of-scope ones become PENDING items a human/root must decide.
 The key never crosses the proposal boundary — the runtime proposes, the client
-signs. The auto-signed event verifies against the same log it extends.
+signs. The write-path mandate and the auto-signed event verify against the same
+log they extend.
 
 ## The delegation graph — authority as a visible object
 
