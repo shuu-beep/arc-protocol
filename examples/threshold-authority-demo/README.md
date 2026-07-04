@@ -28,7 +28,7 @@ A 2-of-3 treasury board.
    [authority-revocation probe](../authority-revocation-demo/).
 2. The **agent** proposes a candidate spend (`AUTHORIZE consent.execute`,
    referencing the mandate).
-3. Board members approve by signing ordinary `ATTEST consent.approve` events that
+3. Board members approve by signing ordinary `ATTEST quorum.approve` events that
    reference the candidate.
 4. The **principal** later tries to withdraw member-2's approval (`AUTHORIZE
    consent.withdraw` carrying `nullifies` — the existing field). It is recorded
@@ -88,7 +88,13 @@ The divergence on candidate A, after m2 withdraws its own approval:
 
 This is a **probe, not doctrine.** It does not define a multisig spec, does not
 pick the "right" counting or revocation reading, does not solve federation, and
-adds no stored authority object. The result is the same shape as findings B/C/D/G:
+adds no stored authority object. It also does not decide whether a quorum
+approval is *evidence* or *consent*: approvals are modeled as `ATTEST
+quorum.approve` — deliberately not `consent.*`, which the corpus reserves for
+`AUTHORIZE` ([event-registry.md](../../docs/event-registry.md) §6) — and whether
+a member's approval should ultimately be an authority-bearing `AUTHORIZE` is
+the probe's declared open question, recorded in
+[event-registry.md](../../docs/event-registry.md) §10. The result is the same shape as findings B/C/D/G:
 the hard case stays inside the five types, and what leaks out is a **fold-policy
 choice, not a missing primitive** — here, a second observer-relative boundary that
 lands on the count itself.

@@ -21,8 +21,8 @@ is only honored when **two of three named members approve** a candidate act:
     principal  --AUTHORIZE consent.joint_mandate-->  scope={members:[m1,m2,m3],
                                                             threshold:2, max:30000}
     agent      --AUTHORIZE consent.execute------->  candidate spend (refs mandate)
-    m1         --ATTEST   consent.approve-------->  candidate            [1 of 3]
-    m2         --ATTEST   consent.approve-------->  candidate            [2 of 3]  quorum
+    m1         --ATTEST   quorum.approve-------->  candidate            [1 of 3]
+    m2         --ATTEST   quorum.approve-------->  candidate            [2 of 3]  quorum
     principal  --AUTHORIZE consent.withdraw------>  tries to nullify m2's approval
                                                     (NOT honored: not the author, §4.6)
     m2         --AUTHORIZE consent.withdraw------>  nullifies m2's OWN approval
@@ -32,6 +32,14 @@ ordinary AUTHORIZE** (members + threshold are parameters, exactly like
 `max_total_krw` in the revocation probe). Each approval is an ordinary `ATTEST`.
 The standing question — "did this act reach quorum?" — is a **projection**: a fold
 that *counts* approvals against the recorded threshold. It is never stored.
+
+A naming note, and this probe's declared OPEN QUESTION: member approvals carry
+the predicate `quorum.approve` — deliberately NOT `consent.*`, which the corpus
+reserves for AUTHORIZE (event-registry §6). Whether a quorum member's approval
+should ultimately be EVIDENCE (an ATTEST a fold counts, as modeled here) or
+CONSENT (an AUTHORIZE that composes authority) is posed by this probe and
+resolved by no document (event-registry §10). The probe models the evidence
+reading and does not claim it is the right one.
 
 The core finding
 ----------------
@@ -169,7 +177,7 @@ def project_quorum(events: list[Event], candidate_id: str, *,
 
     # approvals naming this candidate
     approvals = [e for e in events
-                 if e.type == "ATTEST" and e.predicate == "consent.approve"
+                 if e.type == "ATTEST" and e.predicate == "quorum.approve"
                  and candidate_id in e.refs]
 
     # withdrawals: which approvals are voided, under the chosen reading?
@@ -282,14 +290,14 @@ def run() -> None:
     candA = agent.emit("AUTHORIZE", "consent.execute", refs=(mandate.id,),
                        scope={"total_krw": 24000, "category": "treasury", "payee": "vendor_x"})
 
-    print("\n   m1 approves (ATTEST consent.approve)")
-    appr1 = m1.emit("ATTEST", "consent.approve", refs=(candA.id, mandate.id))
+    print("\n   m1 approves (ATTEST quorum.approve)")
+    appr1 = m1.emit("ATTEST", "quorum.approve", refs=(candA.id, mandate.id))
     print("\n   --- (1) BELOW THRESHOLD: only one approval so far ---")
     show(project_quorum(as_of(led.events, appr1.timestamp), candA.id,
                         retroactive=False, counting="strict"))
 
-    print("\n   m2 approves (ATTEST consent.approve) — quorum reached")
-    appr2 = m2.emit("ATTEST", "consent.approve", refs=(candA.id, mandate.id))
+    print("\n   m2 approves (ATTEST quorum.approve) — quorum reached")
+    appr2 = m2.emit("ATTEST", "quorum.approve", refs=(candA.id, mandate.id))
     print("\n   --- (2) QUORUM SATISFIED: two distinct members approved ---")
     show(project_quorum(as_of(led.events, appr2.timestamp), candA.id,
                         retroactive=False, counting="strict"))
@@ -299,13 +307,13 @@ def run() -> None:
                       payload={"result": "confirmed", "amount_krw": 24000, "provider": "mock_pay"})
 
     say("stray", "a non-board key also signs an approval for candidate A (sets up the counting axis)")
-    stray.emit("ATTEST", "consent.approve", refs=(candA.id, mandate.id))
+    stray.emit("ATTEST", "quorum.approve", refs=(candA.id, mandate.id))
 
     print("\n4. Candidate B (OVER scope) — agent proposes 50000; the whole board approves")
     candB = agent.emit("AUTHORIZE", "consent.execute", refs=(mandate.id,),
                        scope={"total_krw": 50000, "category": "treasury", "payee": "vendor_y"})
     for m in (m1, m2, m3):
-        m.emit("ATTEST", "consent.approve", refs=(candB.id, mandate.id))
+        m.emit("ATTEST", "quorum.approve", refs=(candB.id, mandate.id))
     print("\n   --- guard: QUORUM CANNOT WIDEN SCOPE — 3-of-3 but over the ceiling ---")
     show(project_quorum(led.events, candB.id, retroactive=False, counting="strict"))
 
@@ -345,9 +353,11 @@ What this probe exposes
 -----------------------
   * Can M-of-N be represented in the five types?
       Yes. The joint set is scope on ONE ordinary AUTHORIZE (members + threshold,
-      like any other scope parameter); each approval is an ordinary ATTEST; the
-      revocation is the existing `nullifies` field. NO sixth type, no stored
-      authority object, no "multisig" primitive.
+      like any other scope parameter); each approval is an ordinary ATTEST
+      (`quorum.approve` — not `consent.*`, reserved for AUTHORIZE; whether a
+      quorum approval is evidence or consent stays this probe's declared open
+      question, event-registry §10); the revocation is the existing `nullifies`
+      field. NO sixth type, no stored authority object, no "multisig" primitive.
   * Where does the quorum RULE live?
       Not in any event. The threshold *number* is recorded, but "did this reach
       quorum?" is a PROJECTION — a fold that counts approvals on demand. The
