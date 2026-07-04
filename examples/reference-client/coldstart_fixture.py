@@ -232,9 +232,11 @@ def project_legitimacy(events: list[Event], observer: dict, asof: str) -> dict:
     Returns categorical verdicts plus the exact events each verdict rests on.
     Deliberately NOT a score, and deliberately different per policy — the
     disagreement between observers is the projection's real content. A verdict
-    that hangs on a single tie is flagged (`hinge`): remove that one event and
-    the subject becomes unreachable — a weak social link carrying
-    constitutional weight."""
+    whose path enters through a single FIRST edge is flagged (`hinge`): remove
+    that one event and the subject becomes unreachable — a weak social link
+    carrying constitutional weight. (Narrow by design: hinge_of tests only the
+    path's first edge, so a sole connector deeper in the path — one with
+    alternative first edges — is not flagged by this fold.)"""
     dead = _nullified_at(events)
     root, policy, honors = observer["root"], observer["policy"], observer["honors"]
 

@@ -238,14 +238,16 @@ def project_identity_status(events: list[Event], key: str) -> str:
            and key in e.refs for e in evs):
         status = "credentialed"
     # Only an ADJUDICATE (commons authority) may suspend/revoke (authority §5).
-    for e in evs:
-        if e.type == "ADJUDICATE" and key in e.refs:
-            if e.predicate == "gov.suspension":
-                status = "suspended"
-            elif e.predicate == "gov.expulsion":
-                status = "revoked"
-            elif e.predicate == "gov.reinstatement":
-                status = "verified"
+    # Rulings fold in TIMESTAMP order — the same ordering project_merchant_standing
+    # uses — so the two folds cannot diverge on an out-of-order log.
+    rulings = (e for e in evs if e.type == "ADJUDICATE" and key in e.refs)
+    for e in sorted(rulings, key=lambda e: e.timestamp):
+        if e.predicate == "gov.suspension":
+            status = "suspended"
+        elif e.predicate == "gov.expulsion":
+            status = "revoked"
+        elif e.predicate == "gov.reinstatement":
+            status = "verified"
     return status
 
 

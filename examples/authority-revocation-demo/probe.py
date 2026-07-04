@@ -304,8 +304,11 @@ What this probe exposes
       Honoring relied-upon authority (as-of-act-time) protects the counterparty who
       acted in good faith. A permanent, automatic, identity-keyed retroactive collapse
       would be a stored verdict about a party — the social-credit shape ARC refuses.
-      So ARC keeps revocation future-scoped by default and leaves any reopening of a
-      specific past act to an explicit, per-act ADJUDICATE.
+      So the automatic retroactive collapse is the reading to refuse as a DEFAULT —
+      but ARC picks no default: cascade-vs-preserve stays a projection choice
+      (authority-and-conflict §9, and this probe's own line above: "The canon does
+      not pick"), and reopening a specific past act is always an explicit,
+      per-act ADJUDICATE, never a side effect of the revocation.
 
 No sixth type was added; the divergence is a fold-policy residue, not a missing
 primitive. This is a probe, not final doctrine and not a revocation spec.

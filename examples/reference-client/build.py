@@ -180,8 +180,11 @@ def render_mandate(events) -> str:
         f'{rows}'
         f'<div class="kv"><span>refs</span><code>{esc(", ".join(auth.refs))}</code></div>'
         f'</div>'
-        f'<p class="note">This is the boundary between what an agent may sign '
-        f'<em>without re-asking</em> (in scope) and what must escalate.</p>')
+        f'<p class="note">This AUTHORIZE is a one-transaction '
+        f'<code>consent.approval</code> — consent to a specific act, not standing '
+        f'authority (event-registry §6). The standing boundary that decides '
+        f'auto-sign vs escalate is the write path\'s explicit '
+        f'<code>consent.mandate</code> (see the live-proposal band below).</p>')
 
 
 def render_approval_inbox(events, results=()) -> str:
@@ -1306,7 +1309,7 @@ def build_html(events, snapshots, results, signed, projections, flips, fixture_e
                                        comp["ceiling"], comp["revoke_ts"])
     card = lambda t, b: f'<div class="card"><h2>{t}</h2><div class="in">{b}</div></div>'
     left = card("delegation tree", render_delegation_tree(events)) + \
-        card("mandate viewer", render_mandate(events))
+        card("authorization viewer", render_mandate(events))
     mid = card("approval inbox", render_approval_inbox(events, results)) + \
         card("signed commitments", render_commitments(events))
     right = card("projection viewer", render_projection(snapshots)) + \

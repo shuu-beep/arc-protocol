@@ -429,11 +429,11 @@ def audit_merchant_identity_assurance(
     NOT a fraud test and NOT a verdict. A byte-valid offer with a valid signature
     proves only that a registered key signed it; it says nothing about whether the
     key was anchored by an outside cost gate — business registration, payment
-    account, community onboarding, escrow (object-model.md §97) — or has any track
+    account, community onboarding, escrow (object-model.md §7) — or has any track
     record. Absence of assurance is NOT proof of dishonesty: an unanchored, no-
     history merchant is exactly what an honest newcomer also looks like, so these
     are warnings to make visible before approval, never grounds to penalize a
-    newcomer by default (object-model.md §126: cold-start and Sybil are one dial).
+    newcomer by default (object-model.md §8: cold-start and Sybil are one dial).
     And an anchor credential is itself only as good as its issuer's reading — a
     valid credential is key-possession, not a guarantee of honest fulfillment.
 
@@ -632,7 +632,9 @@ def audit_approval_cadence(events: list[Event], context: str) -> list[tuple[str,
     commerce.offer events they reference:
 
       REPEATED_APPROVAL_CHURN — at least APPROVAL_CHURN_BAR approvals fall within
-        APPROVAL_CADENCE_WINDOW of one another.
+        APPROVAL_CADENCE_WINDOW of the EARLIEST approval (the fold anchors one
+        window at the first approval; a later, separate cluster is outside this
+        fold's reach by design — one window, one trigger).
       MATERIAL_CHANGE_UNCONSOLIDATED — across those clustered approvals, successive
         approved offers changed material terms, so the human re-approved moving
         terms without a consolidated side-by-side review.
@@ -1255,16 +1257,19 @@ def run_approval_fatigue() -> Ledger:
 
     # Timestamps are given explicitly so the cadence itself is visible; in a real
     # flow they would simply be the signing times. The offers and their approvals
-    # cluster inside ~2.5 minutes, mirroring artifacts/approval-fatigue.json.
+    # cluster inside ~2.5 minutes, mirroring artifacts/approval-fatigue.json —
+    # and they follow the intent and key registrations they reference (the
+    # ledger clock above runs 12:01–12:04), so the refs DAG stays causally clean
+    # by the corpus's own temporal-fidelity standard.
     rounds = [
         (dict(price_krw=12300, eta_min=25, free_cancellation=True),
-         "2026-06-05T12:01:20Z", "initial request"),
+         "2026-06-08T12:05:20Z", "initial request"),
         (dict(price_krw=12600, eta_min=25, free_cancellation=True),
-         "2026-06-05T12:02:10Z", "price +300"),
+         "2026-06-08T12:06:10Z", "price +300"),
         (dict(price_krw=12600, eta_min=31, free_cancellation=True),
-         "2026-06-05T12:02:55Z", "delivery estimate +6 min"),
+         "2026-06-08T12:06:55Z", "delivery estimate +6 min"),
         (dict(price_krw=12900, eta_min=31, free_cancellation=False),
-         "2026-06-05T12:03:40Z", "price +300, free cancellation removed"),
+         "2026-06-08T12:07:40Z", "price +300, free cancellation removed"),
     ]
 
     last_offer = None

@@ -212,6 +212,13 @@ def project_fidelity(events: list[Event], act_id: str, *, reading: str) -> dict:
     recognition = None
     for e in events:
         if e.type == "AUTHORIZE" and e.predicate == "fed.recognition":
+            # A bridge routes ONE community's authority: the recognition must
+            # name the mandate's granter (its refs carry the recognized
+            # community's principal), not merely share a domain string — a
+            # third community's market mandate does not ride this bridge (the
+            # same community==signer check federation_fixture makes).
+            if mandate is None or mandate.signer not in e.refs:
+                continue
             sev = next((s for s in events
                         if s.type == "AUTHORIZE" and s.predicate == "fed.severance"
                         and e.id in s.nullifies and s.timestamp <= act.timestamp), None)
@@ -282,8 +289,10 @@ class Ledger:
 
     def now(self) -> str:
         self._clock += 1
-        # harbor's grant + acts and orchard's recognition land in the morning
-        # (hour 10); orchard's severance and the late harbor act land at hour 16.
+        # This log holds 11 events, so everything lands in the morning (hour 10)
+        # and the hour-16 branch below never trips — ordering is carried by the
+        # MINUTE, and severance-vs-act order is what the folds read. The branch
+        # is kept only for shape parity with the sibling fixtures' clocks.
         hour = 10 if self._clock <= 12 else 16
         return f"2026-06-10T{hour:02d}:{self._clock:02d}:00Z"
 

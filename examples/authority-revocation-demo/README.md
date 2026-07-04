@@ -59,8 +59,10 @@ fold. That is the finding.
   Honoring relied-upon authority (as-of-act-time) protects the good-faith
   counterparty. A permanent, automatic, identity-keyed retroactive collapse would
   be a stored verdict about a *party* — the social-credit shape ARC refuses. So
-  ARC keeps revocation future-scoped by default and leaves reopening a specific
-  past act to an explicit, per-act `ADJUDICATE`.
+  the automatic collapse is the reading to refuse as a *default* — but ARC picks
+  no default: cascade-vs-preserve stays a projection choice
+  ([authority-and-conflict.md](../../docs/authority-and-conflict.md) §9), and
+  reopening a specific past act is always an explicit, per-act `ADJUDICATE`.
 
 ## Honest limits
 

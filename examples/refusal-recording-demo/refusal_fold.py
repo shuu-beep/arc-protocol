@@ -130,6 +130,11 @@ CANDIDATES = {
         "name": "governance transparency",
         "actors": {"community", "user"},
         "exits": {"DEFECT", "REJECT"},
+        # §4.5 PAIRS its claims — "DEFECT (governance), REJECT (user)" — so the
+        # faithful cells are (community, DEFECT) and (user, REJECT), not the
+        # cross-product of the actor and exit sets above. `cells` overrides the
+        # cross-product wherever the doc pairs actor and exit.
+        "cells": {("community", "DEFECT"), ("user", "REJECT")},
         # §4.5: "exposure only bites if some other community is willing to
         # act on it" — value is contingent on another party.
         "value_locus": "network",
@@ -206,13 +211,22 @@ def rid(r):
 
 
 def claims_cell(cand, actor, exit_):
-    """Does this candidate claim to address the (actor, exit) cell?"""
+    """Does this candidate claim to address the (actor, exit) cell?
+
+    When the source doc PAIRS actor and exit (4.5), the pairing is authoritative
+    (`cells`); the cross-product of `actors` x `exits` applies only where the
+    doc itself claims the full product."""
+    cells = cand.get("cells")
+    if cells is not None:
+        return (actor, exit_) in cells
     if exit_ not in cand["exits"]:
         return False
     return cand["actors"] is None or actor in cand["actors"]
 
 
 def claimed_cells(cand):
+    if cand.get("cells") is not None:
+        return set(cand["cells"])
     actors = ALL_ACTORS if cand["actors"] is None else sorted(cand["actors"])
     return {(a, e) for a in actors for e in cand["exits"]}
 

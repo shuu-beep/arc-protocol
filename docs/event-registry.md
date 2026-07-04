@@ -70,7 +70,7 @@ Five types and one cross-cutting field.
 
 Key lifecycle: register, rotate, revoke. The root of all verification.
 
-- A registration is anchored from **outside** ARC by a contextual cost gate (business registration, payment-account verification, community onboarding, escrow-stake). This is where Sybil resistance begins.
+- A registration is anchored from **outside** ARC by a contextual cost gate (business registration, payment-account verification, community onboarding, escrow-stake). This is where Sybil resistance begins. How the anchor is *recorded* is not yet fixed, and the demos deliberately diverge: canon-fold carries a self-asserted `payload.anchor` on the register, while local-commerce run [E] uses the stricter shape — a third party's `ATTEST id.anchor`, with self-issued anchors excluded. A future specification must pick one; until then the representation is illustrative.
 - Rotation supersedes a prior key and carries history forward; revocation withdraws a key going forward.
 - Distinct from `ATTEST` because its trust is externally anchored, not ARC-internal, and because every other event's verifiability depends on it.
 

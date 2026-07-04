@@ -12,7 +12,7 @@ make two claims legible to a human eye —
 
 ```
 ┌─ delegation tree    ─┬─ approval inbox       ─┬─ projection viewer        ─┐
-│  mandate viewer      │  signed commitments    │  challenge / adjudication  │
+│  authorization viewer│  signed commitments    │  challenge / adjudication  │
 ├──────────────────────┴────────────────────────┴────────────────────────────┤
 │  live proposal — the write path (runtime proposes · the boundary decides)    │
 ├──────────────────────────────────────────────────────────────────────────────┤
@@ -35,7 +35,7 @@ Every panel is sourced from the same log:
 | surface | sourced from |
 | --- | --- |
 | delegation tree | `KEY id.key_register` ×4 + the `AUTHORIZE` mandate edge |
-| mandate viewer | the `AUTHORIZE consent.approval` scope |
+| authorization viewer | the base log's one-transaction `AUTHORIZE consent.approval` (not standing authority — the write path's `consent.mandate` is a separate, tagged event) |
 | approval inbox | the same `AUTHORIZE`, shown resolved |
 | signed commitments | `ATTEST commerce.offer / payment_result / fulfillment` |
 | projection viewer | `project_merchant_standing` at three cuts of the log |

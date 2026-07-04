@@ -323,7 +323,7 @@ def run() -> None:
     challenge = principal.emit("CHALLENGE", "dispute.open", "2026-06-12T13:00:00Z",
                                refs=(fulfilled.id,),
                                payload={"referent": REFERENT, "claim": "non-delivery"})
-    ruling = commons.emit("ADJUDICATE", "dispute.ruling", "2026-06-12T15:00:00Z",
+    ruling = commons.emit("ADJUDICATE", "gov.ruling", "2026-06-12T15:00:00Z",
                           refs=(challenge.id, fulfilled.id),
                           payload={"referent": REFERENT, "state": "delivered"})
     adj = resolve_by_adjudication(led.events, REFERENT)

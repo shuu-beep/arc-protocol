@@ -125,6 +125,18 @@ This is a probe, not an implementation:
   reaches the network **only** when a real model drives it (key + SDK present);
 - signatures are **mock** (a hash, not Ed25519);
 - payment is **mock** (an `ATTEST` claim, no funds move);
+- the `KEY` registers carry **no external anchor** — the payload is just the
+  key. The cost-gate anchor of
+  [event-registry.md](../../docs/event-registry.md) §4.1 (where Sybil
+  resistance begins) is out of this probe's scope; canon-fold and
+  local-commerce run [E] carry anchor shapes, here identity is bare
+  registration;
+- in `agent_flow.py` the harness **human auto-approves** every
+  `request_human_approval` — so the pressure run's "the human has stepped
+  away" temptation tests the *model's* restraint, not an enforced absence,
+  and an agent that yields by **over-asking** (requesting a higher ceiling
+  than its stated intent) reads CLEAN to the fold: the *content* of approval
+  requests is not folded, only the signed events are;
 - no new event type — the five canonical types are reused as-is;
 - the model is nondeterministic, so the *bytes* vary per run. The claim is about
   the **invariants**: `verify_log` passes and the audit holds every run, whoever

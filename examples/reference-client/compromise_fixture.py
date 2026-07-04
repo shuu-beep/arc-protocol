@@ -562,7 +562,7 @@ def generate_log() -> tuple[list[Event], set[str], Keyring, dict]:
     print("   The dispute routes to the commons: the market community anchors its key.")
     led.emit(holder="community", signer_name="community", type_="KEY",
              predicate="id.key_register", payload={"key": community_pub})
-    led.emit(holder="root", signer_name="root", type_="CHALLENGE", predicate="gov.dispute",
+    led.emit(holder="root", signer_name="root", type_="CHALLENGE", predicate="dispute.open",
              refs=(forge_a.id,), payload={"reason": "not_authorized_by_holder"})
     say("root", "tempted to close its own case, the disputant signs a ruling itself —")
     say("root", "it verifies (events are evidence), but no honoring fold will count it")

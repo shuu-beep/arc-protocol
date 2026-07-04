@@ -459,7 +459,7 @@ class ColdRootCeremony:
                           payload={"reason": "key_compromise"})
 
     def dispute(self, event_id: str) -> Event:
-        return self._emit(type_="CHALLENGE", predicate="gov.dispute", refs=(event_id,),
+        return self._emit(type_="CHALLENGE", predicate="dispute.open", refs=(event_id,),
                           payload={"reason": "not_authorized_by_holder"})
 
 

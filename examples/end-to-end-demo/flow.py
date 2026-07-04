@@ -212,7 +212,8 @@ def run() -> Ledger:
     consumer = Party(led, "consumer-agent", "k:consumer_agent")
     merchant = Party(led, "merchant-agent", MERCHANT)
 
-    print("\n1. Identity — every participant anchors a key (KEY id.key_register)")
+    print("\n1. Identity — every participant registers a key (KEY id.key_register;")
+    print("   bare registration — the registry §4.1 cost-gate anchor is out of scope here)")
     for p in (community, human, consumer, merchant):
         p.emit("KEY", "id.key_register", payload={"key": p.key})
 
