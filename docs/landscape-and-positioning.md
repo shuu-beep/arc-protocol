@@ -85,6 +85,23 @@ In Canon terms, a confirmed payment enters ARC only as an `ATTEST` about an exte
 
 So ARC depends on payment networks rather than competing with them. Payment execution stays with the provider, and only after human approval.
 
+### 8.1 Agent-Native Monetization Gateways (x402)
+
+A newer variant of the settlement layer deserves its own note, because it begins from the same observation ARC does. Cloudflare's **Monetization Gateway** (announced 2026-07-01, [blog.cloudflare.com/monetization-gateway](https://blog.cloudflare.com/monetization-gateway/)) is built on **x402**, an open protocol that revives the HTTP `402 Payment Required` status code: a server prices a request, the client pays in stablecoins, a facilitator verifies the payment, and the resource is delivered — per request, at sub-cent granularity, proxied at the edge. Agent identity is handled by a separate verification mechanism (Web Bot Auth), and the announcement explicitly anticipates agents that "carry wallets" and purchase autonomously.
+
+The shared diagnosis is the closest problem-statement overlap in this document: **agents do not view ads and do not hold subscriptions**, so the human-attention business model of the web breaks under agent traffic. ARC's corpus starts from the same premise — an agent-first internet changes what the interaction record must carry ([philosophy.md](./philosophy.md)).
+
+From that shared premise the two systems diverge into different layers:
+
+- **x402 makes the request a transaction.** Its question is *how does an agent pay*, and its verification object is the payment: the facilitator confirms funds moved. ARC's question is *by what authority did the agent act*, and its verification object is the approval: can a third party recompute, from signed events alone, that the spend was inside a human-approved scope ([event-registry.md](./event-registry.md))?
+- **A wallet-carrying agent is bearer authority.** Whoever holds the key can spend, and a valid payment proves key possession, not a faithful reading of the principal's intent — the same boundary ARC records for signatures generally ([key-custody.md](./key-custody.md)). ARC treats human approval as consent to a specific act, not a spendable token, which is exactly the distinction a per-request payment rail does not need and does not claim to make.
+- **The trust root is inverted.** The gateway model concentrates verification in the facilitator and the edge operator; that is what makes it fast and cheap. ARC accepts slower, heavier verification in exchange for having no single verifier of last resort ([authority-and-conflict.md](./authority-and-conflict.md)).
+- **Per-outcome pricing re-opens the record/referent boundary.** The announcement cites pricing "paid only when the work succeeds." Someone must attest that the work succeeded, and that attestation is a record about the world, not the world — the same wall ARC names for its own events ([event-registry.md](./event-registry.md) §2.4). A gateway must ultimately delegate that judgment to a trusted party; ARC records the disagreement instead of resolving it.
+
+These layers compose rather than collide. An x402 payment enters ARC the same way any settlement does — as an `ATTEST` about an external transfer (§8 above) — and ARC's approval boundary is a natural answer to a question x402 leaves open: whether the agent presenting the payment was authorized by its principal to make it. Conversely, x402 is a plausible settlement rail *underneath* an ARC-approved purchase.
+
+One asymmetry is worth stating plainly. A gateway operator ships this to an existing customer base with the flip of a switch; sellers already behind the edge have no reason to wait. That is the same structural head start §10 names for closed platforms, and the same adoption problem ARC cannot solve by description ([threat-model.md](./threat-model.md) §18.1). As elsewhere in this document, this description reflects ARC's current reading of a just-announced system and may be imprecise or out of date.
+
 ## 9. ARC vs Blockchain Protocol
 
 Blockchain protocols provide shared, manipulation-resistant ledgers and consensus. Some target agent trust directly, for example on-chain identity and reputation registries.
@@ -121,7 +138,7 @@ The layered systems in §4–§9 mostly occupy different layers:
 | Agent interop | agents discovering and delegating (A2A) | ARC may ride on, does not specify |
 | Checkout semantics | discovery, cart, checkout (ACP) | ARC wraps with approval and trust records |
 | Platform operation | aggregated marketplace | ARC explores an open alternative function |
-| Settlement | moving money (payment networks) | ARC depends on, records as `ATTEST` |
+| Settlement | moving money (payment networks, x402-style gateways §8.1) | ARC depends on, records as `ATTEST` |
 | Shared ledger | manipulation-resistant records (blockchain) | ARC uses minimally, computes trust off-chain |
 
 ARC occupies the human-approval and trust-coordination layer above commerce. A single transaction could plausibly use several of these at once — tools via MCP, agent contact via A2A-style transport, checkout via a commerce standard, settlement via a payment network — while ARC supplies the human-approval boundary and the inspectable identity, reputation, dispute, and governance records.
