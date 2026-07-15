@@ -5,9 +5,9 @@ ARC authority-revocation probe — single file, stdlib only.
 What this isolates
 ------------------
 The delegation probe in `examples/canon-fold-demo` (scenario 10, finding G) noted
-in passing that revoking a delegation does NOT, on its own, tell you whether an
-act already *completed* under that delegation stays valid. This probe pulls that
-one question out on its own and shows the divergence directly.
+in passing that revoking a delegation does NOT, on its own, tell you whether a
+current reader continues to honor an act already *completed* under that
+delegation. This probe pulls that one question out on its own.
 
 The setup is the smallest one that makes the question bite — a delegation chain
 with a real downstream party who relied on then-valid authority:
@@ -18,24 +18,23 @@ with a real downstream party who relied on then-valid authority:
     human              --AUTHORIZE consent.withdraw-->  revokes A     [time T2]
 
 At T1 the purchase was backed by a live mandate; the merchant fulfilled in
-reliance on it. At T2 the human revokes A's mandate. The SAME signed revoke
-event then reads two ways, and the two readings produce *different answers* to
-"was that purchase a validly authorized transaction?":
+reliance on it. At T2 the human revokes A's mandate. The central question is
+then: does a CURRENT reader continue to honor that completed purchase?
 
-  * as-of-act-time  — replay the log as it stood at the act -> mandate live
-                      -> authorized. A later revoke withdraws authority going
-                      forward only; the past act is preserved.
-  * current-log     — replay the whole log now. This is itself ambiguous:
-      - time-scoped reading: the revoke is "going forward", the act predates it
-                      -> still authorized (agrees with as-of-act-time);
-      - retroactive cascade: treat the mandate as void over its whole history
-                      -> the act it backed collapses too -> NOT authorized.
+The as-of-act-time view is only a historical baseline. It replays an earlier
+event subset that does not contain the later revoke, so it is not the
+same-events policy comparison. Against the SAME full current log, both policies
+agree on the invariant facts — the act was authorized at act time and the
+mandate is no longer in force now — but differ on current honoring:
+
+  * preserve — completed_act_honored_now=True;
+  * cascade  — completed_act_honored_now=False (not honored by this projection).
 
 The finding is not a missing event type. The revoke is one ordinary event (the
 existing `nullifies` field on an `AUTHORIZE consent.withdraw`, event-registry
-§4.6 — no sixth type). What the canon does NOT fix is which of these readings a
-projection uses. That is a fold-policy choice sitting above the canon, the same
-shape as findings B/C/D/G.
+§4.6 — no sixth type). What the canon does NOT fix is which current-honoring
+policy a projection uses. That choice sits above the canon, the same shape as
+findings B/C/D/G.
 
 Deliberately dirty and small. Explicitly:
   * stdlib only, single process, no network, no transport, no storage;
@@ -118,22 +117,26 @@ def as_of(events: list[Event], t: str) -> list[Event]:
 
 
 # ---------------------------------------------------------------------------
-# The one projection at stake: was a delegated purchase validly authorized?
+# The projection at stake: does a current reader honor the completed purchase?
 # ---------------------------------------------------------------------------
 
-def project_authorization(events: list[Event], act_id: str, *, retroactive: bool) -> dict:
-    """Fold the log to answer: was `act_id` backed by a live mandate?
+def project_completed_act(events: list[Event], act_id: str, *, policy: str) -> dict:
+    """Fold the log to separate historical authorization from current honoring.
 
     The act references the mandate it relied on (refs). The mandate is a live
-    grant unless an `AUTHORIZE consent.withdraw` names it in `nullifies`. The ONE
-    knob is how that withdrawal is read against the act's own timestamp:
+    grant unless an `AUTHORIZE consent.withdraw` names it in `nullifies`.
 
-      * retroactive=False (time-scoped) — the withdrawal voids the mandate only
-        for acts at/after the withdrawal timestamp; an earlier act is preserved.
-      * retroactive=True  (cascade)     — the withdrawal voids the mandate over
-        its whole history; the earlier act it backed collapses too.
+    `authorized_at_act` and `mandate_in_force_now` are invariant facts for a
+    given full log. The ONE policy knob controls only whether a current reader
+    continues to honor an already-completed, historically authorized act:
+
+      * preserve — continue to honor the completed act;
+      * cascade  — do not honor the completed act in this projection.
 
     Nothing here is stored; this is recomputed on demand."""
+    if policy not in {"preserve", "cascade"}:
+        raise ValueError(f"unknown completed-act policy: {policy!r}")
+
     by_id = {e.id: e for e in events}
     act = by_id.get(act_id)
     if act is None:
@@ -143,26 +146,43 @@ def project_authorization(events: list[Event], act_id: str, *, retroactive: bool
     mandate = next((by_id[r] for r in act.refs
                     if r in by_id and by_id[r].predicate == "consent.mandate"), None)
     if mandate is None:
-        return {"act": act_id, "found": True, "mandate": None, "authorized": False,
-                "reason": "no mandate referenced"}
+        return {
+            "act": act_id, "found": True, "mandate": None, "policy": policy,
+            "authorized_at_act": False,
+            "mandate_in_force_now": False,
+            "completed_act_honored_now": False,
+            "reason": "no mandate referenced",
+        }
 
     # withdrawals that name this mandate in `nullifies`
     withdrawals = [e for e in events
                    if e.type == "AUTHORIZE" and e.predicate == "consent.withdraw"
                    and mandate.id in e.nullifies]
-    voided_by = None
-    for w in withdrawals:
-        if retroactive or w.timestamp <= act.timestamp:
-            voided_by = w
-            break
+    withdrawn_before_or_at_act = next(
+        (w for w in withdrawals if w.timestamp <= act.timestamp), None
+    )
+    withdrawn_by = withdrawals[0] if withdrawals else None
+    authorized_at_act = withdrawn_before_or_at_act is None
+    mandate_in_force_now = withdrawn_by is None
+    completed_act_honored_now = (
+        authorized_at_act and (mandate_in_force_now or policy == "preserve")
+    )
 
-    authorized = voided_by is None
+    if not authorized_at_act:
+        reason = f"mandate already withdrawn by {withdrawn_before_or_at_act.id} at act time"
+    elif mandate_in_force_now:
+        reason = "mandate remains in force; completed act honored"
+    elif completed_act_honored_now:
+        reason = "later withdrawal recorded; preserve policy continues to honor completed act"
+    else:
+        reason = "later withdrawal recorded; completed act not honored by this projection"
+
     return {
-        "act": act_id, "found": True, "mandate": mandate.id,
-        "authorized": authorized,
-        "reason": ("mandate live at act time" if authorized
-                   else f"mandate withdrawn by {voided_by.id}"
-                        + (" (cascaded onto a completed act)" if retroactive else "")),
+        "act": act_id, "found": True, "mandate": mandate.id, "policy": policy,
+        "authorized_at_act": authorized_at_act,
+        "mandate_in_force_now": mandate_in_force_now,
+        "completed_act_honored_now": completed_act_honored_now,
+        "reason": reason,
     }
 
 
@@ -233,27 +253,27 @@ def run() -> None:
     merchant.emit("ATTEST", "commerce.fulfillment", refs=(act.id,),
                   payload={"status": "delivered"})
 
-    print("\n--- snapshot: BEFORE revocation (log as it stands at T1) ---")
-    snapshot(led, act.id, as_of_t="2026-06-08T10:59:00Z")
+    print("\n--- historical baseline: AS-OF-ACT-TIME event subset ---")
+    print("    This earlier subset does not contain the later revoke. It establishes")
+    print("    the historical baseline; it is NOT the same-events policy comparison.")
+    historical_baseline(led, act.id, as_of_t=act.timestamp)
 
     print("\n4. Revocation at T2 — later, the human withdraws agent A's mandate")
     say("human", "I no longer trust agent A; withdrawing the mandate")
     human.emit("AUTHORIZE", "consent.withdraw", refs=("k:agentA",), nullifies=(mandate.id,),
                payload={"reason": "agent_no_longer_trusted"})
 
-    print("\n--- snapshot: AFTER revocation, CURRENT-LOG view (retroactive cascade) ---")
-    print("    reads the whole log now and lets the withdrawal void the mandate's")
-    print("    whole history -> the completed purchase collapses with it.")
-    show(project_authorization(led.events, act.id, retroactive=True))
+    preserve = project_completed_act(led.events, act.id, policy="preserve")
+    cascade = project_completed_act(led.events, act.id, policy="cascade")
 
-    print("\n--- snapshot: AFTER revocation, AS-OF-ACT-TIME view (preserve) ---")
-    print("    replays the log as it stood at the act -> the revoke is not yet")
-    print("    present -> the purchase stays a validly authorized transaction.")
-    show(project_authorization(as_of(led.events, act.timestamp), act.id, retroactive=False))
+    print("\n--- AFTER revocation: invariant facts from the FULL CURRENT LOG ---")
+    show_current_invariants(preserve)
 
-    print("\n    (for contrast: CURRENT-LOG read time-scoped — revoke is 'going")
-    print("     forward', the act predates it — AGREES with as-of-act-time:)")
-    show(project_authorization(led.events, act.id, retroactive=False))
+    print("\n--- SAME FULL CURRENT LOG: preserve policy ---")
+    show_policy_result(preserve)
+
+    print("\n--- SAME FULL CURRENT LOG: cascade policy ---")
+    show_policy_result(cascade)
 
     # ---- the boundary: revocation is a fact; reopening a past act is a verdict ----
     print("\n5. Reopening one past act WITHOUT global collapse")
@@ -274,44 +294,61 @@ def run() -> None:
     print_finding()
 
 
-def snapshot(led: Ledger, act_id: str, as_of_t: str) -> None:
+def historical_baseline(led: Ledger, act_id: str, as_of_t: str) -> None:
     verify_log(led.events)
-    show(project_authorization(as_of(led.events, as_of_t), act_id, retroactive=False))
+    result = project_completed_act(as_of(led.events, as_of_t), act_id, policy="preserve")
+    print(f"    authorized_at_act={result['authorized_at_act']}")
+    print(f"    mandate_in_force_in_baseline={result['mandate_in_force_now']}")
 
 
-def show(r: dict) -> None:
-    print(f"    authorized={r['authorized']}  ({r['reason']})")
+def show_current_invariants(r: dict) -> None:
+    print(f"    authorized_at_act={r['authorized_at_act']}")
+    print(f"    mandate_in_force_now={r['mandate_in_force_now']}")
+
+
+def show_policy_result(r: dict) -> None:
+    print(f"    completed_act_honored_now={r['completed_act_honored_now']}"
+          f"  (policy={r['policy']}; {r['reason']})")
 
 
 def print_finding() -> None:
     print("""
 What this probe exposes
 -----------------------
-  * Does revocation poison past authorized actions?
-      Only under the retroactive-cascade reading. The time-scoped / as-of-act-time
-      reading preserves them. The canon does not pick; both are valid folds.
+  * What is invariant after revocation?
+      authorized_at_act=True: the purchase was backed by a live mandate when it
+      happened. mandate_in_force_now=False: the withdrawal ends future authority.
+      Neither fact changes between the two current-log policies.
+  * Does a current reader continue to honor the completed act?
+      Under preserve, completed_act_honored_now=True. Under cascade,
+      completed_act_honored_now=False: it is not honored by this projection.
+      The canon does not pick a current-honoring policy.
+  * What does the as-of-act-time view prove?
+      It is the historical baseline over an earlier event subset that excludes the
+      revoke. It is not the same-events policy comparison; preserve vs cascade is.
   * Does it only affect future reliance?
-      Under the time-scoped reading, yes — "withdrawn going forward".
+      The mandate itself is withdrawn going forward under both policies.
   * Can a later challenge reopen a past act without automatic global collapse?
       Yes. A CHALLENGE + ADJUDICATE names ONE act by id (step 5). Revocation alone
       does not reopen anything; reopening is a separate, scoped authority decision.
   * Is revocation an event-log fact, a projection result, or an authority decision?
       All three live at different layers, and the probe keeps them apart:
         - the revoke itself is an EVENT FACT (one AUTHORIZE consent.withdraw);
-        - whether it cascades onto a completed act is a PROJECTION choice;
+        - whether a reader honors the completed act now is a PROJECTION choice;
         - whether that past act is punished/voided is an AUTHORITY decision (ADJUDICATE).
   * Where is the boundary between buyer protection and anti-social-credit?
-      Honoring relied-upon authority (as-of-act-time) protects the counterparty who
-      acted in good faith. A permanent, automatic, identity-keyed retroactive collapse
-      would be a stored verdict about a party — the social-credit shape ARC refuses.
-      So the automatic retroactive collapse is the reading to refuse as a DEFAULT —
-      but ARC picks no default: cascade-vs-preserve stays a projection choice
+      A preserve policy protects the counterparty who acted in good faith. A permanent,
+      automatic, identity-keyed refusal to honor all past acts would be a stored verdict
+      about a party — the social-credit shape ARC refuses. So cascade is the reading to
+      refuse as a DEFAULT — but ARC picks no default: current honoring stays a policy
+      choice
       (authority-and-conflict §9, and this probe's own line above: "The canon does
       not pick"), and reopening a specific past act is always an explicit,
       per-act ADJUDICATE, never a side effect of the revocation.
 
-No sixth type was added; the divergence is a fold-policy residue, not a missing
-primitive. This is a probe, not final doctrine and not a revocation spec.
+No sixth type was added; the current-honoring choice is a fold-policy residue,
+not a missing primitive. This is a probe, not final doctrine and not a
+revocation spec.
 """)
 
 
