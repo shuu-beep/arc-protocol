@@ -64,11 +64,11 @@ What the fold computes, and what it forces:
     the post-revoke act are each excluded, each with a reason printed.
   * the sharpening of §5 this probe surfaces: the in-scope forgery (25000) is
     BYTE-INDISTINGUISHABLE from the legitimate act (20000) — same scope, both
-    honored under the time-scoped reading, both voided under cascade. The fold
+    honored under the time-scoped reading, neither honored under cascade. The fold
     returns the SAME verdict for both. So the blast radius is not "mandate scope"
     alone; it is mandate scope x detection latency, and the in-scope
     pre-revocation window is UNRECOVERABLE BY REVOCATION ALONE. Time-scoped
-    revocation preserves the forgery; cascade would void the honest history too.
+    revocation preserves the forgery; cascade declines to honor the honest history too.
     Surgically removing only the compromised act needs per-act ADJUDICATION — the
     human files a CHALLENGE, and an ADJUDICATE from the community adjudicator the
     reader honors voids that one event. The disputant cannot be the judge: the
@@ -342,9 +342,10 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
         amount within the ceiling — AND the mandate must be LIVE at the act's
         time. "Live" is where the two readings split (key-custody §5, the same
         divergence finding G drew on the delegation graph):
-          time_scoped  a withdrawal voids the mandate at/after its timestamp;
+          time_scoped  a withdrawal ends mandate force at/after its timestamp;
                        acts the key signed BEFORE the revoke stay honored;
-          cascade      a withdrawal voids the mandate's whole history.
+          cascade      acts depending on the withdrawn mandate are not honored
+                       by this projection.
       * anything else ESCALATES — i.e. is not honored without a human.
 
     Crucially, this fold cannot see who is the attacker. An in-scope forgery and
@@ -412,7 +413,7 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
             return {"honored": False, "basis": f"exceeds the mandate ceiling {ceiling} — escalates"}
         if not mandate_live(ev.timestamp):
             if reading == "cascade":
-                return {"honored": False, "basis": "mandate withdrawn — cascade voids its whole history"}
+                return {"honored": False, "basis": "mandate withdrawn — not honored by the cascade projection"}
             return {"honored": False, "basis": "after the revocation — mandate no longer live"}
         return {"honored": True, "basis": "within the live mandate (right context, within ceiling)"}
 
@@ -679,8 +680,8 @@ def main() -> None:
   And the pre-revoke in-scope window is UNRECOVERABLE BY REVOCATION ALONE:
     * time_scoped revocation preserves it (keeps the honest history — and the
       forgery riding inside it);
-    * cascade revocation would void it (killing the forgery — and the honest
-      20000 act with it).
+    * cascade revocation declines to honor it (rejecting the forgery — and the
+      honest 20000 act with it in that projection).
   Neither reading excises only the compromise, because the log gives no basis to
   tell the two apart.""")
 

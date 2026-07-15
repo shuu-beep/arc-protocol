@@ -99,16 +99,17 @@ choices the canon deliberately does not make:
   global identity registry. An unrooted key renders at weight 0; it is not
   blocked. Sybil stays deliberately unsolved — the band makes the asymmetry
   visible instead of pretending to close it.
-* **`reading`** — what a withdrawal does to acts that *completed* under the
-  grant before it was withdrawn (the authority-revocation-demo divergence,
-  applied to a whole lineage). The toggle switches between:
+* **`reading`** — whether the current projection continues to honor acts that
+  *completed* under the grant before it was withdrawn (the authority-revocation-
+  demo divergence, applied to a whole lineage). Both policies fold the same full
+  current log. Historical authorization is stated separately:
 
-| | as-of-act-time · preserve | current-log · cascade |
-| --- | --- | --- |
-| negotiator's in-scope 24000 offer | **VALID** | **VOID** — whole history collapses |
-| courier's completed delivery | **VALID** | **VOID** — retiring a spent single-use agent poisons its own finished work |
-| negotiator's escalated 40000 payment | **VALID** | **VALID** — its basis is a direct root approval, not the revoked chain |
-| every act *after* the withdrawal | VOID | VOID — the readings agree about the future, they disagree only about the past |
+| act | authorized_at_act | preserve · full current log | cascade · full current log |
+| --- | --- | --- | --- |
+| negotiator's in-scope 24000 offer | **True** | **HONORED** | **NOT HONORED** by this projection |
+| courier's completed delivery | **True** | **HONORED** | **NOT HONORED** by this projection |
+| negotiator's escalated 40000 payment | **True** | **HONORED** | **HONORED** — its basis is a direct root approval, not the withdrawn chain |
+| every act *after* the withdrawal that depends on the withdrawn chain | **False** | **NOT HONORED** | **NOT HONORED** |
 
 Other tensions the fold makes visible without a new event type: the scout's
 over-wide grant is **admissible** (the log does not police it) but the fold
@@ -193,8 +194,8 @@ falls to time. What gets honored is exactly one in-scope forgery — **25000 KRW
 > the damage per act; the time until the revoke lands sets its width.
 
 Two toggles drive it. The **revoke reading** (time-scoped / cascade) shows that
-neither reading is surgical: time-scoped preserves the in-scope forgery *and* the
-honest history; cascade voids the forgery *and* the honest history. The
+neither reading is surgical: time-scoped honors the in-scope forgery *and* the
+honest history; cascade declines to honor the forgery *and* the honest history. The
 **moment** toggle (just after the revoke / after the adjudication) shows the
 residue revocation cannot reach — just after the revoke, the legitimate 20000 and
 the forged 25000 are **byte-indistinguishable**, identical verdicts under both
@@ -245,8 +246,9 @@ The severance toggle replays the revocation divergence on the federation side:
 under **time-scoped**, severing the bridge moves *nothing* — it bounds future
 imports, it does not sort the past, and the contested cell **outlives the bridge
 that created it**; under **cascade**, the contested cell "resolves" — but only
-because the severed bridge is read as never having existed, voiding every ruling
-it carried. Resolution by amnesia, not resolution.
+because the current projection excludes every ruling previously imported through
+the severed bridge. The original `ADJUDICATE` events remain intact. Resolution by
+amnesia, not resolution.
 
 The refusals are load-bearing: a bridge reading is **categorical** (authority /
 advisory / ignore), never a numeric trust weight — a community-trust scalar

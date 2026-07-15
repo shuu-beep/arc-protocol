@@ -173,11 +173,11 @@ def active(events: list[Event]) -> list[Event]:
 
     An honored `nullifies` means "withdrawn going forward", read two ways from
     the SAME field:
-      * an ordinary withdrawal (a void approval, a superseded offer) takes its
+      * an ordinary withdrawal (a withdrawn approval, a superseded offer) takes its
         target out of force however old the target is — this fold's
-        current-standing reading drops it outright; whether a COMPLETED act
-        under the target survives a re-fold is the authority-and-conflict §9
-        projection choice (see authority-revocation-demo);
+        current-standing reading drops it outright; whether a current reader
+        continues to honor a COMPLETED act under the target is the authority-and-
+        conflict §9 projection choice (see authority-revocation-demo);
       * a `KEY` `id.key_revoke` is time-scoped: the revoked key's register and
         everything it signed BEFORE the revoke stay readable, but anything it
         signs AT/AFTER the revoke timestamp is dropped. The register is kept, so
@@ -214,9 +214,9 @@ def event_set_hash(events: list[Event]) -> str:
 
 def as_of(events: list[Event], t: str) -> list[Event]:
     """Replay input restricted to events recorded at or before `t` — a
-    point-in-time fold. Used to contrast 'as the log stood then' with the current
-    log (e.g. whether revoking a delegation cascades over already-completed acts).
-    No new mechanism: a fold is over whatever event subset the reader holds (§5)."""
+    point-in-time historical subset. It establishes what the event set contained
+    then; it is not a same-events policy comparison. No new mechanism: a fold is
+    over whatever event subset the reader holds (§5)."""
     return [e for e in events if e.timestamp <= t]
 
 
@@ -1364,7 +1364,7 @@ def show_delegated_authority(events: list[Event]) -> None:
                               "2026-08-15T00:00:00Z")
     base = as_of(events, t0)         # before any revocation
     mid = as_of(events, after_r1)    # stationery mandate revoked
-    final = as_of(events, after_r2)  # A's food mandate revoked too
+    current = events                 # full current log; A's food mandate revoked too
 
     def q(label: str, agent: str, needed: dict, at_time: str, evset: list[Event]) -> None:
         r = project_delegated_authority(evset, agent, needed, at_time, P)
@@ -1387,12 +1387,14 @@ def show_delegated_authority(events: list[Event]) -> None:
     print("partial revocation (human withdraws ONLY the stationery mandate):")
     q("A food 30000 (food mandate intact)", A, food(30000), after_r1, mid)
     q("A stationery 5000 (mandate withdrawn)", A, stat(5000), after_r1, mid)
-    print("downstream authority after revocation (human withdraws A's food mandate):")
-    q("A food 30000 (mandate withdrawn)", A, food(30000), after_r2, final)
-    q("B food 15000 (upstream chain broken)", B, food(15000), after_r2, final)
-    print("same act, two readings of the revoke (the finding):")
-    q("B food 15000 acted@2026-07-01, log AS-OF act-time", B, food(15000), t0, base)
-    q("B food 15000 acted@2026-07-01, CURRENT log post-revoke", B, food(15000), t0, final)
+    print("historical authority baseline (EARLIER event subset; before the revoke):")
+    q("B food 15000 at 2026-07-01", B, food(15000), t0, base)
+    print("current mandate force (FULL CURRENT LOG; after the revoke):")
+    q("A food 30000 (mandate withdrawn)", A, food(30000), after_r2, current)
+    q("B food 15000 (upstream chain broken)", B, food(15000), after_r2, current)
+    print("  These are different event sets and two authority-state questions, not two")
+    print("  policy answers about one completed act. No completed act event is emitted here;")
+    print("  preserve/cascade honoring is isolated in authority-revocation-demo.")
 
 
 def show_agent_multiplication(events: list[Event]) -> None:
@@ -1564,11 +1566,11 @@ def main() -> None:
     print("  * Revocation is the existing `nullifies` field: withdrawing ONE of A's mandates")
     print("    leaves the others intact (partial revocation), and withdrawing A's food mandate")
     print("    collapses B's downstream authority — B's chain no longer reaches the principal.")
-    print("  * The honest LIMIT: the canon REPRESENTS the revoke, but whether B's act that")
-    print("    completed BEFORE the revoke stays valid is a fold reading — as-of-act-time")
-    print("    (preserve) vs current-log (retroactive cascade), shown to diverge above. Both")
-    print("    are expressible; the canon picks neither. As in scenarios 8-9, the residue is a")
-    print("    fold-POLICY choice (revocation-cascade semantics), NOT a missing event type.")
+    print("  * The earlier subset establishes only a historical authority baseline; the full")
+    print("    current log establishes that A's mandate and B's downstream authority are no")
+    print("    longer in force. This scenario emits no completed B act, so it makes no claim")
+    print("    about current honoring. The same-full-log preserve/cascade comparison lives in")
+    print("    authority-revocation-demo. That residue is policy, not a missing event type.")
 
     log = agent_multiplication(log)
     show_agent_multiplication(log)
@@ -1618,8 +1620,9 @@ def main() -> None:
     print("confirms it is a policy/federation choice, not a missing event type.")
     print("Delegated authority is REPRESENTABLE on the same canon: AUTHORIZE + scope + expiry")
     print("+ `nullifies` give scoped, time-bounded, non-redelegable, revocable delegation with")
-    print("no sixth type; what stays open (revocation-cascade semantics) is once more a")
-    print("fold-policy choice, not a missing event type.")
+    print("no sixth type. This demo shows historical authority and current mandate force;")
+    print("authority-revocation-demo isolates current honoring of completed acts as the")
+    print("remaining fold-policy choice, not a missing event type.")
     print("Agent multiplication is REPRESENTABLE too, but exposes a sharper edge: the canon")
     print("can collapse many agents to one principal ONLY when their shared root is")
     print("voluntarily disclosed (ATTEST id.controls), so the collapse penalizes honest")

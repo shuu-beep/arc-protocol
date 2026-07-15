@@ -359,7 +359,8 @@ def _cell_signature(cell: dict) -> str:
 def moved_cells(events: list[Event], reading: str = "time_scoped") -> list[dict]:
     """Standings that moved between consecutive moments, under one reading.
     The asymmetry to notice: under time_scoped the severance moves NOTHING —
-    it only bounds future imports; under cascade it rewrites the past."""
+    it only bounds future imports; under cascade the current projection excludes
+    earlier imports that arrived through the severed bridge."""
     out = []
     prev = None
     for label, asof in MOMENTS:
@@ -529,8 +530,9 @@ The findings, offered as probe results, not doctrine:
     severance is `nullifies`, and preserve-vs-cascade arrived for free — with
     the same divergence as every revocation before it. Severing a bridge
     bounds FUTURE imports; it does not sort the past. Time-scoped keeps the
-    contested cell after the severance; cascade clears it only by voiding the
-    bridge's whole history — resolution by amnesia, not resolution.
+    contested cell after the severance; cascade clears it only by excluding the
+    previously imported rulings from this projection — the original ADJUDICATE
+    events remain intact. Resolution by amnesia, not resolution.
   * imported status is not a property of the ruling. The same ADJUDICATE is
     binding to one fold, advisory to a second, weightless to a third. The
     three-layer split again: the ruling is a log fact; importing it is a fold

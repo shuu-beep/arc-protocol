@@ -50,7 +50,8 @@ The five readouts
   2. careless backdate       — refs the future; the DAG's lower bound bites.
   3. careful backdate        — refs only the genuine past; passes every check.
   4. revocation race         — a careful backdate stamped before a revocation it
-                               never refs; `as_of`-act-time honors a dead mandate.
+                               never refs; a claimed-timestamp time-scoped fold
+                               honors an act really minted after withdrawal.
   5. concurrent -> CONTESTED — the residue: the act and the revocation are causally
                                concurrent; only the timestamp orders them; drop that
                                trust and the order — hence the verdict — is CONTESTED.
@@ -199,10 +200,11 @@ def concurrent(by_id: dict[str, Event], a_id: str, b_id: str) -> bool:
 # The folds at stake. Both stand on `event.timestamp` — which is the exposure.
 # ---------------------------------------------------------------------------
 
-def authorized_as_of_act(events: list[Event], act_id: str) -> dict:
-    """Trust the act's CLAIMED timestamp. Was the mandate it refs still live then?
-    This is the ordinary as-of-act-time fold (finding G's buyer-protection reading)
-    — and it is exactly what a careful backdate exploits."""
+def honoring_by_claimed_act_time(events: list[Event], act_id: str) -> dict:
+    """Read the full log, trust the act's CLAIMED timestamp, and decide whether
+    this time-scoped policy honors the act. This is not the earlier-event-subset
+    historical baseline in authority-revocation-demo — and that distinction is
+    exactly what a careful backdate exploits."""
     by_id = {e.id: e for e in events}
     act = by_id[act_id]
     mandate = next((by_id[r] for r in act.refs
@@ -218,7 +220,7 @@ def authorized_as_of_act(events: list[Event], act_id: str) -> dict:
     return {"verdict": "DECLINED", "reason": f"revoked by {revoked.id} @ {revoked.timestamp}"}
 
 
-def authorized_by_causality(events: list[Event], act_id: str, rev_id: str) -> dict:
+def honoring_by_causality(events: list[Event], act_id: str, rev_id: str) -> dict:
     """Drop trust in the timestamp; order the act and the revocation by the DAG
     alone. If the DAG cannot order them, neither can ARC — the verdict is CONTESTED."""
     by_id = {e.id: e for e in events}
@@ -334,10 +336,11 @@ def run() -> None:
     # -- Readout 4: revocation race --------------------------------------------
     print("\n7. Readout 4 — REVOCATION RACE (the careful backdate beats a real revocation)")
     say("agent", "I really act at 10:06 — AFTER the 10:05 revocation — but I stamp 10:01")
-    a_fold = authorized_as_of_act(led.events, careful.id)
-    print(f"    as-of-act-time fold: {a_fold['verdict']}  ({a_fold['reason']})")
+    claimed_time_fold = honoring_by_claimed_act_time(led.events, careful.id)
+    print(f"    claimed-timestamp time-scoped fold: {claimed_time_fold['verdict']}  "
+          f"({claimed_time_fold['reason']})")
     print(f"    The revocation @ 10:05 is real, but the act never refs it and claims 10:01,")
-    print(f"    so the ordinary buyer-protection fold (finding G) honors a DEAD mandate.")
+    print(f"    so this full-log policy honors an act really minted after withdrawal.")
     print(f"    The careful backdate wins the race, and ARC's vocabulary cannot call it.")
 
     # -- Readout 5: the residue — concurrent -> CONTESTED ----------------------
@@ -348,7 +351,7 @@ def run() -> None:
     print(f"      revocation refs: {revocation.refs}")
     print(f"      concurrent? {concurrent(by_id, careful.id, revocation.id)} "
           f"(both ref the mandate; neither refs the other)")
-    c_fold = authorized_by_causality(led.events, careful.id, revocation.id)
+    c_fold = honoring_by_causality(led.events, careful.id, revocation.id)
     print(f"    order-by-causality fold: {c_fold['verdict']}  ({c_fold['reason']})")
     print("    The revocation race is THIS residue with money on it: the only thing that")
     print("    ordered the act before the revocation was a timestamp no one can verify.")
@@ -402,8 +405,8 @@ What this probe exposes
       - whether the signer honestly observed the claimed time;
       - whether `as_of` corresponds to real-world time;
       - a CAREFUL backdate: an event stamped false but refs only the genuine past.
-        It passes verify_log and the causal check, and an as-of-act-time fold will
-        honor a mandate that was really already revoked.
+        It passes verify_log and the causal check, and a claimed-timestamp
+        time-scoped fold will honor an act really minted after withdrawal.
   * Where exactly is the lie unobservable?
       In the causal GAPS. For concurrent events — neither refs the other — the DAG
       gives no order; only the timestamp claims one. Drop trust in the timestamp and

@@ -333,8 +333,8 @@ def render_graph_node(n: dict, depth: int = 0) -> str:
 
     acts = []
     for a in n["acts"]:
-        v = ('<span class="tag ok">VALID</span>' if a["valid"]
-             else '<span class="tag warn">VOID</span>')
+        v = ('<span class="tag ok">HONORED</span>' if a["honored_now"]
+             else '<span class="tag warn">NOT HONORED</span>')
         amt = f' {a["amount"]} KRW' if a["amount"] is not None else ""
         acts.append(
             f'<div class="gact"><code>ATTEST {esc(a["predicate"])}</code>{esc(amt)} '
@@ -349,8 +349,8 @@ def render_graph_node(n: dict, depth: int = 0) -> str:
 
 
 def render_delegation_graph(projections: dict, flips: list, fixture_events) -> str:
-    labels = {"as_of_act_time": "as-of-act-time · preserve completed acts",
-              "current_log_cascade": "current-log · retroactive cascade"}
+    labels = {"preserve": "preserve · full current log",
+              "cascade": "cascade · full current log"}
     buttons, panels = [], []
     for i, (reading, proj) in enumerate(projections.items()):
         active = " active" if i == 0 else ""
@@ -365,18 +365,20 @@ def render_delegation_graph(projections: dict, flips: list, fixture_events) -> s
 
     rows = []
     for f in flips:
-        a, b = f["as_of_act_time"], f["current_log_cascade"]
+        a, b = f["preserve"], f["cascade"]
         amt = f' {a["amount"]} KRW' if a["amount"] is not None else ""
         rows.append(
             f'<div class="gflip"><span class="who">{esc(name(a["signer"]))}</span> · '
             f'<code>ATTEST {esc(a["predicate"])}</code>{esc(amt)} '
             f'<span class="evid fid" data-fid="{esc(f["id"])}">[{esc(f["id"])}]</span>'
-            f'<div class="body">as-of-act-time: <strong>VALID</strong> &middot; '
-            f'cascade: <strong>VOID</strong> — same signed act, two answers; the log '
-            f'does not pick</div></div>')
+            f'<div class="body">historical fact: <strong>authorized_at_act=True</strong><br>'
+            f'current honoring: preserve <strong>HONORED</strong> &middot; '
+            f'cascade <strong>NOT HONORED</strong> — same full current log; the policy '
+            f'differs</div></div>')
     flip_panel = (f'<div class="gflips"><div class="gsep">projection divergence — '
-                  f'{len(flips)} completed act(s) flip between the readings; every '
-                  f'post-withdrawal act is void under both</div>{"".join(rows)}</div>')
+                  f'{len(flips)} completed act(s) flip between the readings; the '
+                  f'descendant act emitted after withdrawal is not honored under either'
+                  f'</div>{"".join(rows)}</div>')
 
     note = (
         '<p class="note">This band folds over its <strong>own generated fixture '
@@ -387,10 +389,11 @@ def render_delegation_graph(projections: dict, flips: list, fixture_events) -> s
         'root</strong> — fold the same log from <code>k:stray</code> and the picture '
         'inverts; attribution is local, there is no global identity registry, and the '
         'stray key is rendered at weight 0, not blocked (Sybil deliberately unsolved). '
-        '<strong>(2) What a withdrawal does to completed acts is a fold reading</strong> '
-        '(toggle above) — note the cascade\'s absurd edge: retiring the spent courier '
-        'voids its already-delivered work. The escalated 40000 payment survives even '
-        'the cascade because its basis is a direct root approval, not the revoked '
+        '<strong>(2) Current honoring after withdrawal is a fold reading</strong> '
+        '(toggle above; both use the same full current log) — the affected completed '
+        'acts have <code>authorized_at_act=True</code> under both. Yet cascade does not '
+        'honor the spent courier\'s already-delivered work. The escalated 40000 payment '
+        'remains honored even under cascade because its basis is a direct root approval, not the withdrawn '
         'chain. The canon stays closed: delegation, over-delegation, escalation, '
         'retirement and revocation are all KEY/ATTEST/AUTHORIZE with existing fields '
         '(<code>scope</code>, <code>refs</code>, <code>nullifies</code>) — no sixth '
@@ -582,7 +585,7 @@ def render_compromise_band(moments: list, forged_ids: set, blast: dict,
         f'<div class="brow"><span class="blab">cascade revoke</span>'
         f'<span class="bval">{len(b_cas["honored_damage"])} honored · '
         f'{b_cas["honored_krw"]} KRW</span>'
-        f'<span class="bnote">— zero, but only by voiding the honest history too</span>'
+        f'<span class="bnote">— zero, but only by declining to honor the honest history too</span>'
         f'</div>'
         f'<div class="bfind">blast radius = mandate scope ({esc(str(ceiling))} per act, '
         f'context-bound) <strong>&times; detection latency</strong> (acts honored until '
@@ -728,9 +731,10 @@ def render_federation_band(fed_matrices: dict, fed_moves: dict) -> str:
                      'created it.</div>')
         else:
             extra = ('<div class="gflip mutflip">under cascade the contested cell '
-                     '&#8220;resolves&#8221; — but only because the severed bridge is '
-                     'read as never having existed, voiding every ruling it carried. '
-                     'Resolution by amnesia, not resolution.</div>')
+                     '&#8220;resolves&#8221; — but only because the current projection '
+                     'excludes every ruling previously imported through the severed '
+                     'bridge. The original ADJUDICATE events remain '
+                     'intact. Resolution by amnesia, not resolution.</div>')
         move_panels.append(
             f'<div class="fmoves{" active" if ri == 0 else ""}" data-fr="{ri}">'
             f'<div class="gsep">what moved between the moments · '

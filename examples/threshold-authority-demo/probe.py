@@ -48,19 +48,22 @@ as an approval, whether non-members or duplicates count, how a later revocation
 re-reads the count — does NOT. It lives in the fold. So joint authority opens a
 fresh observer-relative boundary, on two independent axes the probe crosses:
 
-  * revocation reading (the finding-G axis): withdraw an approval after quorum, and
-      - as-of-act-time / time-scoped  -> quorum stood -> authorized;
-      - retroactive cascade           -> the approval is voided -> below threshold.
+  * revocation reading (the finding-G axis): withdraw an approval after reliance.
+    An earlier event subset establishes `authorized_at_reliance=True`. Against
+    the SAME full current log:
+      - preserve  -> candidate_honored_now=True;
+      - cascade   -> candidate_honored_now=False (the withdrawn approval no
+                     longer counts in this projection).
   * counting policy (the new axis): the SAME approvals
       - strict   (distinct named members only) -> a stray key does not count;
       - lenient  (any anchored signer)         -> a stray key restores quorum.
-    A party holding ONE member key plus a stray key can manufacture a "valid"
-    quorum against any counterparty whose fold uses the lenient rule.
+    A party holding ONE member key plus a stray key can satisfy the candidate
+    gate against any counterparty whose fold uses the lenient rule.
 
 One boundary is NOT policy: who may withdraw. The fold honors a `nullifies` only
 from the target's own author (event-registry §4.6) — the principal's attempt to
-void m2's approval is recorded but changes no count; only m2's own withdrawal
-does. Voiding another party's event is ADJUDICATE business, not a `nullifies`.
+withdraw m2's approval is recorded but changes no count; only m2's own withdrawal
+does. Only an honored ADJUDICATE can explicitly void another party's event.
 
 And one guard, shown cheaply: quorum cannot *widen* scope. A spend over the
 mandate's ceiling is unauthorized even at a full 3-of-3.
@@ -167,7 +170,7 @@ def project_quorum(events: list[Event], candidate_id: str, *,
     mandate = next((by_id[r] for r in act.refs
                     if r in by_id and by_id[r].predicate == "consent.joint_mandate"), None)
     if mandate is None or mandate.scope is None:
-        return {"act": candidate_id, "found": True, "authorized": False,
+        return {"act": candidate_id, "found": True, "candidate_gate_satisfied": False,
                 "reason": "no joint mandate referenced", "count": 0, "threshold": None}
 
     members = set(mandate.scope.get("members", ()))
@@ -180,24 +183,24 @@ def project_quorum(events: list[Event], candidate_id: str, *,
                  if e.type == "ATTEST" and e.predicate == "quorum.approve"
                  and candidate_id in e.refs]
 
-    # withdrawals: which approvals are voided, under the chosen reading?
+    # withdrawals: which approvals no longer count under the chosen reading?
     # Nullifier authority is NOT one of the policy knobs (event-registry §4.6):
     # only the approval's own author may withdraw it (this probe has no key
-    # rotation, so lineage reduces to the author). An unauthorized withdrawal
-    # stays on the log as evidence but voids nothing.
-    voided: set[str] = set()
+    # rotation, so lineage reduces to the author). A cross-party withdrawal
+    # stays on the log as evidence but changes no count.
+    withdrawn: set[str] = set()
     for w in events:
         if w.type == "AUTHORIZE" and w.predicate == "consent.withdraw":
             for nid in w.nullifies:
                 target = by_id.get(nid)
                 if target is None or w.signer != target.signer:
                     continue  # §4.6: not the target's author -> not honored
-                # retroactive cascade voids over all history; time-scoped voids
-                # only for acts at/after the withdrawal (this act predates it).
+                # Cascade stops counting the approval for the completed candidate;
+                # preserve applies withdrawal only at/after its timestamp.
                 if retroactive or w.timestamp <= act.timestamp:
-                    voided.add(nid)
+                    withdrawn.add(nid)
 
-    live = [a for a in approvals if a.id not in voided]
+    live = [a for a in approvals if a.id not in withdrawn]
 
     if counting == "strict":
         # distinct, named members only — a stray key does not count
@@ -213,12 +216,13 @@ def project_quorum(events: list[Event], candidate_id: str, *,
     count = len(approvers)
     out_of_scope = (max_krw is not None and amount is not None and amount > max_krw)
     quorum_met = threshold is not None and count >= threshold
-    authorized = quorum_met and not out_of_scope
+    candidate_gate_satisfied = quorum_met and not out_of_scope
 
     reason = f"{count}/{threshold} approvals [{notes}]"
     if out_of_scope:
         reason += f"; OUT OF SCOPE ({amount} > ceiling {max_krw}) — quorum cannot widen scope"
-    return {"act": candidate_id, "found": True, "authorized": authorized,
+    return {"act": candidate_id, "found": True,
+            "candidate_gate_satisfied": candidate_gate_satisfied,
             "count": count, "threshold": threshold, "out_of_scope": out_of_scope,
             "approvers": sorted(approvers), "reason": reason}
 
@@ -258,8 +262,14 @@ def say(who: str, msg: str) -> None:
     print(f"  [{who}] {msg}")
 
 
-def show(r: dict) -> None:
-    print(f"    authorized={r['authorized']}  ({r['reason']})")
+def show_authorization(r: dict) -> None:
+    """Render the prospective candidate gate."""
+    print(f"    authorized={r['candidate_gate_satisfied']}  ({r['reason']})")
+
+
+def show_honoring(r: dict) -> None:
+    """Render current honoring after the candidate was relied on."""
+    print(f"    candidate_honored_now={r['candidate_gate_satisfied']}  ({r['reason']})")
 
 
 # ---------------------------------------------------------------------------
@@ -293,14 +303,14 @@ def run() -> None:
     print("\n   m1 approves (ATTEST quorum.approve)")
     appr1 = m1.emit("ATTEST", "quorum.approve", refs=(candA.id, mandate.id))
     print("\n   --- (1) BELOW THRESHOLD: only one approval so far ---")
-    show(project_quorum(as_of(led.events, appr1.timestamp), candA.id,
-                        retroactive=False, counting="strict"))
+    show_authorization(project_quorum(as_of(led.events, appr1.timestamp), candA.id,
+                                      retroactive=False, counting="strict"))
 
     print("\n   m2 approves (ATTEST quorum.approve) — quorum reached")
     appr2 = m2.emit("ATTEST", "quorum.approve", refs=(candA.id, mandate.id))
     print("\n   --- (2) QUORUM SATISFIED: two distinct members approved ---")
-    show(project_quorum(as_of(led.events, appr2.timestamp), candA.id,
-                        retroactive=False, counting="strict"))
+    show_authorization(project_quorum(as_of(led.events, appr2.timestamp), candA.id,
+                                      retroactive=False, counting="strict"))
 
     say("agent", "quorum stood; executing and recording the payment")
     payA = agent.emit("ATTEST", "commerce.payment_result", refs=(candA.id,),
@@ -315,32 +325,43 @@ def run() -> None:
     for m in (m1, m2, m3):
         m.emit("ATTEST", "quorum.approve", refs=(candB.id, mandate.id))
     print("\n   --- guard: QUORUM CANNOT WIDEN SCOPE — 3-of-3 but over the ceiling ---")
-    show(project_quorum(led.events, candB.id, retroactive=False, counting="strict"))
+    show_authorization(project_quorum(led.events, candB.id,
+                                      retroactive=False, counting="strict"))
 
     print("\n5. Withdrawal after quorum — first WHO may withdraw, then how it re-reads")
-    say("principal", "member-2 should no longer count toward candidate A; trying to void that approval")
+    say("principal", "member-2 should no longer count toward candidate A; trying to withdraw that approval")
     principal.emit("AUTHORIZE", "consent.withdraw", refs=("k:m2", mandate.id),
                    nullifies=(appr2.id,), payload={"reason": "member_standing_withdrawn"})
     print("\n   --- (3) NULLIFIER AUTHORITY (event-registry §4.6): the principal is not the")
     print("       approval's author, so the fold does NOT honor this withdrawal ---")
-    show(project_quorum(led.events, candA.id, retroactive=True, counting="strict"))
+    show_honoring(project_quorum(led.events, candA.id,
+                                 retroactive=True, counting="strict"))
 
-    say("member-2", "reconsidering; withdrawing my own approval — the §4.6-authorized shape")
+    say("member-2", "reconsidering; withdrawing my own approval — the §4.6 self-withdrawal shape")
     m2.emit("AUTHORIZE", "consent.withdraw", refs=(appr2.id, mandate.id),
             nullifies=(appr2.id,), payload={"reason": "approval_reconsidered"})
 
-    print("\n   --- (4) APPROVAL WITHDRAWN AFTER QUORUM, and (5) the readings DIVERGE on candidate A ---")
-    print("   asof = the moment of reliance (payment recorded):", payA.timestamp)
+    print("\n   --- historical baseline: EARLIER EVENT SUBSET at reliance ---")
+    print("   This subset ends when payment was recorded and excludes the later withdrawal.")
+    print("   It is not the same-events policy comparison. reliance =", payA.timestamp)
+    baseline = project_quorum(as_of(led.events, payA.timestamp), candA.id,
+                              retroactive=False, counting="strict")
+    print(f"    authorized_at_reliance={baseline['candidate_gate_satisfied']}  "
+          f"({baseline['reason']})")
+
+    print("\n   --- SAME FULL CURRENT LOG: current honoring policies ---")
     rows = [
-        ("as-of-act-time          (strict)", as_of(led.events, payA.timestamp), False, "strict"),
-        ("current-log time-scoped  (strict)", led.events, False, "strict"),
-        ("current-log cascade      (strict)", led.events, True, "strict"),
-        ("current-log cascade      (LENIENT)", led.events, True, "lenient"),
+        ("preserve  (strict)", False, "strict"),
+        ("cascade   (strict)", True, "strict"),
+        ("cascade   (LENIENT)", True, "lenient"),
     ]
-    for label, evs, retro, counting in rows:
-        r = project_quorum(evs, candA.id, retroactive=retro, counting=counting)
-        flag = "  <-- quorum 'restored' by a non-member" if (counting == "lenient" and r["authorized"]) else ""
-        print(f"    {label}: authorized={r['authorized']}  ({r['reason']}){flag}")
+    for label, retro, counting in rows:
+        r = project_quorum(led.events, candA.id,
+                           retroactive=retro, counting=counting)
+        flag = ("  <-- current honoring 'restored' by a non-member"
+                if counting == "lenient" and r["candidate_gate_satisfied"] else "")
+        print(f"    {label}: candidate_honored_now={r['candidate_gate_satisfied']}  "
+              f"({r['reason']}){flag}")
 
     print(f"\nGenerated log: {len(led.events)} signed events. verify_log passes.")
     verify_log(led.events)
@@ -365,17 +386,17 @@ What this probe exposes
   * Who may withdraw an approval?
       Only its author (or the author's rotation lineage) — the nullifier-authority
       rule of event-registry §4.6, and it is NOT a policy knob. The principal's
-      attempt to void m2's approval is recorded evidence and changes no count;
-      voiding another party's event is ADJUDICATE business, never a `nullifies`
-      side effect. Only m2's own withdrawal moves the fold.
+      attempt to withdraw m2's approval is recorded evidence and changes no count;
+      only an honored ADJUDICATE can explicitly void another party's event. Only
+      m2's own withdrawal moves the fold.
   * Does that make joint authority observer-relative?
       Yes, on two independent axes the probe crosses:
-        - revocation reading (finding-G axis): withdraw an approval after quorum,
-          and as-of-act-time / time-scoped preserve the act while a retroactive
-          cascade drops it below threshold — the SAME nullify, two answers;
+        - revocation reading (finding-G axis): an earlier subset establishes
+          authorized_at_reliance=True. Against the SAME full current log,
+          preserve yields candidate_honored_now=True while cascade yields False;
         - counting policy: strict (distinct named members) rejects a stray key
           that lenient (any anchored signer) counts. A party with ONE member key
-          plus a stray key can manufacture a valid quorum against any counterparty
+          plus a stray key can satisfy the candidate gate against any counterparty
           whose fold uses the lenient rule. The threshold is itself an attack
           surface — not because a type is missing, but because the rule is policy.
   * Does reaching quorum widen what may be done?

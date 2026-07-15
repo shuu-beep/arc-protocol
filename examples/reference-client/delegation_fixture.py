@@ -30,17 +30,19 @@ canon deliberately does not make:
     inverts (the stray key becomes the root; everyone else becomes unrooted).
     Local attribution exists without global identity enforcement; an unrooted
     key is rendered at weight 0, not blocked.
-  * reading — what a withdrawal does to acts that completed under the grant
-    before it was withdrawn (the authority-revocation-demo divergence, finding
-    G, now applied to a whole lineage):
-      - as_of_act_time       preserve completed acts; void going forward only;
-      - current_log_cascade  void the grant's whole history, descendants included.
+  * reading — whether the current projection continues to honor acts that
+    completed under the grant before it was withdrawn (the authority-revocation-
+    demo divergence, finding G, now applied to a whole lineage). Both readings
+    consume the SAME full current log:
+      - preserve  continue to honor historically authorized completed acts;
+      - cascade   do not honor acts that depend on the withdrawn grant.
 
-The two readings AGREE about every act after the withdrawal; they disagree only
-about the past — including the absurd edge the cascade produces: routinely
-retiring a spent single-use courier voids its already-completed delivery.
-One act survives even the cascade: the escalated 40000 payment, because its
-basis is a direct root approval, not the revoked chain.
+The two readings AGREE about the descendant act emitted after the withdrawal;
+they disagree only about current honoring of the past — including the absurd
+edge the cascade produces: routinely retiring a spent single-use courier makes its already-
+completed delivery not honored by that projection. One act remains honored even
+under cascade: the escalated 40000 payment, because its basis is a direct root
+approval, not the withdrawn chain.
 
 Deliberately dirty and small: mock signatures, single process, scripted flow,
 generated (not hand-written) events. A fixture for the viewer; a probe when run
@@ -59,7 +61,7 @@ from typing import Any
 CANONICAL_TYPES = {"KEY", "ATTEST", "AUTHORIZE", "CHALLENGE", "ADJUDICATE"}
 
 LOCAL_ROOT = "k:root"
-READINGS = ("as_of_act_time", "current_log_cascade")
+READINGS = ("preserve", "cascade")
 
 NAMES = {
     "k:root": "human-root",
@@ -135,22 +137,22 @@ def verify_log(events: list[Event]) -> None:
 # ---------------------------------------------------------------------------
 
 def project_delegation_graph(events: list[Event], *, local_root: str = LOCAL_ROOT,
-                             reading: str = "as_of_act_time") -> dict:
+                             reading: str = "preserve") -> dict:
     """Fold the log into a delegation graph as seen FROM `local_root`.
 
     Per node: status (root/active/revoked/severed/spent/unrooted), the claimed
     ceiling on its own grant vs the EFFECTIVE ceiling (the intersection — min —
-    of every ceiling on its chain), and each of its acts judged valid or void.
+    of every ceiling on its chain), and whether each act is honored now.
 
-    An act is valid iff (a) it carries an explicit root approval in refs —
-    which stands independent of the mandate chain — or (b) its whole grant
-    chain was live at the relevant time AND its amount fits the effective
-    ceiling. "Live" is where the two readings split:
-      as_of_act_time      — a withdrawal voids the grant only at/after the
-                            withdrawal's timestamp; completed acts are preserved;
-      current_log_cascade — a withdrawal voids the grant's entire history;
-                            completed acts under it (and under every descendant
-                            grant) collapse retroactively.
+    An act is honored now iff (a) it carries an explicit root approval in refs —
+    which stands independent of the mandate chain — or (b) its whole grant chain
+    supports it under the selected current-honoring policy and its amount fits
+    the effective ceiling:
+      preserve — a later withdrawal does not remove support from a completed act;
+      cascade  — the current projection does not honor acts that depend on a
+                 withdrawn grant, including descendant grants.
+    For the pre-withdrawal acts that differ, `authorized_at_act=True` is an
+    invariant historical fact; only current honoring changes by policy.
     Nothing here is stored; the graph is recomputed from the log on demand."""
     assert reading in READINGS, f"unknown reading {reading!r}"
     by_id = {e.id: e for e in events}
@@ -183,13 +185,13 @@ def project_delegation_graph(events: list[Event], *, local_root: str = LOCAL_ROO
             k = m.signer
         return out
 
-    def live(grant: Event, t: str) -> bool:
+    def grant_supports_act(grant: Event, t: str) -> bool:
         w = withdrawn.get(grant.id)
         if w is None:
             return True
-        if reading == "current_log_cascade":
-            return False                     # void over the grant's whole history
-        return t < w.timestamp               # forward-scoped: void at/after only
+        if reading == "cascade":
+            return False                     # not honored by this current projection
+        return t < w.timestamp               # preserve completed pre-withdrawal acts
 
     def judge_act(act: Event, ch: list[Event] | None, effective) -> tuple[bool, str]:
         amount = act.payload.get("amount_krw")
@@ -198,15 +200,15 @@ def project_delegation_graph(events: list[Event], *, local_root: str = LOCAL_ROO
                          and by_id[r].signer == local_root), None)
         if approval is not None:
             ceil = (approval.scope or {}).get("max_total_krw")
-            if live(approval, act.timestamp) and (amount is None or
-                                                  (ceil is not None and amount <= ceil)):
-                return True, "explicit root approval — stands independent of the mandate chain"
+            if grant_supports_act(approval, act.timestamp) and (amount is None or
+                                                                (ceil is not None and amount <= ceil)):
+                return True, "explicit root approval — honored independently of the mandate chain"
             return False, "root approval withdrawn or exceeded"
         if ch is None:
             return False, "no grant chain to this root — admissible, projected at weight 0"
-        if not all(live(g, act.timestamp) for g in ch):
-            if reading == "current_log_cascade":
-                return False, "a grant in the chain was withdrawn — cascade voids its whole history"
+        if not all(grant_supports_act(g, act.timestamp) for g in ch):
+            if reading == "cascade":
+                return False, "a grant in the chain was withdrawn — not honored by the cascade projection"
             return False, "the chain was already withdrawn at act time"
         if amount is not None and effective is not None and amount > effective:
             return False, f"exceeds the effective ceiling {effective} (the inherited intersection)"
@@ -234,10 +236,10 @@ def project_delegation_graph(events: list[Event], *, local_root: str = LOCAL_ROO
         acts = []
         for e in sorted((e for e in events if e.signer == key and e.type == "ATTEST"),
                         key=lambda e: order[e.id]):
-            valid, basis = judge_act(e, ch, effective)
+            honored_now, basis = judge_act(e, ch, effective)
             acts.append({"id": e.id, "signer": key, "predicate": e.predicate,
                          "amount": e.payload.get("amount_krw"),
-                         "valid": valid, "basis": basis})
+                         "honored_now": honored_now, "basis": basis})
         return {
             "key": key, "status": status,
             "claimed_ceiling": claimed, "effective_ceiling": effective,
@@ -258,7 +260,7 @@ def project_delegation_graph(events: list[Event], *, local_root: str = LOCAL_ROO
 
 
 def divergent_acts(events: list[Event], *, local_root: str = LOCAL_ROOT) -> list[dict]:
-    """Acts whose validity FLIPS between the two readings — the projection
+    """Acts whose current honoring FLIPS between the two readings — the projection
     divergence, computed here (not in the viewer's JavaScript)."""
     def flatten(n: dict, out: dict) -> dict:
         for a in n["acts"]:
@@ -276,11 +278,12 @@ def divergent_acts(events: list[Event], *, local_root: str = LOCAL_ROOT) -> list
             flatten(u, acc)
         views[r] = acc
     order = {e.id: i for i, e in enumerate(events)}
-    flips = [eid for eid, a in views["as_of_act_time"].items()
-             if a["valid"] != views["current_log_cascade"][eid]["valid"]]
+    flips = [eid for eid, a in views["preserve"].items()
+             if a["honored_now"] != views["cascade"][eid]["honored_now"]]
     return [{"id": eid,
-             "as_of_act_time": views["as_of_act_time"][eid],
-             "current_log_cascade": views["current_log_cascade"][eid]}
+             "authorized_at_act": True,
+             "preserve": views["preserve"][eid],
+             "cascade": views["cascade"][eid]}
             for eid in sorted(flips, key=lambda i: order[i])]
 
 
@@ -405,7 +408,7 @@ def _walk(n: dict, depth: int = 0) -> None:
             line += f" (claimed {n['claimed_ceiling']} — clamped by inheritance)"
     print(line)
     for a in n["acts"]:
-        v = "VALID" if a["valid"] else "VOID "
+        v = "HONORED    " if a["honored_now"] else "NOT HONORED"
         amt = f" {a['amount']} KRW" if a["amount"] is not None else ""
         print(f"    {pad}  · {v} {a['predicate']}{amt} — {a['basis']}")
     for c in n["children"]:
@@ -415,7 +418,7 @@ def _walk(n: dict, depth: int = 0) -> None:
 def main() -> None:
     events = generate_log()
 
-    print("\n--- the same log, folded two ways (finding G, now on a whole lineage) ---")
+    print("\n--- the SAME FULL CURRENT LOG, folded under two honoring policies ---")
     for reading in READINGS:
         p = project_delegation_graph(events, reading=reading)
         print(f"\n  reading = {reading}")
@@ -426,11 +429,12 @@ def main() -> None:
     flips = divergent_acts(events)
     print(f"\n--- projection divergence: {len(flips)} act(s) flip between the readings ---")
     for f in flips:
-        a, b = f["as_of_act_time"], f["current_log_cascade"]
+        a, b = f["preserve"], f["cascade"]
         amt = f" {a['amount']} KRW" if a["amount"] is not None else ""
         print(f"    {NAMES.get(a['signer'], a['signer'])} · {a['predicate']}{amt}  [{f['id']}]")
-        print(f"      as-of-act-time: {'VALID' if a['valid'] else 'VOID'} — {a['basis']}")
-        print(f"      cascade:        {'VALID' if b['valid'] else 'VOID'} — {b['basis']}")
+        print(f"      authorized_at_act={f['authorized_at_act']}  (historical fact)")
+        print(f"      preserve: {'HONORED' if a['honored_now'] else 'NOT HONORED'} — {a['basis']}")
+        print(f"      cascade:  {'HONORED' if b['honored_now'] else 'NOT HONORED'} — {b['basis']}")
 
     print("\n--- attribution is local: fold the SAME log from a different root ---")
     inv = project_delegation_graph(events, local_root="k:stray")
