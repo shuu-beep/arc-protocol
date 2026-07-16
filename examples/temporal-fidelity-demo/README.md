@@ -47,7 +47,7 @@ any timestamp. A false timestamp is caught **only** when it contradicts that ord
 | 1. post-signature mutation | rewrite a stamped time, keep the old id/sig | **REJECTED** — content hash breaks |
 | 2. careless backdate | claim a time *before* the mandate the act refs | **CAUGHT** — refs DAG lower bound bites |
 | 3. careful backdate | claim a false time, ref only the genuine past | **passes everything** |
-| 4. revocation race | careful backdate stamped *before* a revocation it never refs | as-of-act-time **HONORS a dead mandate** |
+| 4. revocation race | careful backdate stamped *before* a revocation it never refs | claimed-timestamp time-scoped fold **HONORS an act really minted after withdrawal** |
 | 5. concurrent → CONTESTED | order the act and the revocation by the DAG alone | **CONTESTED** — the DAG does not order them |
 
 Plus the mitigation, and its price:

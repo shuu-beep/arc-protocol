@@ -362,8 +362,9 @@ type _NonVerdictsAreNotGovernance = Assert<
 // is never needed: withdrawal is the `nullifies` FIELD on an ordinary event
 // (event-registry §4.6); a key revocation is a KEY event with predicate
 // `id.key_revoke` carrying `nullifies`; a delegation/mandate is an AUTHORIZE with
-// a wider `scope` (§4 `mandate`); and whether a revoke cascades over a completed
-// act is a fold POLICY, not a type (finding G / ../authority-revocation-demo).
+// a wider `scope` (§4 `mandate`); and whether a current reader continues to honor
+// a completed act after revocation is a fold POLICY, not a type (finding G /
+// ../authority-revocation-demo).
 // So these "types" must NOT exist in the alphabet. Each is proven to be a
 // non-member of CanonicalType — extracting it yields the empty type `never`.
 // (Reuses the §7 `Assert` / `Equals` helpers.)

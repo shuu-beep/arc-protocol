@@ -124,8 +124,9 @@ profile, or status anywhere, because there is nothing stored but signed events.
   proposals can be auto-signed; out-of-scope proposals **escalate to a human**
   rather than executing.
 - **Revocation uses `nullifies`.** It bounds future authority; the past stays
-  auditable, not rewritten. Whether an act that already *completed* under a
-  now-revoked delegation still stands is a fold-policy choice, made visible.
+  auditable, not rewritten. Whether a current reader continues to honor an act
+  that already *completed* under a now-revoked delegation is a fold-policy
+  choice, made visible.
 - **No single authority of last resort.** Humans rule their own action and risk;
   communities rule the commons. Authority is **routed, not minted**: a
   federation bridge can route another community's authority, but each community

@@ -35,7 +35,7 @@ A 2-of-3 treasury board.
    but **not honored**: a fold honors a `nullifies` only from the target's
    author or its rotation lineage ([event-registry.md](../../docs/event-registry.md)
    §4.6).
-5. **Member-2** then withdraws their **own** approval — the §4.6-authorized
+5. **Member-2** then withdraws their **own** approval — the §4.6 self-withdrawal
    shape — and that one moves the fold.
 
 "Did this candidate reach quorum?" is asked only as a **projection** — a fold that
@@ -48,18 +48,21 @@ counts approvals against the recorded threshold. It is never stored.
 | 1 | **below threshold** — one approval | `authorized=False` (1/2) |
 | 2 | **quorum satisfied** — two distinct members | `authorized=True` (2/2) |
 | — | **guard:** candidate B over the ceiling at a full **3-of-3** | `authorized=False` (out of scope) |
-| 3 | **nullifier authority** — the principal tries to void m2's approval | `authorized=True` (still 2/2 — not honored, §4.6) |
-| 4 | **approval withdrawn after quorum** (by m2 itself) — current-log cascade | `authorized=False` (1/2) |
+| 3 | **nullifier authority** — the principal tries to withdraw m2's approval after reliance | `candidate_honored_now=True` (still 2/2 — withdrawal not honored, §4.6) |
+| 4 | **approval withdrawn after quorum** (by m2 itself) — full-current-log cascade | `candidate_honored_now=False` (1/2) |
 | 5 | **divergent readings** of the same withdrawn-approval log | see below |
 
-The divergence on candidate A, after m2 withdraws its own approval:
+The historical baseline is an **earlier event subset** ending at reliance; it
+prints `authorized_at_reliance=True`. It excludes the later withdrawal and is not
+the same-events policy comparison.
 
-| reading | counting | authorized? |
-|---------|----------|-------------|
-| as-of-act-time | strict (named members) | **True** — quorum stood at reliance |
-| current-log, time-scoped | strict | **True** — withdrawal is "going forward" |
-| current-log, retroactive cascade | strict | **False** — approval voided, 1/2 |
-| current-log, retroactive cascade | **lenient** (any signer) | **True** — a non-member key restores 2/2 |
+Against the **same full current log**, current honoring diverges:
+
+| policy | counting | candidate_honored_now |
+|--------|----------|-----------------------|
+| preserve | strict (named members) | **True** — later withdrawal does not reopen the relied-on candidate |
+| cascade | strict | **False** — the withdrawn approval no longer counts in this projection, 1/2 |
+| cascade | **lenient** (any signer) | **True** — a non-member key restores the current count to 2/2 |
 
 ## What it exposes
 
@@ -70,15 +73,14 @@ The divergence on candidate A, after m2 withdraws its own approval:
   (distinct? members-only? non-members?) is a **fold policy**.
 - **Who may withdraw is not policy.** The fold honors a `nullifies` only from
   the target's author or its rotation lineage ([event-registry.md](../../docs/event-registry.md)
-  §4.6). The principal's cross-party attempt is recorded evidence, not effect —
-  voiding another party's event is `ADJUDICATE` business, never a `nullifies`
-  side effect.
+  §4.6). The principal's cross-party attempt is recorded evidence, not effect.
+  Only an honored `ADJUDICATE` can explicitly void another party's event.
 - **So joint authority is observer-relative on two axes:**
-  - *revocation reading* (the finding-G axis): withdraw an approval after quorum
-    and as-of-act-time / time-scoped preserve the act, while a retroactive cascade
-    drops it below threshold — the same `nullifies`, two answers;
+  - *revocation reading* (the finding-G axis): the earlier subset establishes
+    `authorized_at_reliance=True`; against the same full current log, preserve
+    yields `candidate_honored_now=True` while cascade yields `False`;
   - *counting policy* (new): a party holding **one** member key plus a **stray**
-    key can manufacture a "valid" quorum against any counterparty whose fold uses
+    key can satisfy the candidate gate against any counterparty whose fold uses
     the lenient rule. The threshold is itself an attack surface — not because a
     type is missing, but because the rule is policy.
 - **Quorum does not widen scope.** Candidate B is unauthorized at 3-of-3 because

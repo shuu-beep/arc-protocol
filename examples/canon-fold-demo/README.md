@@ -100,9 +100,11 @@ constitutional trade-off:
     scope-, time-, and redelegation-bounds: over-budget, wrong-category, and
     expired requests are denied, a sub-grant may only narrow, and a forbidden
     re-grant is *represented* yet not *honored*. No `CAPABILITY` / `DELEGATE` /
-    `AUTHORITY_TOKEN` primitive. The one open question — does an act completed
-    *before* a revoke survive it? — is a fold-policy choice (as-of-act-time vs
-    current-log), not a missing type.
+    `AUTHORITY_TOKEN` primitive. This scenario compares an earlier historical
+    authority baseline with the mandate-force view from the full current log;
+    they are different event sets, not competing answers about one completed
+    act. It emits no completed B act. The same-full-log preserve/cascade honoring
+    question is isolated in `examples/authority-revocation-demo`.
     (`docs/delegation-and-spending-mandates.md`, `docs/event-registry.md` §4.3)
 
 11. **Agent multiplication exposes a trade-off, not a missing type.** One actor
@@ -258,10 +260,13 @@ expired requests are denied, a sub-grant may only narrow, and B's attempt to
 grant C is *represented* (a valid `AUTHORIZE`) but not *honored*, because B's
 mandate forbade redelegation. Revocation is the existing `nullifies` field:
 withdrawing one of A's mandates leaves the others intact, and withdrawing A's
-food mandate collapses B's downstream authority. The one open question — does an
-act B completed *before* the revoke stay valid? — is shown to diverge between an
-as-of-act-time fold and a current-log fold; the canon represents both and picks
-neither. No `CAPABILITY` / `DELEGATE` primitive is added.
+food mandate collapses B's downstream authority. The earlier event subset shows
+that B held authority before the revoke; the full current log shows that B's
+downstream authority is no longer in force. Those are different event sets and
+different authority-state questions. Because this scenario emits no completed B
+act, completed-act honoring is left to the same-full-log preserve/cascade
+comparison in `examples/authority-revocation-demo`. No `CAPABILITY` / `DELEGATE`
+primitive is added.
 
 An eleventh scenario is adversarial again: **agent multiplication / Sybil
 amplification**. One actor can run many agents, and the standing fold's
@@ -342,9 +347,10 @@ the eleventh, which is sharper):
 - Delegated authority needed no sixth type: an `AUTHORIZE` `consent.mandate` with
   `scope` + expiry + a `redelegatable` flag, revoked through `nullifies`,
   expressed scoped, time-bounded, non-redelegable, revocable delegation, with the
-  fold enforcing every bound back to the human principal. What stayed open —
-  whether an act completed *before* a revoke survives it — is a fold-policy choice
-  (as-of-act-time vs current-log), not a missing primitive.
+  fold enforcing every bound back to the human principal. Its earlier subset is
+  a historical authority baseline and its full current log is a mandate-force
+  view; no completed B act is emitted. Completed-act preserve/cascade honoring is
+  tested separately in `examples/authority-revocation-demo`, not inferred here.
 - Agent multiplication revealed the sharpest edge so far — and still no sixth
   type. The canon can collapse many agents to one principal *only* when the
   shared root is voluntarily disclosed (`ATTEST` `id.controls`), so the collapse
