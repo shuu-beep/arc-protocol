@@ -32,51 +32,41 @@ This document explains why — and what we propose instead.
 
 ---
 
-## 2. The Attention Economy Is Ending
+## 2. Agents May Change the Attention Economy
 
-For twenty years, digital commerce has run on attention.
+For roughly two decades, much of digital commerce has relied on attention.
 
-Platforms competed to stop your scroll, capture your eye, trigger your emotion, and convert your impulse into a purchase. The entire machinery of modern advertising was built around one insight: humans are manipulable.
+Platforms competed to stop your scroll, capture your eye, trigger your emotion, and convert your impulse into a purchase. Much of modern advertising assumes that human attention and emotion can be influenced.
 
-This produced predictable results:
+This produced familiar risks:
 
-- Cognitive vulnerabilities were weaponized. Fear of missing out, artificial scarcity, social proof — all engineered to bypass rational decision-making.
-- Trust was manufactured. Capital-rich actors bought search rankings, seeded fake reviews, and paid influencers to simulate authenticity.
-- Value was distorted. A meaningful portion of product prices today reflects not the cost of production or delivery, but the cost of advertising — a tax extracted by platform intermediaries.
+- Cognitive vulnerabilities could be targeted through urgency, scarcity, and social proof.
+- Capital-rich actors could buy visibility, seed reviews, or pay for endorsements.
+- Advertising and intermediary costs could shape which products become visible and how they are priced.
 
-The attention economy was not a neutral technology. It was an architecture optimized for extraction.
+Agents may be less susceptible than humans to some forms of emotional persuasion. A countdown timer or influencer endorsement need not affect an agent as it affects a person. An agent can instead compare structured data such as price, availability, reputation, delivery time, and refund history.
 
-**But AI agents do not have emotions.**
-
-An agent does not feel urgency when a countdown timer appears. It does not respond to influencer endorsements. It does not experience impulse. It parses structured data — price, availability, reputation score, delivery time, refund rate — and optimizes against a user-defined goal.
-
-This is not a small change. It is a structural collapse of the attention model.
-
-However, this does not eliminate manipulation. It shifts manipulation from emotional persuasion to ranking influence, recommendation bias, and agent-level optimization. The threat does not disappear — it goes underground.
-
-The future of merchant visibility will not be determined by who screams loudest at a distracted human. It will be determined by who provides the most transparent, verifiable, machine-readable offer to a rational agent — or who most cleverly corrupts that agent's judgment.
+That difference may weaken some attention-based tactics. It does not make the agent independent of advertising or platform influence. The threat may shift from emotional persuasion to ranking influence, recommendation bias, and agent-level optimization.
 
 ---
 
-## 3. The New Threat: Centralized Agent Bias
+## 3. The Risk: Centralized Agent Bias
 
-We do not believe the problem disappears when agents arrive.
+ARC treats centralized agent bias as a plausible threat model, not a universal outcome.
 
-We believe the problem transforms.
+When the same operator controls an agent's discovery, ranking, and recommendation surface, its commercial incentives may shape what the agent can observe. If sponsored placement, ranking provenance, recommendation inputs, fees, or comparable alternatives are hidden, a personal agent cannot independently verify whether a result serves the user's stated intent or the platform's business model.
 
-If a small number of corporations control the LLMs that power consumer agents, those corporations will eventually face commercial pressure to monetize that control. The mechanism changes — from emotional manipulation of humans to algorithmic bias embedded in agents — but the outcome is the same: invisible influence over economic decisions.
+**An agent can be emotionally indifferent yet algorithmically dependent.**
 
 Consider the scenario:
 
 > A user asks their agent: "Find me the best sandwich nearby under $10."
 
-If that agent runs on a closed LLM controlled by a platform that has advertising relationships with certain merchants, the agent may silently weight those merchants higher — without the user ever knowing.
+If that agent runs on a closed system whose operator has commercial relationships with particular merchants, those relationships could influence the ranking without being visible to the user or independently inspectable by the agent.
 
-This is not speculative. It is the natural endpoint of combining AI agent infrastructure with centralized platform incentives.
+A closed recommendation system may therefore transfer platform dependence from the human interface to the agent interface. This is an incentive and observability risk, not a claim that every platform will exploit it or that every agent will produce biased results.
 
-**The agent economy, if built on closed infrastructure, will produce a worse version of the attention economy.** The manipulation will be invisible, operating below the level of human perception, embedded in the objective functions of agents that users believe are acting on their behalf.
-
-ARC Protocol is a response to this threat.
+ARC Protocol is a response to this risk.
 
 ARC is adjacent to earlier open protocol efforts such as ActivityPub, Matrix, Nostr, Farcaster, and AT Protocol, but its focus is narrower: human-approved economic coordination between agents. The goal is not to replace social protocols or communication networks, but to explore what open infrastructure might look like when agents negotiate commerce on behalf of humans.
 
@@ -100,8 +90,8 @@ In an agent economy, trust is the primary competitive asset. Verified transactio
 **4. Local communities should govern trust.**
 Fraud detection, dispute resolution, and agent suspension should be handled by the communities closest to the commerce — not by a distant platform with misaligned incentives.
 
-**5. Blockchain should be used minimally.**
-Distributed ledgers are useful where manipulation resistance matters: reputation checkpoints, dispute records, identity proofs. They are not suitable for real-time commerce. ARC uses existing infrastructure for speed and payment, and cryptographic proofs only where verification is essential.
+**5. Infrastructure should remain implementation-neutral.**
+Centralized services, federated or community-operated systems, and shared ledgers may each fit different deployments. ARC does not require one topology; protocol semantics and human authority boundaries must remain intact whichever infrastructure is used.
 
 ---
 
@@ -152,7 +142,7 @@ Hidden algorithmic nudges are treated as protocol violations. Sponsorship is per
 
 No single entity should control the discovery index.
 
-Any community, merchant association, or individual may operate their own merchant directory, reputation index, or local commerce registry. Users may switch between discovery backends freely. This prevents monopolistic control over what agents can see and recommend.
+Any community, merchant association, or individual may operate their own merchant directory, reputation index, or local commerce registry. Implementations can allow users to switch between discovery backends. This can reduce dependence on one index, but it does not prevent concentration unless usable alternatives actually exist.
 
 ---
 
@@ -187,7 +177,7 @@ ARC Protocol does not claim that:
 - Open protocols are automatically fair or safe
 - This design is complete or production-ready
 
-We claim only that **the infrastructure question matters**, and that answering it with closed, corporate-controlled systems will reproduce familiar harms at greater scale and depth.
+We claim only that **the infrastructure question matters**, and that answering it with closed, corporate-controlled systems creates a risk of reproducing familiar harms in less inspectable forms.
 
 ARC is one attempt to propose a different answer.
 

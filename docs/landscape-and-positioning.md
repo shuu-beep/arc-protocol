@@ -89,7 +89,7 @@ So ARC depends on payment networks rather than competing with them. Payment exec
 
 A newer variant of the settlement layer deserves its own note, because it begins from the same observation ARC does. Cloudflare's **Monetization Gateway** (announced 2026-07-01, [blog.cloudflare.com/monetization-gateway](https://blog.cloudflare.com/monetization-gateway/)) is built on **x402**, an open protocol that revives the HTTP `402 Payment Required` status code: a server prices a request, the client pays in stablecoins, a facilitator verifies the payment, and the resource is delivered — per request, at sub-cent granularity, proxied at the edge. Agent identity is handled by a separate verification mechanism (Web Bot Auth), and the announcement explicitly anticipates agents that "carry wallets" and purchase autonomously.
 
-The shared diagnosis is the closest problem-statement overlap in this document: **agents do not view ads and do not hold subscriptions**, so the human-attention business model of the web breaks under agent traffic. ARC's corpus starts from the same premise — an agent-first internet changes what the interaction record must carry ([philosophy.md](./philosophy.md)).
+The shared diagnosis is the closest problem-statement overlap in this document: agent traffic may not consume conventional ads or subscriptions in the same way as human traffic, so the human-attention business model may weaken as agent traffic grows. ARC's corpus starts from the same premise — an agent-first internet changes what the interaction record must carry ([philosophy.md](./philosophy.md)).
 
 From that shared premise the two systems diverge into different layers:
 
@@ -106,7 +106,9 @@ One asymmetry is worth stating plainly. A gateway operator ships this to an exis
 
 Blockchain protocols provide shared, manipulation-resistant ledgers and consensus. Some target agent trust directly, for example on-chain identity and reputation registries.
 
-ARC does not prescribe a storage backend and treats a chain as optional ([philosophy.md](./philosophy.md) belief 5, [architecture.md](./architecture.md) §1.1): a chain is used only for checkpoints where shared manipulation-resistance is worth the added cost. ARC stores signed Events and computes trust as a Projection on demand, rather than placing a global score or persistent profile on a shared ledger ([object-model.md](./object-model.md)).
+ARC does not prescribe a storage or settlement backend ([philosophy.md](./philosophy.md) belief 5, [architecture.md](./architecture.md) §1.1). An implementation may use centralized services, federated or community-operated systems, a shared ledger, a blockchain, or combinations of them, provided the event, projection, and authority semantics remain intact. A chain may carry records or checkpoints or sit beneath external settlement; ARC itself supplies neither consensus nor settlement.
+
+The design difference is not chain versus no chain. ARC stores signed Events and computes trust as a Projection on demand, rather than making a global score or persistent profile a protocol primitive ([object-model.md](./object-model.md)).
 
 This is a design difference, not a verdict. Where some systems bet that trust can be *computed* on shared infrastructure, ARC explores trust as *governed* — a community process over evidence, with no stored universal score. "Computed" and "governed" are used here only as positioning language, not as ARC protocol primitives. Both bets are unproven, and ARC does not claim its choice is the better one.
 
@@ -139,7 +141,7 @@ The layered systems in §4–§9 mostly occupy different layers:
 | Checkout semantics | discovery, cart, checkout (ACP) | ARC wraps with approval and trust records |
 | Platform operation | aggregated marketplace | ARC explores an open alternative function |
 | Settlement | moving money (payment networks, x402-style gateways §8.1) | ARC depends on, records as `ATTEST` |
-| Shared ledger | manipulation-resistant records (blockchain) | ARC uses minimally, computes trust off-chain |
+| Shared ledger | manipulation-resistant records (blockchain) | Optional implementation or external settlement layer; not an ARC semantic |
 
 ARC occupies the human-approval and trust-coordination layer above commerce. A single transaction could plausibly use several of these at once — tools via MCP, agent contact via A2A-style transport, checkout via a commerce standard, settlement via a payment network — while ARC supplies the human-approval boundary and the inspectable identity, reputation, dispute, and governance records.
 

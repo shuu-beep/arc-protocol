@@ -5,9 +5,13 @@
 > **Any agent. Any model. Any company.**
 > **Human approval required.**
 
-> An open protocol for human-approved delegation, portable authority, and
-> recomputable audit — with commerce as its first implementation, not its
-> definition.
+> An open, implementation-neutral AI agent protocol for agent authorization:
+> human-approved delegation, portable authority, and recomputable audit of
+> signed evidence, with human-in-the-loop approval at consequential boundaries.
+> Its scope for verifiable agent actions is the authorization record: signed
+> evidence can show which authorization covered the act and which key signed,
+> not prove execution or real-world outcomes. Agentic commerce is its first
+> implementation, not its definition.
 
 ---
 
@@ -88,7 +92,8 @@ To clear the most common first-read misunderstandings:
 - **Not a marketplace.** It hosts no listings and ranks no merchants; discovery
   is a replaceable, disclosed component, not the protocol.
 - **Not a payment network.** It initiates no payment and settles nothing;
-  payment stays with existing providers, after human approval.
+  an ARC-compatible commerce flow hands off to external payment or settlement
+  systems only after the required human authorization.
 
 ---
 
@@ -262,24 +267,32 @@ the boundary literal: **adoption does not fold, but a refusal record does.**
 
 ## 9. Protocol Boundaries
 
-ARC defines **protocol semantics, not infrastructure.** What "semantics" means
-is fixed by §3–§5 (the canonical event set, signature verification, projection
-determinism, revocation via `nullifies`); everything below is an implementation
-choice left to whoever runs an implementation.
+ARC defines **protocol semantics, not infrastructure, governance topology, or
+settlement.** What "semantics" means is fixed by §3–§5 (the canonical event set,
+signature verification, projection determinism, revocation via `nullifies`, and
+the human and community authority boundaries); everything below is an
+implementation choice.
 
-- **Storage.** ARC does not prescribe a shared database. Each implementation is
-  free to choose its own storage — SQLite, PostgreSQL, S3, Kafka, a ledger —
-  *provided protocol semantics are preserved.* This single rule resolves the
-  central-DB, distributed-DB, and blockchain questions at once.
-- **Blockchain.** Not required as part of the protocol specification. An optional
-  cryptographic checkpoint is infrastructure (an implementation choice), never a
-  protocol mandate.
-- **Token.** ARC itself defines no native token. Implementations may add
-  additional layers, but those layers are outside the ARC protocol
-  specification.
-- **Payment.** ARC does not execute payment; it interoperates with existing
-  providers after human approval, and guarantees no refund, chargeback, or
-  recovery. See [liability-boundaries.md](docs/liability-boundaries.md).
+Compatible implementations may use centralized services, federated systems,
+community-operated infrastructure, shared ledgers, blockchain-based settlement,
+or other governance and storage mechanisms, *provided ARC protocol semantics
+and authority boundaries are preserved.* Those choices do not turn ARC itself
+into a blockchain, token, or payment network.
+
+- **Storage and operation.** ARC prescribes neither a shared database nor a
+  deployment topology. SQLite, PostgreSQL, S3, Kafka, append-only logs, shared
+  ledgers, and combinations of them are all implementation choices.
+- **Ledgers and blockchains.** An implementation may use them for storage,
+  checkpoints, coordination, or external settlement. ARC neither requires nor
+  prohibits them and does not inherit their consensus or asset semantics.
+- **Tokens.** ARC defines no native token. Tokenized assets or application
+  layers may interoperate with an implementation, but they are neither required
+  nor part of ARC protocol semantics.
+- **Payment.** ARC does not initiate, execute, or settle payment. An
+  ARC-compatible commerce flow hands off to conventional or blockchain-based
+  payment rails only after the required human authorization; those external
+  rails provide no ARC guarantee of refund, chargeback, or recovery. See
+  [liability-boundaries.md](docs/liability-boundaries.md).
 - **Legal / regulated domains.** Community review informs trust; it does not
   replace courts, consumer-protection law, or professional regulation. Regulated
   domains stay outside scope unless reviewed under the relevant professional
@@ -336,11 +349,12 @@ non-goals, is in [docs/roadmap.md](docs/roadmap.md).
 - **Federation.** Cross-community identity, interoperable governance, and
   reputation portability under explicit local control.
 
-Not on the roadmap: full decentralization, AI autonomy without human approval, a
-required token, or enclosing the protocol under a single operator. ARC is open to
-research collaboration, independent implementation, commercial adoption, funding,
-and community stewardship — all compatible with a protocol intended to remain
-uncaptured by any single operator.
+ARC does not require full decentralization, a token, or any single deployment
+topology. AI autonomy without human approval and enclosing the protocol under a
+single operator remain out of scope. ARC is open to research collaboration,
+independent implementation, commercial adoption, funding, and community
+stewardship — all compatible with a protocol intended to remain uncaptured by
+any single operator.
 
 ---
 
@@ -365,6 +379,7 @@ uncaptured by any single operator.
 **Trust, positioning & limits**
 [Trust Model Trade-offs](docs/trust-model-tradeoffs.md) ·
 [Landscape & Positioning](docs/landscape-and-positioning.md) ·
+[Agent-Mediated Commerce & Infrastructure](docs/agent-mediated-commerce-infrastructure.md) ·
 [Liability Boundaries](docs/liability-boundaries.md) ·
 [Future Protocol Spec](docs/future-protocol-spec.md)
 

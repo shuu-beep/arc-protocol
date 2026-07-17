@@ -521,7 +521,7 @@ Possible mitigations:
 
 ## 11. Infrastructure Attacks
 
-ARC relies on ordinary infrastructure — relays, databases, discovery backends — rather than a decentralized ledger. This is pragmatic, but it creates infrastructure risks.
+ARC-compatible implementations may use relays, databases, discovery backends, shared ledgers, or combinations of them. Each deployment choice creates infrastructure risks.
 
 ### 11.1 Relay Surveillance
 
