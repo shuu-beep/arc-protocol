@@ -4,39 +4,36 @@ ARC authority-revocation probe — single file, stdlib only.
 
 What this isolates
 ------------------
-The delegation probe in `examples/canon-fold-demo` (scenario 10, finding G) noted
-in passing that revoking a delegation does NOT, on its own, tell you whether a
-current reader continues to honor an act already *completed* under that
-delegation. This probe pulls that one question out on its own.
+The delegation probe in `examples/canon-fold-demo` (scenario 10, finding G) did
+not select how a current reader should treat an earlier recorded act after a
+mandate-withdrawal record. This probe compares two authored policies.
 
-The setup is the smallest one that makes the question bite — a delegation chain
-with a real downstream party who relied on then-valid authority:
+The fixture contains a delegation chain and a downstream-party record:
 
     human (principal)  --AUTHORIZE consent.mandate-->  agent A      [time T1]
     agent A            --AUTHORIZE consent.execute-->   the purchase [time T1]
     agent A / merchant --ATTEST payment / fulfillment-> done         [time T1]
-    human              --AUTHORIZE consent.withdraw-->  revokes A     [time T2]
+    human              --AUTHORIZE consent.withdraw-->  withdrawal    [time T2]
 
-At T1 the purchase was backed by a live mandate; the merchant fulfilled in
-reliance on it. At T2 the human revokes A's mandate. The central question is
-then: does a CURRENT reader continue to honor that completed purchase?
+At T1 the fixture's limited reference-and-withdrawal check returns a positive
+reading for the purchase authorization, and mock outcome attestations follow. At
+T2 the log receives a withdrawal record. The central question is
+then: does a current reader continue to honor that recorded act?
 
 The as-of-act-time view is only a historical baseline. It replays an earlier
-event subset that does not contain the later revoke, so it is not the
+Event subset that does not contain the later withdrawal record, so it is not the
 same-events policy comparison. Against the SAME full current log, both policies
-agree on the invariant facts — the act was authorized at act time and the
-mandate is no longer in force now — but differ on current honoring:
+agree on the fixture outputs `authorized_at_act=True` and
+`mandate_in_force_now=False`, but differ on current honoring:
 
   * preserve — completed_act_honored_now=True;
   * cascade  — completed_act_honored_now=False (not honored by this projection).
 
-The finding is not a missing event type. The revoke is one ordinary event (the
-existing `nullifies` field on an `AUTHORIZE consent.withdraw`, event-registry
-§4.6 — no sixth type). What the canon does NOT fix is which current-honoring
-policy a projection uses. That choice sits above the canon, the same shape as
-findings B/C/D/G.
+The fixture represents the withdrawal with the existing `nullifies` field on an
+`AUTHORIZE consent.withdraw` Event. Its current-honoring result depends on the
+supplied `preserve` or `cascade` policy.
 
-Deliberately dirty and small. Explicitly:
+Scope:
   * stdlib only, single process, no network, no transport, no storage;
   * signatures are MOCK (a hash, not Ed25519);
   * the five canonical types are reused as-is — no new primitive;
@@ -82,7 +79,7 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies."""
+    """MOCK. This fixture uses a deterministic hash for reproducible replay, not production security; ARC has no selected normative signature suite, so implementations and named profiles select and declare their suite."""
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
 
@@ -98,11 +95,11 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: signature check + signer anchored by a prior KEY."""
+    """Fixture replay check: deterministic mock signature and key registration."""
     registered: set[str] = set()
     for ev in events:
         if ev.signature != stub_sign(ev.signer, ev.signing_bytes()):
-            raise ValueError(f"bad signature on {ev.id}")
+            raise ValueError(f"bad mock signature on {ev.id}")
         is_root = ev.type == "KEY" and ev.predicate == "id.key_register"
         if not is_root and ev.signer not in registered:
             raise ValueError(f"signer {ev.signer} not anchored by a KEY register ({ev.id})")
@@ -111,27 +108,27 @@ def verify_log(events: list[Event]) -> None:
 
 
 def as_of(events: list[Event], t: str) -> list[Event]:
-    """Replay input restricted to events recorded at or before `t` (object-model
-    §5). No new mechanism: a fold is over whatever event subset the reader holds."""
+    """Return the fixture Event subset recorded at or before `t`."""
     return [e for e in events if e.timestamp <= t]
 
 
 # ---------------------------------------------------------------------------
-# The projection at stake: does a current reader honor the completed purchase?
+# Fixture Projection: does a current reader honor the earlier recorded act?
 # ---------------------------------------------------------------------------
 
 def project_completed_act(events: list[Event], act_id: str, *, policy: str) -> dict:
-    """Fold the log to separate historical authorization from current honoring.
+    """Apply the fixture's reference/time check and current-honoring policy.
 
-    The act references the mandate it relied on (refs). The mandate is a live
-    grant unless an `AUTHORIZE consent.withdraw` names it in `nullifies`.
+    The check looks for a referenced `AUTHORIZE consent.mandate` and for an
+    `AUTHORIZE consent.withdraw` that names it in `nullifies`.
 
-    `authorized_at_act` and `mandate_in_force_now` are invariant facts for a
-    given full log. The ONE policy knob controls only whether a current reader
-    continues to honor an already-completed, historically authorized act:
+    `authorized_at_act` is the result of this fixture's limited reference and
+    withdrawal-timing check; it does not validate complete scope, expiry, lineage,
+    or execution authority. The policy knob controls whether a current reader
+    returns its `completed_act_honored_now` field:
 
-      * preserve — continue to honor the completed act;
-      * cascade  — do not honor the completed act in this projection.
+      * preserve — return honored for the earlier recorded act;
+      * cascade  — return not honored for that act in this Projection.
 
     Nothing here is stored; this is recomputed on demand."""
     if policy not in {"preserve", "cascade"}:
@@ -142,7 +139,7 @@ def project_completed_act(events: list[Event], act_id: str, *, policy: str) -> d
     if act is None:
         return {"act": act_id, "found": False}
 
-    # the mandate this act relied on (first AUTHORIZE consent.mandate in refs)
+    # first referenced AUTHORIZE consent.mandate in this fixture
     mandate = next((by_id[r] for r in act.refs
                     if r in by_id and by_id[r].predicate == "consent.mandate"), None)
     if mandate is None:
@@ -169,11 +166,11 @@ def project_completed_act(events: list[Event], act_id: str, *, policy: str) -> d
     )
 
     if not authorized_at_act:
-        reason = f"mandate already withdrawn by {withdrawn_before_or_at_act.id} at act time"
+        reason = f"fixture found withdrawal {withdrawn_before_or_at_act.id} at or before act time"
     elif mandate_in_force_now:
-        reason = "mandate remains in force; completed act honored"
+        reason = "fixture found no withdrawal; act honored by selected policy"
     elif completed_act_honored_now:
-        reason = "later withdrawal recorded; preserve policy continues to honor completed act"
+        reason = "later withdrawal recorded; preserve policy returns honored"
     else:
         reason = "later withdrawal recorded; completed act not honored by this projection"
 
@@ -187,7 +184,7 @@ def project_completed_act(events: list[Event], act_id: str, *, policy: str) -> d
 
 
 # ---------------------------------------------------------------------------
-# Participants — each holds one key and emits its OWN events into the ledger.
+# Fixture parties — each appends records with a configured key id.
 # ---------------------------------------------------------------------------
 
 class Party:
@@ -208,7 +205,7 @@ class Ledger:
 
     def now(self) -> str:
         self._clock += 1
-        # The whole T1 transaction lands in the morning; the revoke (step 4) and
+        # The T1 fixture records land in the morning; the withdrawal (step 4) and
         # the later dispute/adjudication (step 5) land in the afternoon.
         hour = 10 if self._clock <= 8 else 16
         return f"2026-06-08T{hour:02d}:{self._clock:02d}:00Z"
@@ -229,9 +226,9 @@ def run() -> None:
     led = Ledger()
     human = Party(led, "human", "k:human")          # the principal / buyer
     agentA = Party(led, "agent-A", "k:agentA")       # buyer's delegated agent
-    merchant = Party(led, "merchant", "k:merchant")  # downstream relying party
+    merchant = Party(led, "merchant", "k:merchant")  # fixture downstream party
 
-    print("\n1. Identity — each party anchors a key (KEY id.key_register)")
+    print("\n1. Identity — each party records KEY id.key_register")
     for p in (human, agentA, merchant):
         p.emit("KEY", "id.key_register", payload={"key": p.key})
 
@@ -241,21 +238,21 @@ def run() -> None:
                          scope={"category": "groceries", "max_total_krw": 30000,
                                 "expires_at": "2026-06-08T23:59:00Z"})
 
-    print("\n3. Commerce at T1 — agent A acts WITHIN the live mandate; it completes")
+    print("\n3. Commerce at T1 — agent A records an act referencing the mandate")
     offer = merchant.emit("ATTEST", "commerce.offer",
                           payload={"item": "weekly_groceries", "price_krw": 24000})
-    say("agent-A", "offer is in scope and the mandate is live; executing")
+    say("agent-A", "recording the fixture purchase authorization")
     act = agentA.emit("AUTHORIZE", "consent.execute", refs=(mandate.id, offer.id, "k:merchant"),
                       scope={"total_krw": 24000})
     agentA.emit("ATTEST", "commerce.payment_result", refs=(act.id, "k:merchant"),
                 payload={"result": "confirmed", "amount_krw": 24000, "provider": "mock_pay"})
-    say("merchant", "payment confirmed; fulfilling in reliance on A's authority")
+    say("merchant", "recording mock payment and fulfillment attestations")
     merchant.emit("ATTEST", "commerce.fulfillment", refs=(act.id,),
                   payload={"status": "delivered"})
 
     print("\n--- historical baseline: AS-OF-ACT-TIME event subset ---")
-    print("    This earlier subset does not contain the later revoke. It establishes")
-    print("    the historical baseline; it is NOT the same-events policy comparison.")
+    print("    This earlier subset does not contain the later withdrawal record.")
+    print("    The limited fixture check is not complete authority validation.")
     historical_baseline(led, act.id, as_of_t=act.timestamp)
 
     print("\n4. Revocation at T2 — later, the human withdraws agent A's mandate")
@@ -266,8 +263,8 @@ def run() -> None:
     preserve = project_completed_act(led.events, act.id, policy="preserve")
     cascade = project_completed_act(led.events, act.id, policy="cascade")
 
-    print("\n--- AFTER revocation: invariant facts from the FULL CURRENT LOG ---")
-    show_current_invariants(preserve)
+    print("\n--- AFTER withdrawal record: shared fixture outputs from the FULL CURRENT LOG ---")
+    show_shared_outputs(preserve)
 
     print("\n--- SAME FULL CURRENT LOG: preserve policy ---")
     show_policy_result(preserve)
@@ -275,21 +272,20 @@ def run() -> None:
     print("\n--- SAME FULL CURRENT LOG: cascade policy ---")
     show_policy_result(cascade)
 
-    # ---- the boundary: revocation is a fact; reopening a past act is a verdict ----
-    print("\n5. Reopening one past act WITHOUT global collapse")
-    say("human", "I think that specific purchase was actually unauthorized; disputing it")
+    # ---- withdrawal record vs current-honoring and later ruling record ----
+    print("\n5. Recording a later challenge and ruling about one act")
+    say("human", "challenging this specific recorded purchase")
     dispute = human.emit("CHALLENGE", "dispute.open", refs=(act.id, "k:merchant"),
                          payload={"reason": "claims_act_exceeded_mandate"})
-    say("community", "reviews the one disputed act and rules it void — this act only")
+    say("community", "records a ruling that references the challenged act")
     merchant_community = Party(led, "community", "k:community")
     merchant_community.emit("KEY", "id.key_register", payload={"key": "k:community"})
     merchant_community.emit("ADJUDICATE", "gov.act_voided", refs=(act.id, dispute.id),
                             payload={"resolves": dispute.id})
-    print("    A CHALLENGE + ADJUDICATE reopens THIS act by id. The revoke did not")
-    print("    do that on its own, and nothing else in the log was touched. Voiding a")
-    print("    past act is an authority decision, not a side effect of revocation.")
+    print("    The CHALLENGE and ADJUDICATE reference this act by id. This fixture")
+    print("    does not project legal, payment, or operational consequences from them.")
 
-    print(f"\nGenerated log: {len(led.events)} signed events. verify_log passes.")
+    print(f"\nGenerated log: {len(led.events)} mock-signed fixture Events; running replay checks.")
     verify_log(led.events)
     print_finding()
 
@@ -301,7 +297,7 @@ def historical_baseline(led: Ledger, act_id: str, as_of_t: str) -> None:
     print(f"    mandate_in_force_in_baseline={result['mandate_in_force_now']}")
 
 
-def show_current_invariants(r: dict) -> None:
+def show_shared_outputs(r: dict) -> None:
     print(f"    authorized_at_act={r['authorized_at_act']}")
     print(f"    mandate_in_force_now={r['mandate_in_force_now']}")
 
@@ -315,40 +311,33 @@ def print_finding() -> None:
     print("""
 What this probe exposes
 -----------------------
-  * What is invariant after revocation?
-      authorized_at_act=True: the purchase was backed by a live mandate when it
-      happened. mandate_in_force_now=False: the withdrawal ends future authority.
-      Neither fact changes between the two current-log policies.
-  * Does a current reader continue to honor the completed act?
+  * What outputs are shared after the withdrawal record?
+      This fixture's limited reference-and-withdrawal check returns
+      authorized_at_act=True and mandate_in_force_now=False. It does not validate
+      complete scope, expiry, lineage, or execution authority. Neither output
+      changes between the two current-log policies.
+  * Does a current reader continue to honor the earlier recorded act?
       Under preserve, completed_act_honored_now=True. Under cascade,
       completed_act_honored_now=False: it is not honored by this projection.
       The canon does not pick a current-honoring policy.
-  * What does the as-of-act-time view prove?
-      It is the historical baseline over an earlier event subset that excludes the
-      revoke. It is not the same-events policy comparison; preserve vs cascade is.
-  * Does it only affect future reliance?
-      The mandate itself is withdrawn going forward under both policies.
-  * Can a later challenge reopen a past act without automatic global collapse?
-      Yes. A CHALLENGE + ADJUDICATE names ONE act by id (step 5). Revocation alone
-      does not reopen anything; reopening is a separate, scoped authority decision.
-  * Is revocation an event-log fact, a projection result, or an authority decision?
-      All three live at different layers, and the probe keeps them apart:
-        - the revoke itself is an EVENT FACT (one AUTHORIZE consent.withdraw);
+  * What does the as-of-act-time view report?
+      It applies the same limited check to an earlier Event subset that excludes the
+      withdrawal record. It is not the same-events policy comparison.
+  * What does the later challenge section establish?
+      It establishes only that the authored CHALLENGE and ADJUDICATE records
+      reference one act. The fixture projects no legal or operational effect.
+  * Which layers does the fixture distinguish?
+        - the withdrawal is a MOCK-SIGNED EVENT (AUTHORIZE consent.withdraw);
         - whether a reader honors the completed act now is a PROJECTION choice;
-        - whether that past act is punished/voided is an AUTHORITY decision (ADJUDICATE).
-  * Where is the boundary between buyer protection and anti-social-credit?
-      A preserve policy protects the counterparty who acted in good faith. A permanent,
-      automatic, identity-keyed refusal to honor all past acts would be a stored verdict
-      about a party — the social-credit shape ARC refuses. So cascade is the reading to
-      refuse as a DEFAULT — but ARC picks no default: current honoring stays a policy
-      choice
-      (authority-and-conflict §9, and this probe's own line above: "The canon does
-      not pick"), and reopening a specific past act is always an explicit,
-      per-act ADJUDICATE, never a side effect of the revocation.
+        - the later ADJUDICATE is a separate ruling record referencing that act.
+  * Where does the fixture leave current honoring?
+      Preserve continues honoring the recorded act; cascade does not. Base ARC
+      selects no default current-honoring policy; a deployment or named profile
+      may select and identify that policy. The later ruling record is separate
+      from the withdrawal Event.
 
-No sixth type was added; the current-honoring choice is a fold-policy residue,
-not a missing primitive. This is a probe, not final doctrine and not a
-revocation spec.
+This fixture uses the current Event types and compares two authored
+current-honoring policies. It is not a revocation specification.
 """)
 
 

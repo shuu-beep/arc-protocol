@@ -1,124 +1,121 @@
-# ARC canon — TypeScript hardening probe
+# ARC Canon — local TypeScript type-shape probe
 
-A tiny, dependency-free probe that turns ARC invariants into rules the
-TypeScript compiler — not a convention — enforces. Two files, six locks.
+A tiny, dependency-free probe that encodes six fixture-local type-shape checks.
+The TypeScript compiler checks this module; it does not enforce ARC at runtime
+or across independent implementations.
 
-[`canon.ts`](./canon.ts) locks three **canon** invariants:
+[`canon.ts`](./canon.ts) exercises three **canon-shaped checks**:
 
-1. **Closedness** — the five-event canon is a **closed discriminated union**, so
-   nothing can quietly add a sixth event type.
-2. **Governance is ADJUDICATE-only** — a probe finding (finding E): commons
-   standing moves only by an `ADJUDICATE`, so a `CHALLENGE` or `ATTEST` cannot
-   occupy a verdict slot.
+1. **Local union exhaustiveness** — this module uses a five-member discriminated
+   union, so adding a member here requires updating its exhaustive handlers.
+2. **Local verdict-slot shape** — this module's declared verdict parameter
+   accepts its `ADJUDICATE` variant and rejects the demonstrated `CHALLENGE` and
+   `ATTEST` values.
 3. **Revocation/delegation add no type** — findings A and G: withdrawal, key
    revocation, delegation, and capability are expressed through the `nullifies`
    *field*, a *predicate*, and the reader's *fold policy* — never a new
-   canonical type. The forbidden pseudo-types (`REVOKE`, `KEY_REVOKE`,
-   `DELEGATE`, `CAPABILITY`) are proven non-members of `CanonicalType`.
+   canonical type in this module. The example pseudo-types (`REVOKE`,
+   `KEY_REVOKE`, `DELEGATE`, `CAPABILITY`) are not members of its union.
 
-[`custody.ts`](./custody.ts) locks three **custody** invariants — the decisions
-in [`docs/key-custody.md`](../../docs/key-custody.md) after their adversarial
-probe on real Ed25519 keys
-([`compromise_fixture.py`](../reference-client/compromise_fixture.py)):
+[`custody.ts`](./custody.ts) exercises three **custody-shaped checks** related to
+[`docs/key-custody.md`](../../docs/key-custody.md) and the separate
+[`compromise_fixture.py`](../reference-client/compromise_fixture.py):
 
-4. **A hot key cannot mint authority beyond its ancestor's scope** — the only
-   two paths to a mandate are a ceremonial root (a branded type no hot key can
-   fabricate) or an attenuating redelegation (the child scope must narrow the
-   parent's; widening fails to compile).
-5. **A revoked key cannot produce honored post-revoke acts** — key liveness is
-   a phantom type; post-revoke bytes are still *constructible* (theft is not a
-   type error — the log can hold a forgery) but cannot occupy the honored slot.
-6. **Surgical invalidation requires adjudication** — the only per-act void slot
-   takes an `ADJUDICATE`; a key revocation or mandate withdrawal cannot unhonor
-   a single act. "Revocation is not surgical" becomes a compile-time refusal.
+4. **The declared API separates root and hot-key paths** — branded types and
+   literal categories reject the demonstrated invalid calls in this module;
+   assertions or different runtime code can bypass those shapes.
+5. **The declared honored slot rejects this module's revoked-key shape** — key
+   liveness is a phantom type; the model still permits construction of bytes
+   after its revoke marker, while the demonstrated call to the `"live"`-typed
+   slot fails this module's type check.
+6. **The declared per-act void slot accepts only the verdict shape** — the slot
+   takes this module's `ADJUDICATE` variant; the demonstrated key-revocation and
+   mandate-withdrawal values do not satisfy that parameter type.
 
 ## What this is (and is not)
 
-- **Not a runtime implementation.** Nothing here signs, folds, stores, or runs.
-  There is no I/O. Both files are checked, never executed.
-- **A type-level hardening probe.** The single test is `tsc --noEmit`: the files
-  must compile as written, and must **fail to compile** the moment any locked
-  invariant is violated.
+- **Not a runtime implementation.** The configured command type-checks these
+  files without emitting or executing JavaScript. The declared functions have
+  no implementations here.
+- **A local type-shape probe.** The test is `tsc --noEmit`: the files compile as
+  written, and the commented invalid-call examples produce type errors when
+  uncommented under this configuration.
 
 It is the companion to the Python probe in [`../canon-fold-demo`](../canon-fold-demo/),
 and the two test different things:
 
 | Probe | Question | Mechanism |
 | --- | --- | --- |
-| `canon-fold-demo` (Python) | **Semantic sufficiency** — can five event types *express* identity, reputation, governance, disputes, approval, commerce, and delegation? | folds a signed event log into projections across ten scenarios |
-| `canon-ts` (TypeScript) | **Compiler-enforced invariants** — can the canon's rules (closedness; governance is ADJUDICATE-only) be made into things a build *refuses to violate*? | a closed discriminated union + an exhaustive `never` switch, plus a typed verdict slot only an `ADJUDICATE` satisfies |
+| `canon-fold-demo` (Python) | **Bounded scenario coverage** — do the eleven current fixtures use the five current event types? | folds a mock-signed Event log into authored projections |
+| `canon-ts` (TypeScript) | **Fixture-local type checks** — can selected shapes be rejected within this module? | a local discriminated union + exhaustive `never` switch + typed fixture slots |
 
-The Python demo shows the canon is *enough*. This probe shows the canon can be
-made *closed* — that "no sixth event type" graduates from a philosophical claim
-into a rule the type-checker enforces on every build.
+The Python demo shows that its current scenarios did not force a sixth type.
+This probe shows only that this module's union is locally exhaustive and that its
+demonstrated invalid calls fail its configured type check.
 
-## How closedness is enforced
+## Local union checks
 
 1. **A closed union of literals.** `CanonicalType = "KEY" | "ATTEST" | "AUTHORIZE"
    | "CHALLENGE" | "ADJUDICATE"`. The discriminated `Event` union has exactly
    these five members.
-2. **Richness extends by predicate, not by type.** `predicate` and `payload` are
-   open; a brand-new flow is a new predicate *string* on an existing type. The
-   top-level `type` set never grows. `nullifies` is a withdrawal *field*, not a
+2. **Open predicate and payload fields.** `predicate` and `payload` are open in
+   this module; the example adds a predicate *string* on an existing type. The
+   top-level `type` set changes only when this source is edited. `nullifies` is a withdrawal *field*, not a
    revoke type; a mandate/delegation is an `AUTHORIZE` with a wider `scope`.
 3. **An exhaustive `never` switch.** `describe()` handles all five cases; in
    `default`, TypeScript has narrowed the value to `never`. Add a sixth type and
    that value is no longer `never`, so `assertNever()` fails to compile — the
-   compiler forces the new type to be handled or removed.
-4. **A commented-out proof.** `canon.ts` §6 contains a `CAPABILITY` / `DELEGATE`
+   module requires the new type to be handled or removed before this check passes.
+4. **Commented invalid examples.** `canon.ts` §6 contains a `CAPABILITY` / `DELEGATE`
    sixth-type example. As shipped it is commented, so the file compiles.
-   Uncommenting it makes `tsc --noEmit` fail — try it.
+   Uncommenting it makes `tsc --noEmit` report a type error.
 
-## How the governance invariant is enforced
+## Local verdict-slot checks
 
-1. **The verdict type is extracted, not promised.** `GovernanceEvent =
+1. **The verdict type is extracted from this union.** `GovernanceEvent =
    Extract<Event, { type: "ADJUDICATE" }>` resolves to exactly the `ADJUDICATE`
-   variant. Static type assertions (`canon.ts` §7) prove it is *exactly*
-   `AdjudicateEvent` and that no other canonical event qualifies — if that ever
-   drifted, the file would fail to compile.
+   variant. Static type assertions (`canon.ts` §7) check that it equals
+   `AdjudicateEvent` and excludes the other variants in this module.
 2. **A typed verdict slot.** `declare function applyVerdict(current, verdict:
    GovernanceEvent)` is a signature with no body and no emitted code (not a fold —
-   folds live in the Python probe). Its only role is to make the compiler check
-   what may be presented as a verdict.
-3. **A commented-out proof.** `canon.ts` §8 tries to move standing with a
-   `CHALLENGE` and with an `ATTEST`. As shipped both are commented. Uncommenting
+   folds live in the Python probe). Its role is to check the declared parameter.
+3. **Commented invalid examples.** `canon.ts` §8 passes a `CHALLENGE` and an
+   `ATTEST` to that parameter. As shipped both are commented. Uncommenting
    either makes `tsc --noEmit` fail (`ChallengeEvent` / `AttestEvent` is not
    assignable to `AdjudicateEvent`); only the `ADJUDICATE` line compiles.
 
-## How the field-discipline invariant is enforced
+## Local field/type examples
 
-1. **Forbidden pseudo-types are proven non-members.** `canon.ts` §9 asserts that
+1. **Example pseudo-types are checked as non-members.** `canon.ts` §9 asserts that
    `Extract<CanonicalType, "REVOKE" | "KEY_REVOKE" | "DELEGATE" | "CAPABILITY">`
-   resolves to `never` — each tempting "sixth type" is absent from the alphabet.
+   resolves to `never` — each example string is absent from this union.
    Adding any of them to `CanonicalType` makes those assertions fail to compile.
-2. **A commented-out proof.** §9 also shows that a key withdrawal needs no new
+2. **A commented invalid example.** §9 also represents a key withdrawal without a new
    type: it is a `KEY` event with predicate `id.key_revoke` carrying `nullifies`.
    The neighboring `const revokeType: CanonicalType = "REVOKE"` line is commented;
    uncommenting it fails (`"REVOKE"` is not assignable to `CanonicalType`).
 
-## How the custody invariants are enforced
+## Local custody-shaped checks
 
-1. **The tier line is a brand.** `RootKey` carries a `unique symbol` no other
-   code can fabricate, so a `HotKey` cannot occupy a root minting slot
-   (`custody.ts` §1–§2). A hot key cannot exist without a mandate — the tier
-   line *is* the mandate line ([key-custody.md](../../docs/key-custody.md) §3).
+1. **The tier line is represented by a brand.** `RootKey` carries a `unique symbol`,
+   so ordinary typed calls in this module do not pass a `HotKey` to a root slot
+   (`custody.ts` §1–§2). The `HotKey` shape also contains a mandate field. These
+   are compile-time shapes, not evidence of physical key custody.
 2. **Attenuation is structural subtyping.** `redelegate` requires the child
    scope's `category` to be assignable to the parent's, and a parent whose
    scope has `redelegatable: true`. Widening a category, changing it sideways,
-   or re-minting from a surrendered mandate all fail to compile (§3 proofs).
-3. **Key liveness is a phantom type.** `revokeKey` is the only
-   `"live"` → `"revoked"` transition; `honorAct` takes `SignedAct<"live">`
-   only. `signAct` deliberately accepts a revoked key — bytes can always be
-   made; the refusal lands at the honored slot (§4–§5).
-4. **The scalpel slot takes only a verdict.** `voidAct(act, verdict)` reuses
+   or using a parent with `redelegatable: false` produces the displayed type
+   errors (§3 examples).
+3. **Key liveness is a phantom type.** In this declared API, `revokeKey` returns
+   the `"revoked"` shape and `honorAct` takes `SignedAct<"live">`. `signAct`
+   deliberately accepts either shape, so this check does not model prevention
+   of signing (§4–§5).
+4. **The per-act slot takes this module's verdict type.** `voidAct(act, verdict)` reuses
    `GovernanceEvent` from `canon.ts` §7: a `KeyEvent` revocation or an
    `AUTHORIZE` withdrawal in that slot fails to compile (§6–§7).
-5. **An honesty section.** `custody.ts` §8 states what the compiler *cannot*
-   hold: ordered axes (it cannot see that 20000 ≤ 50000 — ceiling arithmetic
-   stays in the signer's trusted base), custody provenance (an in-scope
-   pre-revoke forgery types identically to the honest act — finding I as a
-   type-level fact, reproduced on purpose), and detection latency (the phantom
-   flips where the revocation lands, not where the theft happens).
+5. **Explicit limits.** `custody.ts` §8 states what these types do not check:
+   numeric ceilings and expiry ordering, custody provenance, runtime signature
+   validation, or the delay between compromise and a recorded revocation.
 
 ## Run it
 
@@ -131,24 +128,21 @@ npx -p typescript tsc --noEmit -p examples/canon-ts/tsconfig.json
 Use `npx -p typescript tsc` so npx resolves the official TypeScript compiler
 package (a bare `npx tsc` resolves to an unrelated, squatted `tsc` package).
 
-Expected: **no output, exit 0** (the canon compiles). To see the guarantees bite,
+Expected: **no output, exit 0** (the module passes its configured type check). To
+see the demonstrated type errors,
 uncomment a block in `canon.ts` §6 (closedness — fails on `CanonicalType` or
 `never`), §8 (governance — fails because a `CHALLENGE`/`ATTEST` is not an
 `AdjudicateEvent`), or §9 (field discipline — fails because `"REVOKE"` is not a
-`CanonicalType`) and run again. The custody locks bite the same way: uncomment
+`CanonicalType`) and run again. The custody examples work the same way: uncomment
 a block in `custody.ts` §3 (attenuation — a widened scope or a hot key in the
 root slot), §5 (a post-revoke act in the honored slot), or §7 (a revocation in
 the per-act void slot).
 
-## The point
+## Summary
 
-> philosophical closedness → language-level enforcement
-
-The five types held across every scenario the Python probe could throw at them.
-This probe takes the next step: it makes those findings something a compiler
-defends, so violating them — adding a sixth type, letting a non-verdict move
-governance, minting authority beyond an ancestor's scope, honoring a
-post-revoke act, or unhonoring a single act without an `ADJUDICATE` — can no
-longer happen by accident. It breaks the build. And where the compiler cannot
-defend a custody fact (ceiling arithmetic, custody provenance, detection
-latency), `custody.ts` §8 says so instead of pretending.
+The current five types covered the eleven authored Python scenarios. This probe
+checks a narrower set of invalid calls in one TypeScript module. Editing the
+union or passing the demonstrated wrong shapes requires corresponding source
+changes or breaks this module's type check; it is not runtime or protocol-wide
+conformance enforcement. `custody.ts` §8 lists the numeric, custody, and timing
+checks that this module does not perform.

@@ -4,74 +4,68 @@ ARC temporal fidelity probe — single file, stdlib only.
 
 What this isolates
 ------------------
-Finding M (signer_fidelity_fixture) said: a valid signature proves a key signed;
-it does NOT prove the signer read its mandate faithfully. This probe is M's twin
+Finding M (signer_fidelity_fixture) said that a configured signature check does
+not establish a signer's mandate interpretation. This probe is M's twin
 one layer down — on the EVIDENCE layer rather than the custody/signer layer.
 
-  > A valid signature proves the key signed. It does NOT prove that the stamped
-  > `timestamp` is true.
+  > This fixture's deterministic mock-signature check detects byte changes. It
+  > does not establish key possession or timestamp accuracy.
 
 The timestamp lives inside `signing_bytes`, so it is baked into the event id and
 the signature. That cuts two ways, and the cut is the whole finding:
 
-  * Changing a timestamp AFTER signing changes the id and breaks the signature.
-    ARC catches this — it is post-signature mutation, not a temporal lie.
-  * Stamping a FALSE timestamp BEFORE signing is honestly signed. The signature
-    is genuine over a false value. This is not a forgery; it is an asserted
-    falsehood — exactly finding M's shape, moved from "what the mandate meant"
-    to "when the act happened".
+  * Changing a timestamp AFTER mock-signing changes the id and fails this
+    fixture's deterministic hash check. It is post-signature mutation, not a
+    temporal lie.
+  * Stamping a false timestamp before this fixture's mock-signing still passes
+    its deterministic hash check. That check does not establish clock truth.
 
 Why it matters: `as_of`, revocation, challenge windows, adjudication, and standing
-all stand on `event.timestamp`. A temporal lie sits one layer BENEATH authority and
-fidelity. If the clock can lie, everything folded over it inherits the lie.
+all depend on `event.timestamp`. A false timestamp can therefore affect policies
+that rely on it.
 
-The one structural defence ARC has for free
--------------------------------------------
-ARC never stamps a trusted clock, but it does have the `refs` content-hash DAG.
-You cannot ref an id that does not exist yet — an id is a hash of the event's own
-bytes — so `B refs A` is real, tamper-evident evidence that **B was minted after A**.
-That gives a partial *causal* order over events, independent of any timestamp.
+The dependency signal carried by refs
+-------------------------------------
+`B refs A` places A's exact identifier in B and records a declared dependency or
+prior-knowledge claim. Because an identifier can be computed before A is appended
+or published, the reference alone does not prove append, publication, or wall-clock
+issuance order.
 
-A false timestamp is caught ONLY when it contradicts that causal order:
+A timestamp conflict is reported only when an event's claimed time is earlier
+than the claimed time of a referenced Event. This check does not establish which
+claim is accurate or whether either corresponds to wall-clock order. A false stamp
+that remains compatible with referenced claimed times passes the check.
 
-  * careless backdate — the event refs something NEWER than its claimed time. The
-    ref pins a lower bound the claim violates. CAUGHT by the DAG, no clock needed.
-  * careful backdate  — the event refs only genuinely-older events. Nothing in the
-    DAG contradicts the claim. UNDETECTABLE by ARC vocabulary alone.
-
-So ARC is NOT blind to time — refs give a partial order for free. The finding is
-the GAP between that causal order and the wall clock: temporal fidelity is
-unobservable exactly in the causal gaps, where two events are concurrent (neither
-refs the other) and only an unverifiable timestamp claims to order them.
+Refs let this fixture check timestamp consistency with declared references. When
+neither Event references the other, this reference-only check does not resolve
+their wall-clock order; only their timestamps claim one.
 
 The five readouts
 -----------------
-  1. post-signature mutation — the baseline ARC DOES catch (id/signature break).
-  2. careless backdate       — refs the future; the DAG's lower bound bites.
-  3. careful backdate        — refs only the genuine past; passes every check.
+  1. post-signature mutation — this fixture catches the id/mock-signature mismatch.
+  2. dependency conflict     — claimed time precedes a referenced claimed time.
+  3. careful backdate        — refs compatible identifiers; passes listed checks.
   4. revocation race         — a careful backdate stamped before a revocation it
                                never refs; a claimed-timestamp time-scoped fold
-                               honors an act really minted after withdrawal.
-  5. concurrent -> CONTESTED — the residue: the act and the revocation are causally
-                               concurrent; only the timestamp orders them; drop that
-                               trust and the order — hence the verdict — is CONTESTED.
-                               (finding J's honest-terminal output, on the time axis.)
+                               honors an act the fixture stipulates was created later.
+  5. concurrent -> CONTESTED — neither Event references the other; only the
+                               timestamps claim an order. Without accepting that
+                               order, this fixture's reference-only policy returns
+                               CONTESTED.
 
-Plus the named mitigation and why it is not free:
-  head-anchor oracle — require each event to ref a recent head. That forces the act
-  to descend from the revocation, collapsing the concurrency and catching the lie —
-  but "recent head" is a clock/sequencer the signer must honestly consult: a trust
-  root ARC does not govern (finding M's attested-signer shape). A signer that lies
-  about the head it saw re-opens the gap.
+Configured recent-head source:
+  requiring each event to ref a recent head makes the act descend from the
+  revocation under this authored scenario. The fixture does not validate that
+  source or establish that a signer consulted it.
 
-Deliberately dirty and small. Explicitly:
+Limits:
   * stdlib only, single process, no network, no transport, no storage;
   * signatures are MOCK (a hash, not Ed25519) — the point is the FOLD over the
-    timestamp, not custody. But id and refs hashing are REAL content hashes, so the
-    causal DAG genuinely bites: a careless backdate cannot ref the future for free;
-  * the five canonical types are reused as-is — no new primitive, no stored clock,
+    timestamp, not custody. IDs and refs use deterministic content hashes, so the
+    dependency check flags a timestamp inconsistent with a named reference;
+  * the five current Event types are reused as-is — no new primitive, no stored clock,
     no trusted-timestamp object, no stored "temporal score";
-  * this is a probe, not a protocol spec and not doctrine.
+  * this fixture does not define a protocol specification.
 
 Run:  python3 probe.py
 """
@@ -98,7 +92,7 @@ class Event:
     type: str
     signer: str
     predicate: str
-    timestamp: str                       # the CLAIM. honestly signed, not necessarily true.
+    timestamp: str                       # the claim; mock-signed, not established as true.
     refs: tuple[str, ...] = ()
     nullifies: tuple[str, ...] = ()
     scope: dict[str, Any] | None = None
@@ -115,12 +109,10 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies.
+    """Deterministic fixture hash, not a signature or proof of key possession.
 
-    The signature is a function of (signer, bytes). The bytes include the
-    timestamp, so the signature is honest over WHATEVER time was stamped — true
-    or false. The mock makes finding O free: a real key would sign a false time
-    just as faithfully as a true one.
+    It covers the signer label and timestamp bytes so mutation is detectable.
+    A production security profile must define its own signature suite.
     """
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
@@ -138,11 +130,10 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: id integrity + signature + signer anchored by a KEY.
+    """Fixture replay check: id, deterministic mock signature, key registration.
 
-    Note what verify_log CANNOT see: whether a timestamp is TRUE. Every event
-    below verifies — the signature is honest over whatever time was claimed.
-    A true clock is not a signature property; ARC does not add one.
+    It does not establish timestamp truth, Event-set completeness, or production
+    signature conformance.
     """
     registered: set[str] = set()
     for ev in events:
@@ -150,7 +141,7 @@ def verify_log(events: list[Event]) -> None:
         if ev.id != content_id(body):
             raise ValueError(f"id does not match content on {ev.id} (post-signature mutation)")
         if ev.signature != stub_sign(ev.signer, body):
-            raise ValueError(f"bad signature on {ev.id}")
+            raise ValueError(f"bad mock signature on {ev.id}")
         is_root = ev.type == "KEY" and ev.predicate == "id.key_register"
         if not is_root and ev.signer not in registered:
             raise ValueError(f"signer {ev.signer} not anchored by a KEY register ({ev.id})")
@@ -159,12 +150,12 @@ def verify_log(events: list[Event]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# The causal order — derived ONLY from refs, never from timestamps. This is the
-# evidence the DAG gives for free: B refs A  =>  B was minted after A.
+# Reference closure derived from refs, never from timestamps. B refs A places A's
+# identifier in B; it does not independently prove append or wall-clock order.
 # ---------------------------------------------------------------------------
 
 def causal_ancestors(by_id: dict[str, Event], ev_id: str) -> set[str]:
-    """Transitive closure of refs: everything that must have existed before ev."""
+    """Transitive closure of referenced identifiers known to this Event."""
     seen: set[str] = set()
     stack = list(by_id[ev_id].refs)
     while stack:
@@ -177,9 +168,9 @@ def causal_ancestors(by_id: dict[str, Event], ev_id: str) -> set[str]:
 
 
 def causal_violations(events: list[Event]) -> list[tuple[str, str]]:
-    """A timestamp claim is caught iff it contradicts the DAG: an event must be
-    strictly later than every event it (transitively) refs. Returns the
-    (event, ancestor) pairs where the claim is impossible — the careless backdates."""
+    """Apply this fixture's rule that an Event's claimed time must be strictly
+    later than every Event it transitively refs. Return pairs that violate that
+    declared-reference timestamp rule."""
     by_id = {e.id: e for e in events}
     bad: list[tuple[str, str]] = []
     for e in events:
@@ -190,8 +181,7 @@ def causal_violations(events: list[Event]) -> list[tuple[str, str]]:
 
 
 def concurrent(by_id: dict[str, Event], a_id: str, b_id: str) -> bool:
-    """Causally concurrent: neither is an ancestor of the other. The DAG says
-    nothing about their order; only their timestamps claim to."""
+    """Return True when neither Event is in the other's reference closure."""
     return (a_id not in causal_ancestors(by_id, b_id)
             and b_id not in causal_ancestors(by_id, a_id))
 
@@ -221,32 +211,32 @@ def honoring_by_claimed_act_time(events: list[Event], act_id: str) -> dict:
 
 
 def honoring_by_causality(events: list[Event], act_id: str, rev_id: str) -> dict:
-    """Drop trust in the timestamp; order the act and the revocation by the DAG
-    alone. If the DAG cannot order them, neither can ARC — the verdict is CONTESTED."""
+    """Apply the fixture's reference-only ordering policy. If neither Event is in
+    the other's reference closure, this policy returns CONTESTED."""
     by_id = {e.id: e for e in events}
     if rev_id in causal_ancestors(by_id, act_id):
-        return {"verdict": "DECLINED", "reason": "act causally descends from the revocation"}
+        return {"verdict": "DECLINED", "reason": "act references the revocation transitively"}
     if act_id in causal_ancestors(by_id, rev_id):
-        return {"verdict": "HONORED", "reason": "revocation causally descends from the act"}
+        return {"verdict": "HONORED", "reason": "revocation references the act transitively"}
     return {"verdict": "CONTESTED",
-            "reason": "act and revocation are causally concurrent — the DAG does not "
-                      "order them; only an unverifiable timestamp claims to"}
+            "reason": "neither Event references the other transitively; only their "
+                      "timestamps claim an order"}
 
 
 # ---------------------------------------------------------------------------
 # Participants and ledger. Unlike the other probes, the ledger here lets a party
-# STAMP a chosen time — because lying about the clock is the whole point. The
-# real mint order is tracked separately, for the omniscient strip only.
+# STAMP a chosen time. A private generator stipulation is tracked separately and
+# is never supplied to the observer folds.
 # ---------------------------------------------------------------------------
 
 class Party:
     def __init__(self, ledger: "Ledger", name: str, key: str):
         self.ledger, self.name, self.key = ledger, name, key
 
-    def emit(self, type_: str, predicate: str, *, claim: str, real: str, **kw) -> Event:
+    def emit(self, type_: str, predicate: str, *, claim: str, stipulated: str, **kw) -> Event:
         ev = make(type_, self.key, predicate, claim, **kw)
-        self.ledger.append(ev, real)
-        flag = "" if claim == real else f"   << claims {claim}, REALLY minted {real}"
+        self.ledger.append(ev, stipulated)
+        flag = "" if claim == stipulated else f"   << claims {claim}, generator stipulates {stipulated}"
         print(f"    -> {self.name} {type_} {predicate}  [{ev.id}] @ {claim}{flag}")
         return ev
 
@@ -254,11 +244,11 @@ class Party:
 class Ledger:
     def __init__(self) -> None:
         self.events: list[Event] = []
-        self.real_mint: dict[str, str] = {}   # event id -> true mint time (omniscient)
+        self.stipulated_mint: dict[str, str] = {}  # private fixture input
 
-    def append(self, ev: Event, real: str) -> None:
+    def append(self, ev: Event, stipulated: str) -> None:
         self.events.append(ev)
-        self.real_mint[ev.id] = real
+        self.stipulated_mint[ev.id] = stipulated
 
     def events_by_id(self) -> dict[str, Event]:
         return {e.id: e for e in self.events}
@@ -279,27 +269,27 @@ def run() -> None:
 
     print("\n1. Identity — principal and agent each anchor a key")
     principal.emit("KEY", "id.key_register", claim="2026-06-10T09:50:00Z",
-                   real="2026-06-10T09:50:00Z", payload={"key": principal.key})
+                   stipulated="2026-06-10T09:50:00Z", payload={"key": principal.key})
     agent.emit("KEY", "id.key_register", claim="2026-06-10T09:51:00Z",
-               real="2026-06-10T09:51:00Z", payload={"key": agent.key})
+               stipulated="2026-06-10T09:51:00Z", payload={"key": agent.key})
 
-    print("\n2. Mandate — principal grants the agent a market mandate (real 10:00)")
+    print("\n2. Mandate — principal grants the agent a market mandate (stipulated 10:00)")
     mandate = principal.emit("AUTHORIZE", "consent.mandate", claim="2026-06-10T10:00:00Z",
-                             real="2026-06-10T10:00:00Z", refs=("k:agent",),
+                             stipulated="2026-06-10T10:00:00Z", refs=("k:agent",),
                              scope={"category": "market", "max_total_krw": 30000})
 
-    print("\n3. Revocation — principal revokes the mandate (real 10:05)")
+    print("\n3. Revocation — principal revokes the mandate (stipulated 10:05)")
     say("principal", "the agent's mandate is withdrawn as of now")
     revocation = principal.emit("AUTHORIZE", "consent.withdraw", claim="2026-06-10T10:05:00Z",
-                                real="2026-06-10T10:05:00Z", refs=(mandate.id,),
+                                stipulated="2026-06-10T10:05:00Z", refs=(mandate.id,),
                                 nullifies=(mandate.id,))
 
-    # -- Readout 1: post-signature mutation — the baseline ARC catches ----------
-    print("\n4. Readout 1 — POST-SIGNATURE MUTATION (the lie ARC DOES catch)")
-    honest = make("ATTEST", agent.key, "commerce.receipt", "2026-06-10T10:02:00Z",
+    # -- Readout 1: post-mock-signature mutation --------------------------------
+    print("\n4. Readout 1 — POST-MOCK-SIGNATURE MUTATION")
+    baseline = make("ATTEST", agent.key, "commerce.receipt", "2026-06-10T10:02:00Z",
                   refs=(mandate.id,), payload={"item": "groceries"})
-    tampered = replace(honest, timestamp="2026-06-10T09:30:00Z")   # rewrite the clock, keep id+sig
-    print(f"    minted [{honest.id}] @ {honest.timestamp}, then rewrote its timestamp to "
+    tampered = replace(baseline, timestamp="2026-06-10T09:30:00Z")  # rewrite clock, keep id/sig
+    print(f"    authored [{baseline.id}] @ {baseline.timestamp}, then rewrote its timestamp to "
           f"{tampered.timestamp} keeping the old id/sig")
     try:
         verify_log(led.events + [tampered])
@@ -307,23 +297,23 @@ def run() -> None:
     except ValueError as exc:
         print(f"    verify_log REJECTS it: {exc}")
     print("    Changing a stamped time after signing breaks the content hash. This is the")
-    print("    easy half — and it is the ONLY half a signature defends.")
+    print("    mutation check; it says nothing about the original timestamp's truth.")
 
-    # -- Readout 2: careless backdate — the DAG bites --------------------------
-    print("\n5. Readout 2 — CARELESS BACKDATE (refs the future; the refs DAG bites)")
+    # -- Readout 2: timestamp conflicts with a declared reference ---------------
+    print("\n5. Readout 2 — DEPENDENCY-INCONSISTENT TIMESTAMP")
     careless = agent.emit("ATTEST", "commerce.receipt", claim="2026-06-10T09:55:00Z",
-                          real="2026-06-10T10:06:00Z", refs=(mandate.id,),
+                          stipulated="2026-06-10T10:06:00Z", refs=(mandate.id,),
                           payload={"item": "groceries", "note": "stamped before the mandate it refs"})
     viol = [(e, a) for (e, a) in causal_violations(led.events) if e == careless.id]
     for e, a in viol:
         print(f"    causal check: {e} claims {careless.timestamp} but refs {a} "
-              f"(@ {led.events_by_id()[a].timestamp}) — impossible, an event is later than what it refs")
-    print("    The ref pins a lower bound the claim violates. No clock was needed to catch it.")
+              f"(@ {led.events_by_id()[a].timestamp}) — inconsistent with this dependency policy")
+    print("    The named reference and the two claimed timestamps conflict under this check.")
 
     # -- Readout 3: careful backdate — undetectable ----------------------------
-    print("\n6. Readout 3 — CAREFUL BACKDATE (refs only the genuine past; nothing bites)")
+    print("\n6. Readout 3 — DEPENDENCY-COMPATIBLE FALSE STAMP (fixture stipulation)")
     careful = agent.emit("AUTHORIZE", "consent.execute", claim="2026-06-10T10:01:00Z",
-                         real="2026-06-10T10:06:00Z", refs=(mandate.id,),
+                         stipulated="2026-06-10T10:06:00Z", refs=(mandate.id,),
                          scope={"total_krw": 20000, "category": "market"},
                          payload={"item": "groceries"})
     cv = [(e, a) for (e, a) in causal_violations(led.events) if e == careful.id]
@@ -331,57 +321,54 @@ def run() -> None:
     print(f"    It claims 10:01 (after the mandate it refs @ 10:00) and refs nothing newer.")
     print(f"    verify_log: ", end="")
     verify_log(led.events)
-    print("passes. Every structural check is green. The clock is a lie and ARC cannot see it.")
+    print("passes the listed fixture checks; none establishes the timestamp's truth.")
 
     # -- Readout 4: revocation race --------------------------------------------
-    print("\n7. Readout 4 — REVOCATION RACE (the careful backdate beats a real revocation)")
-    say("agent", "I really act at 10:06 — AFTER the 10:05 revocation — but I stamp 10:01")
+    print("\n7. Readout 4 — REVOCATION ORDERING (generator stipulates act at 10:06)")
+    say("agent", "fixture stipulation: create at 10:06, stamp 10:01")
     claimed_time_fold = honoring_by_claimed_act_time(led.events, careful.id)
     print(f"    claimed-timestamp time-scoped fold: {claimed_time_fold['verdict']}  "
           f"({claimed_time_fold['reason']})")
-    print(f"    The revocation @ 10:05 is real, but the act never refs it and claims 10:01,")
-    print(f"    so this full-log policy honors an act really minted after withdrawal.")
-    print(f"    The careful backdate wins the race, and ARC's vocabulary cannot call it.")
+    print("    The withdrawal record claims 10:05; the act never refs it and claims 10:01,")
+    print("    so this policy honors the act despite the generator's later-time stipulation.")
 
-    # -- Readout 5: the residue — concurrent -> CONTESTED ----------------------
-    print("\n8. Readout 5 — CONCURRENT -> CONTESTED (the residue beneath the race)")
+    # -- Readout 5: concurrent -> CONTESTED ------------------------------------
+    print("\n8. Readout 5 — CONCURRENT -> CONTESTED")
     by_id = led.events_by_id()
-    print(f"    Are the act [{careful.id}] and the revocation [{revocation.id}] causally ordered?")
+    print(f"    Does either Event reference the other [{careful.id}] / [{revocation.id}]?")
     print(f"      act refs:        {careful.refs}")
     print(f"      revocation refs: {revocation.refs}")
     print(f"      concurrent? {concurrent(by_id, careful.id, revocation.id)} "
           f"(both ref the mandate; neither refs the other)")
     c_fold = honoring_by_causality(led.events, careful.id, revocation.id)
-    print(f"    order-by-causality fold: {c_fold['verdict']}  ({c_fold['reason']})")
-    print("    The revocation race is THIS residue with money on it: the only thing that")
-    print("    ordered the act before the revocation was a timestamp no one can verify.")
-    print("    Remove that trust and the honest terminal output is CONTESTED — finding J's")
-    print("    irreducible disagreement, now on the TIME axis. Representable, not resolvable.")
+    print(f"    reference-only fold: {c_fold['verdict']}  ({c_fold['reason']})")
+    print("    The only supplied field ordering the act before the revocation is its")
+    print("    claimed timestamp; the supplied reference graph does not order them.")
+    print("    Without a policy accepting the timestamp order, this reference-only fold")
+    print("    returns CONTESTED.")
 
     # -- The mitigation, and its price -----------------------------------------
-    print("\n9. Mitigation — HEAD-ANCHOR ORACLE (closes the race; imports a trust root)")
-    head_at_real_mint = revocation.id   # at real 10:06 the head is the 10:05 revocation
-    anchored = head_at_real_mint in (careful.refs)
+    print("\n9. Configured recent-head source")
+    head_at_stipulated_mint = revocation.id
+    anchored = head_at_stipulated_mint in careful.refs
     print(f"    A head-anchor rule requires each event to ref a recent head.")
-    print(f"    At the act's REAL mint time (10:06) the head is the revocation [{revocation.id}].")
+    print(f"    Under the generator's 10:06 stipulation, the configured head is [{revocation.id}].")
     print(f"    Does the careful backdate ref it? {anchored}.")
-    print(f"    Honest compliance would force the act to ref the revocation -> the revocation")
-    print(f"    becomes a causal ancestor -> claim 10:01 < 10:05 fails the causal check -> CAUGHT.")
-    print(f"    But 'the recent head' is a clock/sequencer the signer must consult HONESTLY.")
-    print(f"    That is a trust root ARC does not govern (finding M's attested-signer shape):")
-    print(f"    a signer that lies about the head it saw re-opens the very gap it was to close.")
+    print(f"    A signer using that source would ref the revocation -> the revocation")
+    print(f"    enters the act's reference closure -> claim 10:01 < 10:05 fails this check -> CAUGHT.")
+    print(f"    This fixture does not validate the recent-head source or establish that the")
+    print(f"    signer consulted it.")
 
-    print(f"\nGenerated log: {len(led.events)} signed events. verify_log passes "
-          f"(every timestamp, true or false, is honestly signed).")
+    print(f"\nGenerated log: {len(led.events)} mock-signed fixture Events; the listed replay checks pass.")
     verify_log(led.events)
 
-    print("\n--- omniscient view — available to NO observer (folds never read this) ---")
+    print("\n--- generator-only time stipulations (observer folds do not receive these) ---")
     for ev in led.events:
-        claim, real = ev.timestamp, led.real_mint[ev.id]
-        mark = "  <-- BACKDATED" if claim != real else ""
-        print(f"    [{ev.id}] {ev.predicate:<18} claims {claim}  | real {real}{mark}")
-    print("    The log carries the claimed times. It does NOT carry the real ones.")
-    print("    The refs DAG bounds them only partially; in the gaps, the clock is unverifiable.")
+        claim, stipulated = ev.timestamp, led.stipulated_mint[ev.id]
+        mark = "  <-- differs" if claim != stipulated else ""
+        print(f"    [{ev.id}] {ev.predicate:<18} claims {claim}  | stipulated {stipulated}{mark}")
+    print("    The Event set carries the claimed times, not the generator stipulations.")
+    print("    The supplied reference graph constrains only some claimed-time comparisons.")
 
     print_finding()
 
@@ -390,45 +377,38 @@ def print_finding() -> None:
     print("""
 What this probe exposes
 -----------------------
-  * Can ARC detect a false timestamp on a genuine signature?
-      In general, NO. The timestamp is inside signing_bytes, so a key signs a false
-      time as honestly as a true one. A signature proves the key signed; it does not
-      prove the clock. (Twin of finding M, on the evidence layer.)
-  * What CAN ARC detect about time?
+  * Can this fixture establish timestamp truth from its mock signature?
+      No. The deterministic hash covers the timestamp bytes and detects mutation;
+      it does not authenticate a key or establish a clock.
+  * What does this fixture check?
       - post-signature mutation: rewriting a stamped time breaks the content hash;
-      - careless backdate: an event that refs something newer than its claimed time
-        contradicts the refs DAG's causal lower bound;
-      - the after-the-fact record: revocations, nullifications, and conflicting later
-        attestations are themselves events, and the DAG dates them relative to refs.
-      So ARC is not blind to time — the refs DAG gives a partial causal order for free.
-  * What CAN ARC NOT detect?
-      - whether the signer honestly observed the claimed time;
+      - dependency conflict: an event whose claimed time precedes the claimed time
+        of a referenced record conflicts under this policy;
+      - revocations, nullifications, and conflicting attestations remain separate
+        Events whose declared dependencies and claimed timestamps can be compared.
+      Refs therefore support dependency-consistency checks over supplied records.
+  * What does this fixture not establish?
+      - whether the signer accurately observed the claimed time;
       - whether `as_of` corresponds to real-world time;
-      - a CAREFUL backdate: an event stamped false but refs only the genuine past.
-        It passes verify_log and the causal check, and a claimed-timestamp
-        time-scoped fold will honor an act really minted after withdrawal.
-  * Where exactly is the lie unobservable?
-      In the causal GAPS. For concurrent events — neither refs the other — the DAG
-      gives no order; only the timestamp claims one. Drop trust in the timestamp and
-      the order is genuinely CONTESTED. The revocation race is that residue with
-      stakes: the act and the revocation are concurrent, and only an unverifiable
+      - a dependency-compatible false stamp, as stipulated by this generator.
+        It passes verify_log and the reference check, and a claimed-timestamp
+        time-scoped fold honors the act despite the generator's later-time stipulation.
+  * When does the supplied reference graph leave order unresolved?
+      When neither Event refs the other, the graph gives no order; only the
+      timestamps claim one. Without accepting that timestamp order, this
+      reference-only policy returns CONTESTED. In the revocation case, the act
+      and the revocation are concurrent, and only the claimed
       stamp put the act "before" the revocation.
-  * Does the mitigation close it?
-      Head-anchoring (ref a recent head) collapses the concurrency and catches the
-      careful backdate — but it relocates trust to a head-oracle / sequencer / clock,
-      a root ARC does not govern (finding M's attested-signer move). It does not make
-      the timestamp true; it imports something that asserts it.
+  * What changes with a configured recent-head source?
+      Requiring a recent-head reference orders these authored records, but the
+      fixture does not validate that source or establish that a signer used it.
 
-Conclusion: ARC can PRESERVE a temporal claim — bind it into the signature, bound it
-partially with the refs DAG — but it cannot make the claim TRUE. Real-world time
-enters ARC the way the external world always does: as an ATTEST claim, true only as
-far as a witness, receipt, trusted clock, or policy-specific adjudication carries it.
-Temporal fidelity, like signer fidelity, is a property of the world the log cannot
-seal — the signature seals the record, never its referent.
+Conclusion: an Event can record a temporal claim under a declared security
+profile, and refs can express dependencies among named records. Neither mechanism
+alone establishes wall-clock issuance order or timestamp truth.
 
-No sixth type was required. No stored clock, no trusted-timestamp object, no temporal
-score. The gap is a fold-policy residue between causal order and wall-clock order.
-This is a probe, not a protocol spec and not doctrine.
+These authored scenarios use the current Event types and store no clock object or
+temporal score. They leave wall-clock accuracy outside the dependency check.
 """)
 
 

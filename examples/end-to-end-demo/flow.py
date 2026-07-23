@@ -5,13 +5,14 @@ ARC end-to-end flow demo — single file, stdlib only.
 Purpose
 -------
 The other probe (`examples/canon-fold-demo`) folds a *hand-built* event log to
-test whether the five canonical types are sufficient. This probe asks the
-complementary question: does a real interaction actually *produce* such a log?
+test whether the current five types cover its authored scenarios. This probe asks
+the complementary question: does this executed fixture produce the expected log?
 
-So here the log is **generated**, not authored. Four participants — a human, a
-consumer agent acting under that human, a merchant agent, and a community —
-exchange messages and each emits its own signed events. Nothing in the final
-log is written by hand; every event falls out of the flow:
+Here the log is generated at runtime from a hand-authored script. Four fixture
+participants — a human-labeled participant, a consumer agent, a merchant agent,
+and a community —
+exchange scripted messages and each emits its own mock-signed Events. The final
+records are programmatically emitted by the authored flow:
 
     human  <->  consumer-agent  <->  merchant-agent
       |                                    |
@@ -24,16 +25,16 @@ show that governance moves by *adding events*, never by mutating stored state
 (authority-and-conflict.md): a dispute alone does not change commons standing;
 only an ADJUDICATE does.
 
-Deliberately dirty and small. Explicitly:
+This is a small fixture with the following limits:
   * stdlib only, single process, no network, no transport layer;
   * signatures are MOCK (a hash, not Ed25519);
-  * payment is MOCK (ARC never moves money — a payment enters only as an
+  * payment is MOCK (this fixture moves no money — a payment enters only as an
     ATTEST claim about an external transfer, event-registry.md §8);
   * no new event type — the five canonical types are reused as-is;
   * messages between agents are transport and are NOT stored events; only the
     canonical events are.
 
-This shows the canonical events *compose into a real flow*. It is not an
+This shows the current Event types compose in one executed fixture. It is not an
 implementation of ARC.
 
 Run:  python3 flow.py
@@ -75,7 +76,7 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies."""
+    """MOCK. This fixture uses a deterministic hash for reproducible replay, not production security; ARC has no selected normative signature suite, so implementations and named profiles select and declare their suite."""
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
 
@@ -91,12 +92,14 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: check each signature and that the signer was
-    anchored by a prior KEY register (object-model.md §5)."""
+    """Fixture replay check: mock signature and prior key registration.
+
+    This is not production signature verification or a completeness check.
+    """
     registered: set[str] = set()
     for ev in events:
         if ev.signature != stub_sign(ev.signer, ev.signing_bytes()):
-            raise ValueError(f"bad signature on {ev.id}")
+            raise ValueError(f"bad mock signature on {ev.id}")
         is_root = ev.type == "KEY" and ev.predicate == "id.key_register"
         if not is_root and ev.signer not in registered:
             raise ValueError(f"signer {ev.signer} not anchored by a KEY register ({ev.id})")
@@ -105,17 +108,17 @@ def verify_log(events: list[Event]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# The projection that will be recomputed — same semantics as canon-fold-demo.
+# The projection that will be recomputed.
 # ---------------------------------------------------------------------------
 
 def project_merchant_standing(events: list[Event], merchant: str, context: str) -> dict:
     """Fold -> a context-scoped standing view. Two separated parts:
-      * advisory   — a risk signal from outcome/dispute events; may raise
-                     friction, may NOT punish.
+      * advisory   — a fixture label derived from outcome/dispute events; this
+                     fold takes no action.
       * governance — commons standing, changed ONLY by ADJUDICATE.
-    Same shape as canon-fold-demo's standing fold, plus dispute resolution: a
-    dispute counts as open until an ADJUDICATE references it. Recomputed on
-    demand; nothing here is stored."""
+    It uses the same governance/advisory separation as canon-fold-demo, plus
+    dispute resolution: a dispute counts as open until an ADJUDICATE references
+    it. Recomputed on demand; nothing here is stored."""
     outcomes = [
         e for e in events
         if e.type == "ATTEST" and e.predicate == "rep.outcome"
@@ -131,11 +134,11 @@ def project_merchant_standing(events: list[Event], merchant: str, context: str) 
     )
     distinct_raters = len({e.signer for e in outcomes})
 
-    advisory = "trusted" if positive >= 3 and disputes == 0 else \
+    advisory = "higher_fixture_signal" if positive >= 3 and disputes == 0 else \
                "limited" if positive >= 1 and negative + disputes <= 2 else \
                "unproven"
     if distinct_raters < 2:
-        advisory = "unproven"  # too few independent counterparties to rely on
+        advisory = "unproven"  # too few distinct signer labels for the higher signal
 
     governance = "in_good_standing"
     for e in sorted((e for e in events
@@ -148,7 +151,7 @@ def project_merchant_standing(events: list[Event], merchant: str, context: str) 
 
     return {
         "advisory_signal": advisory,        # computed risk signal, not a verdict
-        "governance_standing": governance,   # commons fact, ADJUDICATE-only
+        "governance_standing": governance,   # named ADJUDICATE-only fixture reading
         "open_disputes": disputes,
         "positive_outcomes": positive,
         "negative_outcomes": negative,
@@ -217,15 +220,15 @@ def run() -> Ledger:
     for p in (community, human, consumer, merchant):
         p.emit("KEY", "id.key_register", payload={"key": p.key})
 
-    print("\n2. Offer — the merchant agent publishes a signed offer")
+    print("\n2. Offer — the merchant agent publishes a mock-signed offer record")
     say("merchant-agent", "gimbap set, 8000 KRW, valid 30 min")
     offer = merchant.emit("ATTEST", "commerce.offer",
                           payload={"item": "gimbap_set", "price_krw": 8000,
                                    "context": CONTEXT, "expires": "2026-06-08T10:40:00Z"})
 
-    print("\n3. Approval — the consumer agent CANNOT approve; it asks the human")
+    print("\n3. Approval — the script routes approval through the human-labeled participant")
     say("consumer-agent", "found a matching offer; presenting it for approval")
-    say("human", "reviews terms... approves")  # the hard gate; no auto-execution
+    say("human", "fixture emits the approval record")  # not an interactive human ceremony
     approval = human.emit("AUTHORIZE", "consent.approval", refs=(offer.id, MERCHANT),
                           scope={"max_total_krw": 8000, "context": CONTEXT})
 
@@ -257,8 +260,9 @@ def run() -> Ledger:
 
     snapshot(led, "after adjudication (governance now moved — by an added event)")
 
-    print(f"\nGenerated log: {len(led.events)} signed events, none hand-written.")
-    print("verify_log passed at every recompute; the projection is never stored.")
+    print(f"\nGenerated log: {len(led.events)} mock-signed fixture Events.")
+    print("verify_log's mock-signature/key-registration checks passed at every recompute;")
+    print("the Projection is not persisted by this fixture.")
     return led  # so a reader (e.g. the reference-client viewer) can reuse the log
 
 

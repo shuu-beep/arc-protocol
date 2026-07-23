@@ -2,16 +2,12 @@
   <img src="assets/arc-wordmark.svg" width="380" alt="ARC Protocol">
 </h1>
 
-> **Any agent. Any model. Any company.**
-> **Human approval required.**
-
-> An open, implementation-neutral AI agent protocol for agent authorization:
-> human-approved delegation, portable authority, and recomputable audit of
-> signed evidence, with human-in-the-loop approval at consequential boundaries.
-> Its scope for verifiable agent actions is the authorization record: signed
-> evidence can show which authorization covered the act and which key signed,
-> not prove execution or real-world outcomes. Agentic commerce is its first
-> implementation, not its definition.
+> ARC is an implementation-neutral authority protocol for recording the source,
+> scope, delegation, approval, revocation, contest, and adjudication of authority
+> over consequential actions. It operates over disclosed signed evidence and
+> supports recomputation for bounded audit; its records do not prove real-world
+> outcomes. Commerce is its flagship application and first implementation profile,
+> not the protocol boundary.
 
 ---
 
@@ -21,8 +17,8 @@
 3. [Protocol Foundations](#3-protocol-foundations) ·
 4. [Authority & Delegation](#4-authority--delegation) ·
 5. [Event & Projection](#5-event--projection) ·
-6. [Reference Implementation](#6-reference-implementation) ·
-7. [First Implementation: Commerce](#7-first-implementation-commerce) ·
+6. [Executable Reference Corpus](#6-executable-reference-corpus) ·
+7. [Flagship Application: Commerce](#7-flagship-application-commerce) ·
 8. [Adoption & First Refusal](#8-adoption--first-refusal) ·
 9. [Protocol Boundaries](#9-protocol-boundaries) ·
 10. [Current Status](#10-current-status) · 11. [Roadmap](#11-roadmap) ·
@@ -49,36 +45,38 @@ python3 run_demos.py refusal  # e.g. the refusal-recording fold (§8)
 ```
 
 Each probe is a single stdlib-only Python file next to its own README under
-[`examples/`](examples/); [§6](#6-reference-implementation) maps the catalog.
+[`examples/`](examples/); [§6](#6-executable-reference-corpus) maps the catalog.
 
 ---
 
 ## 1. What ARC Is
 
-ARC is the open layer that decides **who may act, who may approve, and how those
-actions are audited** — kept open so that no single operator owns the trust. It
-is not another agent; it is the common layer heterogeneous agents share to be
-delegated authority, act under human approval, have that authority revoked, and
-leave an auditable trail.
+ARC defines authority semantics for **who may act, who may approve, and how
+disclosed signed evidence is audited**. It is not another agent; it is a protocol
+model that heterogeneous agents and implementations can use to delegate authority,
+act under human-authored coverage, revoke that authority, and leave signed records
+for bounded audit.
 
-Three pillars, one each:
+Core semantics:
 
-- **Human-approved delegation** — agents negotiate and prepare; the human holds
-  the final signed step. Delegation is scoped, attenuating, and never
-  self-widening.
-- **Portable authority** — authority routes between agents and across
-  communities without being minted by any single operator. *Routed, not minted,
-  and never forced*: a community may honor another's authority or decline it.
-- **Recomputable audit** — only signed events are stored; trust, reputation, and
-  standing are recomputed from them on demand, never saved as a score.
+- **Human-rooted delegation** — every consequential act needs **Current
+  Coverage** from a human-authored `AUTHORIZE`: either the unchanged exact act or
+  a valid scoped mandate. Delegation attenuates and never self-widens.
+- **Portable authority records** — scoped authority can be represented across
+  agent-to-agent delegation chains. Interpretation across implementations requires
+  compatible named profiles. A recipient remains free to honor or decline
+  authority from another context.
+- **Named Projection recomputation** — signed Events are folded by a named
+  Projection over identified evidence and declared policy/ordering inputs. Derived standing is
+  recomputed on demand, never saved as an authoritative score.
 
 ### Stance
 
-ARC does not decide legitimacy. Legitimacy is a relation between an observer's
-policy and the log — observers legitimately disagree, and ARC renders the
-disagreement rather than resolving it. What a log cannot prove — legitimacy,
-and interpretive, temporal, world, and presentation fidelity — ARC leaves
-visible rather than hidden.
+ARC does not decide legitimacy. Named Projections can expose policy-relative
+differences when the relevant evidence and declared inputs are available. ARC
+does not guarantee that a deployment discloses every difference, and a log does
+not by itself prove legitimacy or interpretive, temporal, world, or presentation
+fidelity.
 
 ---
 
@@ -90,108 +88,122 @@ To clear the most common first-read misunderstandings:
 - **Not an agent framework or runtime.** It does not orchestrate or execute
   agents; it is the authority-and-audit layer they can share.
 - **Not a marketplace.** It hosts no listings and ranks no merchants; discovery
-  is a replaceable, disclosed component, not the protocol.
+  is an application/profile component, not the protocol.
 - **Not a payment network.** It initiates no payment and settles nothing;
   an ARC-compatible commerce flow hands off to external payment or settlement
-  systems only after the required human authorization.
+  systems only when the action has Current Coverage.
 
 ---
 
 ## 3. Protocol Foundations
 
-Everything in ARC folds back to a small, **closed** set of ideas. This is the
-map; sections 4 and 5 are the detail.
+ARC's current model uses an Event/Projection split and a closed Event vocabulary.
+Sections 4 and 5 provide the detail.
 
-- **Event** — the only stored, signed, verifiable unit. The set is closed: five
+- **Event** — the only canonical stored, signed record unit. The current set is
+  closed: five
   types — `KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE` — plus a
   `nullifies` field.
-- **Projection** — a deterministic fold over the event log, recomputed on
-  demand and then discarded. Trust, reputation, standing, identity status, and
-  current authority-state are all projections, never records.
+- **Projection** — a named deterministic fold over an identified Event set with
+  declared version, policy, and ordering/as-of inputs. Trust, reputation,
+  standing, identity status, and current authority-state are derived
+  Projections, not canonical records; any cache is non-authoritative.
 
-The recurring result across every probe (§6) is that what leaks out of the five
-types is always **policy or discipline, never a new primitive**: no scenario has
-forced a sixth event type. Not storing the relationship is the structural
-defense against becoming a social-credit database — there is no stored score,
-profile, or status anywhere, because there is nothing stored but signed events.
+Across the current probe corpus (§6), no scenario has forced a sixth Event type;
+that is evidence for the present closed vocabulary, not a claim of permanent
+sufficiency. ARC does not define a global score, profile, Relationship, or
+status as authoritative protocol state. Derived views and any caches are
+implementation artifacts; this boundary does not prevent a deployment from
+performing separate profiling.
 
 ---
 
 ## 4. Authority & Delegation
 
-- **Human approval is a hard constraint, not a feature.** Nothing meaningful
-  happens without a human's final signed step.
+- **Current Coverage requirement.** A consequential act needs Current Coverage
+  from an act-specific authorization for its unchanged target or from an
+  unexpired, unrevoked scoped mandate.
 - **Delegation is explicit and scoped.** Authority is granted as an `AUTHORIZE`
   event carrying a `scope`. It attenuates as it passes along — a delegate can
   never widen its own mandate, only narrow it — and authority moves between
   agents without moving key material.
-- **A mandate is exactly what an agent may sign without re-asking.** In-scope
-  proposals can be auto-signed; out-of-scope proposals **escalate to a human**
-  rather than executing.
+- **A mandate bounds what an implementation may sign without re-asking.** The
+  executable corpus demonstrates one fail-closed policy: in-scope proposals are
+  signed and unsupported or out-of-scope proposals escalate to a human.
 - **Revocation uses `nullifies`.** It bounds future authority; the past stays
   auditable, not rewritten. Whether a current reader continues to honor an act
   that already *completed* under a now-revoked delegation is a fold-policy
-  choice, made visible.
-- **No single authority of last resort.** Humans rule their own action and risk;
-  communities rule the commons. Authority is **routed, not minted**: a
-  federation bridge can route another community's authority, but each community
-  decides whether to honor it — recognition is never forced, and an honest
-  terminal answer may simply be `CONTESTED`.
+  choice that must be declared for a recomputability claim.
+- **Authority domains remain distinct.** Authority should originate from the
+  party legitimately responsible for the action and its risk. In the current ARC
+  authority profiles, that root is typically human. Community authority is
+  limited to its declared commons and authority profile. Where deployments exchange authority evidence,
+  each recipient decides whether to honor it. Federation is optional, and an
+  applicable no-precedence policy may return `CONTESTED`.
 
-The current authority-state of any agent is a projection over these events,
-never a stored permission record.
+The current authority-state of any agent is a Projection over these Events, not
+an authoritative permission record; any cache is an implementation artifact.
+
+Quorum member participation remains **OPEN** between `ATTEST` and `AUTHORIZE`.
+Deterministic mandate interpretation and atomic cumulative consumption are both
+required before interoperability claims; no mechanism is selected here. See
+[Event Registry §10](docs/event-registry.md#10-known-tensions-and-open-questions)
+and [Delegation & Spending Mandates §10](docs/delegation-and-spending-mandates.md#10-open-questions).
 
 ---
 
 ## 5. Event & Projection
 
 <p align="center">
-  <img src="assets/arc-canon-flow.svg" width="880" alt="The ARC Canon: KEY, ATTEST, AUTHORIZE, CHALLENGE, and ADJUDICATE as a flow with human approval (AUTHORIZE) at the center. Only signed events are stored; trust, reputation, and standing are projections recomputed on demand.">
+  <img src="assets/arc-canon-flow.svg" width="880" alt="The ARC Canon: KEY, ATTEST, AUTHORIZE, CHALLENGE, and ADJUDICATE as canonical records, with trust, reputation, and standing represented as derived, recomputable Projections.">
 </p>
 
 > *Example (commerce): offer → `ATTEST`, approval → `AUTHORIZE`, dispute →
 > `CHALLENGE`, ruling → `ADJUDICATE`.*
 
-ARC stores only signed **Events**. Trust, reputation, standing, and identity
-status are **Projections** — deterministic folds recomputed on demand over the
-event log, then discarded.
+ARC defines signed **Events** as its canonical records. Trust, reputation,
+standing, and identity status are **Projections** — named deterministic folds
+over identified Event sets. An implementation may cache a result, but the cache
+does not become authoritative protocol state.
 
-This is the recomputable-audit pillar: any party holding the same log, running
-the same projection function, and folding under the same policy parameters
-(an observer's honors, a revocation reading) recomputes the same result — so a
-surface is never an authority's private claim; it is a fold anyone can re-run
-and check. When two honest readers disagree, the disagreement itself is
-checkable: different events, a different fold, or a different policy — never
-mystery state.
+ARC makes disclosed evidence recomputable; it does not make undisclosed evidence
+observable or prove that a disclosed Event set is complete. An observer can
+verify only the properties supported by the Events, Projection identity/version,
+policy and ordering inputs, and completeness evidence available to that observer.
+**External Record Verification**, an **Independently Recomputable Result**, and a
+**Publicly Recomputable Result** are separate claims; public availability is not
+required by ARC. See [Object Model §5](docs/object-model.md#5-scoped-replay-and-recomputability).
 
-What it does **not** buy is referent-truth. A valid signature proves a key
-signed a record; it does not prove the record's referent is true. ARC names four
-faces of that one wall and leaves each visible rather than hidden:
+What it does **not** buy is referent-truth. Under a declared security profile, a
+valid signature supports the conclusion that a key signed the covered bytes; it
+does not establish the key controller, covering authority, or the record's
+referent as true. ARC documents four related boundaries:
 
-- **Interpretation** — a valid signature does not prove the signer faithfully
+- **Interpretation** — record verification does not prove the signer faithfully
   read what they signed.
-- **Time** — a signed timestamp proves a key stamped it, not that the time is
-  true; the `refs` DAG gives a partial causal order for free, but not wall-clock
-  truth.
-- **World** — a signed `fulfillment` is detectable when contested, but its truth
-  is not recoverable from the log; finality is not fidelity.
+- **Time** — a signed timestamp records a key's time claim, not authoritative
+  wall-clock time; `refs` express declared content dependencies but do not prove
+  wall-clock issuance order.
+- **World** — contradictory `fulfillment` claims may be detectable when the
+  relevant records are disclosed, but their truth is not recoverable from the
+  log; finality is not fidelity.
 - **Presentation** — a deterministic render is not a faithful one; the bytes
   signed may not be the view shown.
 
 ---
 
-## 6. Reference Implementation
+## 6. Executable Reference Corpus
 
-These are not only claims on paper. A body of small, dependency-light executable
-probes tests them — each a single-purpose slice, not a product. One command runs
+The repository includes small, dependency-light executable probes — each a
+single-purpose slice, not a product. One command runs
 the whole catalog — `python3 run_demos.py` ([Quick Start](#quick-start)).
 
 ```txt
-Current Reference Implementation
-✔ a dozen-plus runnable examples (canonical types, custody, federation, fidelity)
+Executable Reference Corpus
+✔ runnable examples (canonical types, custody, federation, fidelity)
 ✔ 8-run commerce failure catalog  [A]–[H]   (examples/local-commerce-demo)
 ✔ browser reference client — 7 authority/approval surfaces (examples/reference-client)
-✔ authority, revocation & custody experiments on real Ed25519
+✔ selected authority, revocation & custody fixtures use illustrative Ed25519
 ✔ adoption / refusal experiments — the refusal-recording fold
 ```
 
@@ -201,67 +213,67 @@ A representative few:
   hand-built log (governed disputes, key rotation and revocation, conflicting
   and delegated authority). The five event types held: no scenario forced a
   sixth.
-- [`examples/canon-ts`](examples/canon-ts/) — encodes the five types as a
-  TypeScript discriminated union so the **compiler itself** rejects a sixth
-  type, a non-`ADJUDICATE` verdict, an over-scope hot key, and a honored
-  post-revoke act.
+- [`examples/canon-ts`](examples/canon-ts/) — encodes the five types and selected
+  structural constraints as TypeScript types with negative compile cases. These
+  checks do not enforce runtime authority, custody, or revocation semantics.
 - [`examples/end-to-end-demo`](examples/end-to-end-demo/) — four parties each
-  sign their own events; standing moves only when an `ADJUDICATE` is added,
-  never by mutating stored state. Its `agent_flow.py` hands the consumer side to
-  a real reasoning model when configured (verified once on `claude-opus-4-8`):
-  the agent's *reasoning* never widens its *authority*.
-- [`examples/reference-client`](examples/reference-client/) — renders the log as
-  the surfaces a human actually sees, plus a mandate-routed write path (in-scope
-  auto-signs, out-of-scope escalates). Bands probe cold-start legitimacy, key
-  compromise on real Ed25519, federation, and the custody seam.
+  emit their own mock-signed Events; the fixture's standing view changes when an
+  `ADJUDICATE` is added rather than by mutating stored state. Its `agent_flow.py`
+  can call a configured external reasoner; the default path is scripted. The
+  fixture does not establish real human approval.
+- [`examples/reference-client`](examples/reference-client/) — renders fixture UI
+  surfaces over supplied logs, plus a mandate-routed write path under its named
+  policy. Bands probe cold-start policy, key compromise on Ed25519 fixtures,
+  federation, and the custody seam.
 - [`examples/refusal-recording-demo`](examples/refusal-recording-demo/) — folds
-  refusal records into a falsification surface: candidate adoption mechanisms
-  are contradicted or named as gaps, never validated (§8).
+  synthetic refusal records into a comparison surface against declared candidate
+  mechanisms. It does not empirically falsify or validate those mechanisms (§8).
 
-The deepest edges stay open and visible, not hidden: a valid signature proves a
-key signed, not that custody was sound, that the signer read its mandate
-faithfully, or that the time it stamps is true (§5).
+The corpus documents unresolved custody, signer-interpretation, and timestamp
+boundaries. Whether a deployment exposes the relevant evidence and policy inputs
+depends on its observer surface (§5).
 
 ---
 
-## 7. First Implementation: Commerce
+## 7. Flagship Application: Commerce
 
 Commerce is the problem that birthed ARC and remains its most developed
 application — but it is an **implementation of the protocol, not the protocol.**
 
-- Commerce is ARC's first reference implementation.
-- It demonstrates the protocol; it does not define it.
-- The same primitives apply beyond commerce — community governance, licensing,
-  and auditable research coordination among them.
+- Commerce is ARC's first implementation profile and flagship application.
+- It exercises the protocol model in one application; it does not define it.
+- Possible future profiles could test the same Event vocabulary in domains such
+  as community governance, licensing, or auditable research coordination.
 
-A human-approved purchase folds to exactly the §3–§5 primitives: a merchant's
-signed offer is an `ATTEST`, the human's approval an `AUTHORIZE`, a dispute a
-`CHALLENGE`, a community ruling an `ADJUDICATE`; reputation and transaction state
-are projections, never stored scores. The runnable slice and its failure catalog
+A Commerce fixture maps a merchant's signed offer to `ATTEST`, human-granted
+authority to `AUTHORIZE`, a dispute to `CHALLENGE`, and a community ruling to
+`ADJUDICATE`; reputation and transaction state are derived Projections, not
+canonical records. The runnable slice and its failure catalog
 live in [`examples/local-commerce-demo`](examples/local-commerce-demo/).
 
 ---
 
 ## 8. Adoption & First Refusal
 
-ARC's adoption theory is honest only when inverted. The defensible question is
-not *why ARC will be adopted* but *why each actor can rationally decline* — and
-the protocol is built to learn from real refusals, not imagined adoption.
+ARC's current adoption research records reasons parties may decline. It does not
+establish adoption outcomes or a real-refusal dataset; the current executable
+validates only the recording path with synthetic fixtures.
 
 - [`docs/adoption-and-defection.md`](docs/adoption-and-defection.md) — the four
   exits (WAIT / DEFECT / FORK / REJECT), the per-actor inverse, and candidate
   coordination mechanisms held as hypotheses, never as claims.
-- [`docs/first-refusal-protocol.md`](docs/first-refusal-protocol.md) — how ARC
-  makes first contact with reality by collecting a first *refusal* as data; the
-  experiment validates the recording instrument, not the protocol.
+- [`docs/first-refusal-protocol.md`](docs/first-refusal-protocol.md) — a study
+  design for collecting an initial *refusal* as data; the experiment tests
+  the recording instrument, not the protocol.
 - [`docs/coordination-economics-survey.md`](docs/coordination-economics-survey.md)
-  — a comparative survey of why open protocols are adopted or displaced, and
-  which levers transfer to ARC's harder, multi-sided case.
+  — a preliminary comparison of why selected open protocols were adopted or
+  displaced, and which hypotheses may be relevant to the multi-sided Commerce
+  application.
 - [`docs/pilot-design.md`](docs/pilot-design.md) — how a limited pilot would test
   the inverse: learning, not validation.
 
-The runnable [refusal-recording fold](examples/refusal-recording-demo/) makes
-the boundary literal: **adoption does not fold, but a refusal record does.**
+The runnable [refusal-recording fold](examples/refusal-recording-demo/)
+demonstrates that its refusal records can be folded; it does not model adoption.
 
 ---
 
@@ -269,28 +281,16 @@ the boundary literal: **adoption does not fold, but a refusal record does.**
 
 ARC defines **protocol semantics, not infrastructure, governance topology, or
 settlement.** What "semantics" means is fixed by §3–§5 (the canonical event set,
-signature verification, projection determinism, revocation via `nullifies`, and
-the human and community authority boundaries); everything below is an
-implementation choice.
-
-Compatible implementations may use centralized services, federated systems,
-community-operated infrastructure, shared ledgers, blockchain-based settlement,
-or other governance and storage mechanisms, *provided ARC protocol semantics
-and authority boundaries are preserved.* Those choices do not turn ARC itself
-into a blockchain, token, or payment network.
+record verification, named Projection behavior, revocation via `nullifies`, and
+the human and community authority boundaries). Implementations declare the
+profiles needed for any stronger compatibility claim.
 
 - **Storage and operation.** ARC prescribes neither a shared database nor a
   deployment topology. SQLite, PostgreSQL, S3, Kafka, append-only logs, shared
   ledgers, and combinations of them are all implementation choices.
-- **Ledgers and blockchains.** An implementation may use them for storage,
-  checkpoints, coordination, or external settlement. ARC neither requires nor
-  prohibits them and does not inherit their consensus or asset semantics.
-- **Tokens.** ARC defines no native token. Tokenized assets or application
-  layers may interoperate with an implementation, but they are neither required
-  nor part of ARC protocol semantics.
 - **Payment.** ARC does not initiate, execute, or settle payment. An
-  ARC-compatible commerce flow hands off to conventional or blockchain-based
-  payment rails only after the required human authorization; those external
+  ARC Commerce-profile flow hands off to an external payment rail only when the
+  action has Current Coverage; those external
   rails provide no ARC guarantee of refund, chargeback, or recovery. See
   [liability-boundaries.md](docs/liability-boundaries.md).
 - **Legal / regulated domains.** Community review informs trust; it does not
@@ -299,34 +299,33 @@ into a blockchain, token, or payment network.
   rules. See [liability-boundaries.md](docs/liability-boundaries.md) and
   [identity.md §3](docs/identity.md).
 
-*(The "ARC" name and brand are a separate governance matter, also outside this
-specification.)*
-
 ---
 
 ## 10. Current Status
 
-ARC is currently an **executable reference implementation of its protocol
-model** — not yet a complete specification, and not a product.
+ARC currently has an **Executable Reference Corpus** for its protocol model —
+not a complete independently implementable specification, normative conformance
+suite, production system, or product.
 
-What runs today: the canonical event/projection model, scoped delegation and
-revocation, a browser reference client, a real-reasoner end-to-end flow, a
+What runs today: the canonical Event/Projection model, scoped delegation and
+revocation, a browser reference client, an optional external-reasoner flow, a
 commerce failure catalog, federation and custody seams, fidelity probes, and the
-adoption/refusal experiments (§6, §8). The model is not only argued; it is
-exercised.
+adoption/refusal experiments (§6, §8).
 
-What remains unresolved: a normative wire format and conformance suite, the
-identity-reputation bootstrap, discovery without backend concentration,
-sustainable governance, and — the open problem ARC is most honest about —
-adoption itself, which does not fold
+What remains unresolved: a normative wire/security profile and complete
+conformance suite; quorum member semantics; deterministic mandate interpretation;
+atomic cumulative mandate consumption; the identity-reputation bootstrap;
+Commerce discovery and governance operation; and
+adoption incentives, which current probes do not establish
 ([adoption-and-defection.md](docs/adoption-and-defection.md)).
 
 ### Current limitations
 
 - No real payments
 - No real delivery
-- No verified identity
+- No production identity-assurance profile
 - No legal guarantees
+- No selected normative signature suite
 - No production-grade security
 
 ---
@@ -339,63 +338,60 @@ non-goals, is in [docs/roadmap.md](docs/roadmap.md).
 - **Reference corpus (current).** Canonical model, executable probes, reference
   client, commerce failure catalog, and the first adoption/refusal experiments.
 - **First contact.** Record real refusals via the
-  [First Refusal Protocol](docs/first-refusal-protocol.md) before any party
+  [First-Refusal Study Procedure](docs/first-refusal-protocol.md) before any party
   begins to use ARC.
 - **Specification.** A normative envelope, error model, versioning, transport
   profiles, and conformance tests
   ([future-protocol-spec.md](docs/future-protocol-spec.md)).
 - **Pilot.** A limited, real-world test that measures the inverse — learning, not
   validation ([pilot-design.md](docs/pilot-design.md)).
-- **Federation.** Cross-community identity, interoperable governance, and
-  reputation portability under explicit local control.
-
-ARC does not require full decentralization, a token, or any single deployment
-topology. AI autonomy without human approval and enclosing the protocol under a
-single operator remain out of scope. ARC is open to research collaboration,
-independent implementation, commercial adoption, funding, and community
-stewardship — all compatible with a protocol intended to remain uncaptured by
-any single operator.
+- **Optional profile work.** Cross-community identity, governance, and
+  reputation-portability profiles under declared policies.
 
 ---
 
 ## 12. Further Reading
 
-**Canonical model**
+**Normative / current core semantics**
 [Object Model](docs/object-model.md) ·
 [Event Registry](docs/event-registry.md) ·
 [Authority & Conflict](docs/authority-and-conflict.md) ·
-[Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md) ·
-[Key Custody](docs/key-custody.md) ·
-[Threat Model](docs/threat-model.md) ·
-[Glossary](docs/glossary.md)
+[Delegation & Spending Mandates](docs/delegation-and-spending-mandates.md)
 
-**Adoption & first contact**
+**Explanatory / conformance planning**
+[Glossary](docs/glossary.md) ·
+[Future Protocol Spec](docs/future-protocol-spec.md) ·
+[Key Custody](docs/key-custody.md) ·
+[Trust Model Trade-offs](docs/trust-model-tradeoffs.md) ·
+[Landscape & Positioning](docs/landscape-and-positioning.md) ·
+[Liability Boundaries](docs/liability-boundaries.md) ·
+[Identity](docs/identity.md)
+
+**Executable validation**
+[Probe Catalog](examples/) ·
+[Reference Client](examples/reference-client/) ·
+[Local Commerce Demo](examples/local-commerce-demo/) ·
+[Refusal-Recording Demo](examples/refusal-recording-demo/)
+
+**Flagship application**
+[Architecture (Commerce)](docs/architecture.md) ·
+[Protocol Mechanics (Commerce)](docs/protocol.md) ·
+[Local Commerce Simulation](docs/local-commerce-simulation.md) ·
+[Reputation](docs/reputation.md) ·
+[Governance](docs/governance.md) ·
+[Threat Model](docs/threat-model.md)
+
+**Historical / legacy**
+[Philosophy](docs/philosophy.md) — the project's founding Commerce-first
+narrative, preserved as history. ·
+[Agent-Mediated Commerce & Infrastructure](docs/agent-mediated-commerce-infrastructure.md)
+
+**Research notes**
 [Adoption & Defection](docs/adoption-and-defection.md) ·
 [First Refusal Protocol](docs/first-refusal-protocol.md) ·
 [Coordination-Economics Survey](docs/coordination-economics-survey.md) ·
 [Pilot Design](docs/pilot-design.md) ·
-[Bootstrap & Incentives](docs/bootstrap-and-incentives.md)
-
-**Trust, positioning & limits**
-[Trust Model Trade-offs](docs/trust-model-tradeoffs.md) ·
-[Landscape & Positioning](docs/landscape-and-positioning.md) ·
-[Agent-Mediated Commerce & Infrastructure](docs/agent-mediated-commerce-infrastructure.md) ·
-[Liability Boundaries](docs/liability-boundaries.md) ·
-[Future Protocol Spec](docs/future-protocol-spec.md)
-
-**Supporting models**
-[Identity](docs/identity.md) ·
-[Reputation](docs/reputation.md) ·
-[Governance](docs/governance.md)
-
-**Commerce reference**
-[Local Commerce Simulation](docs/local-commerce-simulation.md) ·
-[Protocol Mechanics (commerce)](docs/protocol.md) ·
-[Architecture (commerce system)](docs/architecture.md)
-
-**Origins / early vision**
-[Philosophy](docs/philosophy.md) — the project's founding narrative, kept as
-history. ·
+[Bootstrap & Incentives](docs/bootstrap-and-incentives.md) ·
 [Adjacent Ideas](docs/adjacent-ideas/)
 
 ---
@@ -406,5 +402,5 @@ This project is licensed under the Apache License 2.0. See the LICENSE file for
 details.
 
 <p align="center">
-  <img src="assets/arc-stamp.svg" width="420" alt="Verified, signed by community — no central issuer. Any agent. Any model. Any company. Human approval required.">
+  <img src="assets/arc-stamp.svg" width="420" alt="ARC recorded claim — record-level claims, not outcome proof.">
 </p>

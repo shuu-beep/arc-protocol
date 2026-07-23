@@ -1,81 +1,57 @@
 #!/usr/bin/env python3
 """
-ARC approval-seam fixture — the escalation return path as a custody surface.
+ARC approval-return fixture — proposal-bound approvals and a scope-only counterfactual.
 
 What this is
 ------------
-embodiment_fixture.py split the agent from the signer into two processes and
-found that escalation forces a SECOND seam: the proposal seam carries
-agent -> signer, but a routed proposal needs an approval RETURN path
-(inbox -> a human -> back to a signed event) the proposal seam never had. That
-fixture named the seam (an `ApprovalInbox` class) but left it DEAD: nothing
-drained it, and the human's approval was hand-fed at the call site, riding back
-to the signer bypassing the inbox entirely.
+embodiment_fixture.py split the agent from the signer and routed over-ceiling
+proposals to an inbox. This fixture adds a simulated cold-root ceremony and an
+approval return path from the inbox back to the signer.
 
-This fixture makes the second seam LIVE — a human actually pulls a routed
-proposal, reviews it, and decides — and asks the question that exposes: what does
-the return path carry, and who can carry it?
-
-The first seam moved the KEY behind the signer, so a compromised agent yields
-proposals, never signatures. But the return path runs back through the SAME
-untrusted agent. So the approval is a capability in flight, and the question
-custody always asks returns: whoever HOLDS it, can spend it.
-
-  * embodiment_fixture's approval was a SCOPE token: consent.approval scoped by
+  * embodiment_fixture's approval was a scope token: consent.approval scoped by
     {context, max_total_krw}. The signer's approval branch checked only
-    `amount <= cap`. Nothing bound it to the proposal the human saw.
-  * So a scope-token approval is a BEARER token. A compromised agent, handed an
-    approval for "a 90000 market payment", can bind it to a DIFFERENT 90000
-    market payment (a different recipient), or REPLAY it for several. The human
-    reviewed one act; the return path can spend the approval on others.
+    `amount <= cap`. Nothing bound it to one reviewed proposal.
+  * So a scope-token approval acts as a bearer token. A compromised agent, handed an
+    approval for "a 90000 market payment", could bind it to a different 90000
+    market payment or reuse it.
 
-The fix, and its residue:
+Comparison and limitations:
 
-  * bind the approval to the PROPOSAL the human actually reviewed — to a hash of
-    the exact bytes shown at the inbox. Now the approval is single-use and
-    non-transferable: it validates against that one proposal and no other. A
-    compromised agent can at most cause the act the human already consented to.
-  * and trust no carried approval until the seam AUTHENTICATES it: the signer
-    verifies the approval's own Ed25519 signature, that its signer is the
+  * bind the approval to the proposal's reviewable fields. The signer adds
+    envelope fields such as signer and timestamp, so the review and Event signing
+    byte domains are not identical. The in-process consumed set makes the tested
+    approval single-use only for this fixture run.
+  * the signer checks the approval's own illustrative Ed25519 signature, that its signer is the
     mandate's granter (the cold root), and that it is on the log — an approval
-    is a RECORD, not a message. A self-constructed approval object naming the
-    right hash, or a validly signed one that never became a record, dies before
-    its binding is even read.
-  * but this makes the HUMAN a second signer. The approval is only as good as
-    what the human SAW. The inbox must show the human the same bytes the signer
-    would sign; if it shows less (a friendly summary that omits the recipient),
-    the human's consent does not cover the difference — a confused deputy. The
-    second seam needs the first seam's "sign what you saw" guarantee, now for a
-    human's eyes instead of a signer's bytes.
+    is a record in this fixture, not a transport message. A self-constructed approval object naming the
+    right hash, or an approval that was not appended to the fixture log, is
+    refused before its binding is read.
+  * the approval is a separately signed record. The fixture cannot establish what
+    a person saw or understood; it checks only the reviewable-field binding named
+    above.
 
-So SIGN/ROUTE/REFUSE deepens. ROUTE is not "defer to a human." It opens a second
-custody boundary where the human is the signer, the proposal-binding is the
-mandate, and the human's review is the trusted base. The minimal slice moved the
-key off the agent; it did not move the approval off the agent — this one does, and
-finds the human standing where the signer stood.
+The fixture compares the proposal-bound signer with a scope-only counterfactual.
+It does not establish what a person saw, understood, or intended.
 
-Real Ed25519 (RFC 8032, pure stdlib, reused verbatim from the prior fixtures)
-because the whole point is that "this approval validates against that one
-proposal" is a cryptographic FACT, not a policy claim. Only the cold-root ceremony
+Illustrative Ed25519 (RFC 8032, pure stdlib, reused from the prior fixtures) is
+used for the named record checks. Only the cold-root ceremony
 holds the root secret; only the signer holds the hot secret; the agent holds
-neither and carries the approval without being able to forge or re-aim it.
+neither. The signer refuses the invalid-signature and re-aim cases described below.
 
-Refusals (as deliberate as the content):
-  * not a daemon, not a wallet, not a security product. "Processes" are objects
-    sharing serializable seams; no network, no persistence, no real isolation.
-    The crypto is ILLUSTRATIVE — this probes constitutional boundary visibility.
+Limits:
+  * the "processes" are objects sharing serializable data; there is no network,
+    persistence, or process isolation. The Ed25519 implementation is illustrative.
   * no new event type. The approval is the existing consent.approval; the binding
     rides in its refs (the proposal hash) — evidence the canon already holds, used
-    one notch more tightly. The replay defense is consumption tracked in the
-    signer's trusted base, not a new primitive.
-  * the counterfactual is COMPUTED, not asserted. The fixture carries a
+    as a proposal binding. The replay defense is consumption tracked in the
+    signer object's in-memory state, not a new primitive.
+  * the counterfactual is computed by the fixture. The fixture carries a
     `scope_only_would_sign` that replays embodiment_fixture's amount-only check, so
     "a bearer token would have signed this" is shown by running it, not claimed.
-  * who drives the agent is GROUND TRUTH the generator holds, rendered as the
-    omniscient view; the signer and the human never read it.
+  * who drives the agent is a private fixture stipulation rendered separately;
+    the signer and approval ceremony never read it.
 
-A probe, not doctrine — the runtime expression of the second seam embodiment_
-fixture left dead. Not a custody spec.
+A fixture for the viewer and a standalone probe, not a custody specification.
 
 Run:  python3 approval_seam_fixture.py
 """
@@ -91,10 +67,9 @@ CANONICAL_TYPES = {"KEY", "ATTEST", "AUTHORIZE", "CHALLENGE", "ADJUDICATE"}
 
 
 # ===========================================================================
-# Real Ed25519 — the RFC 8032 reference, pure stdlib (reused verbatim from the
-# compromise / embodiment fixtures). A secret signs, a public value verifies, and
-# you cannot produce a passing signature without the secret. That is what makes
-# "this approval is bound to that one proposal" a fact and not a claim.
+# Illustrative Ed25519 — the RFC 8032 reference, pure stdlib (reused from the
+# compromise / embodiment fixtures). This fixture tests only the named record
+# checks and is not a production cryptographic profile.
 # ===========================================================================
 
 _b = 256
@@ -215,8 +190,8 @@ def ed25519_verify(sig: bytes, m: bytes, pk: bytes) -> bool:
 
 # ===========================================================================
 # Event + Proposal — the lean shapes from embodiment_fixture. The new thing here
-# is that a Proposal has a stable IDENTITY: the hash of the exact bytes a human
-# would review and a signer would sign. The approval binds to that identity.
+# is that a Proposal has a stable hash over its reviewable fields. The approval
+# binds to that hash; Event signing later adds signer and timestamp fields.
 # ===========================================================================
 
 @dataclass(frozen=True)
@@ -243,10 +218,10 @@ class Event:
 
 @dataclass(frozen=True)
 class Proposal:
-    """What the agent emits. NOT an event: no signer, no signature. The agent holds
-    no key, so this is the most it can produce. Its `content_hash` is the binding
-    surface: the exact bytes a human reviews at the inbox and the signer would
-    sign. Two proposals that differ in ANY reviewable field (recipient, amount,
+    """What the agent emits. This is not an Event: it has no signer or signature.
+    The fixture agent holds no key. Its `content_hash` is the binding
+    surface: the reviewable proposal fields presented by the fixture. Two
+    proposals that differ in any such field (recipient, amount,
     context) hash differently — that is what makes a bound approval refuse to
     travel from one to another."""
     type: str
@@ -257,9 +232,8 @@ class Proposal:
     as_role: str = "agent"
 
     def review_body(self) -> dict[str, Any]:
-        """The bytes a human sees and the signer signs — everything reviewable.
-        Deliberately the SAME projection for both, so "what the human saw" and
-        "what the signer signs" cannot diverge silently."""
+        """The fixture's reviewable proposal fields. Event signing separately
+        adds envelope fields including signer and timestamp."""
         return {"type": self.type, "predicate": self.predicate, "refs": list(self.refs),
                 "scope": self.scope, "payload": self.payload, "as_role": self.as_role}
 
@@ -269,10 +243,9 @@ class Proposal:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: real Ed25519 + signer anchored by a prior KEY
-    register. Every approval-backed payment on the log refs an approval whose own
-    refs name the payment's proposal hash — the binding is checkable from the log
-    alone, by anyone, after the fact."""
+    """Fixture replay check: Ed25519 signature and prior KEY registration only.
+    Proposal binding and in-process consumption are signer.handle checks; this
+    function does not validate them or establish complete conformance."""
     registered: set[str] = set()
     for ev in events:
         if not ed25519_verify(bytes.fromhex(ev.signature), ev.signing_bytes(),
@@ -287,8 +260,8 @@ def verify_log(events: list[Event]) -> None:
 
 # ===========================================================================
 # The processes. Custody is in the object graph: only the ceremony holds the root
-# secret, only the signer holds the hot secret. The agent holds neither — and now
-# also carries the approval back, holding a capability it cannot forge or re-aim.
+# secret, only the signer holds the hot secret. The agent holds neither and
+# carries approval records back to the signer for the named checks.
 # ===========================================================================
 
 @dataclass
@@ -320,10 +293,8 @@ def _mint(secret: bytes, pub_hex: str, ts: str, *, type_: str, predicate: str,
 
 
 def scope_only_would_sign(p: Proposal, approval: Event) -> bool:
-    """The COUNTERFACTUAL, run rather than asserted: embodiment_fixture's
-    amount-only approval check. A scope token says yes to any proposal within its
-    cap and context, whatever its content hash. This is what makes that approval a
-    bearer token — and what this fixture's signer refuses to be."""
+    """Apply embodiment_fixture's amount-and-context-only counterfactual. This
+    function intentionally ignores proposal binding and the consumed set."""
     cap = (approval.scope or {}).get("max_total_krw")
     actx = (approval.scope or {}).get("context")
     amount = p.payload.get("amount_krw")
@@ -334,13 +305,12 @@ def scope_only_would_sign(p: Proposal, approval: Event) -> bool:
 
 
 class SignerProcess:
-    """Holds the HOT key and the mandate. Auto-signs in-scope proposals; routes
-    over-ceiling ones to the inbox. When an approval rides back, it first
-    AUTHENTICATES it — the approval's own Ed25519 signature, signer == the
-    mandate's granter, membership on the log — and only then signs, and ONLY if
-    the approval is bound to THIS proposal's content hash and has not been spent.
-    Authentication, binding, and consumption all live in the signer's trusted
-    base; a carried approval is untrusted bytes until they pass."""
+    """Holds the hot key and mandate. Auto-signs in-scope proposals and routes
+    over-ceiling ones to the inbox. For a returned approval, it checks the
+    approval's Ed25519 signature, signer, and fixture-log membership before
+    checking its proposal hash and in-process consumed set.
+    Authentication, binding, and consumption are signer-side fixture checks;
+    a carried approval is not used until they pass."""
 
     def __init__(self, *, hot_pub: str, hot_secret: bytes, mandate: Event,
                  clock: Clock, log: list[Event]) -> None:
@@ -373,8 +343,8 @@ class SignerProcess:
         amount = p.payload.get("amount_krw")
 
         if approval is not None:
-            # A carried approval is untrusted bytes until authenticated: verify
-            # its signature, its signer, and that it is a RECORD on the log —
+            # Check the carried approval's signature, signer, and fixture-log
+            # membership before reading its proposal binding —
             # only then read its binding. Without these, a compromised agent
             # could hand a self-constructed approval object naming the right
             # ph: hash and be signed at sign-time.
@@ -385,37 +355,34 @@ class SignerProcess:
             except ValueError:
                 sig_ok = False
             if not sig_ok:
-                return Decision("refused", "the approval's own signature does not verify — "
-                                "a carried approval is a claim until its bytes prove their signer")
+                return Decision("refused", "the approval's illustrative signature check fails")
             if approval.signer != self.mandate.signer:
                 return Decision("refused", "the approval is not signed by the mandate's granter "
                                 "— the hot key honors approvals from the cold root only")
             on_log = next((e for e in self.log if e.id == approval.id), None)
             if on_log is None or on_log != approval:
-                return Decision("refused", "the approval is not on the log — consent that never "
-                                "became a record is a message, not an approval")
-            # The whole point of the fixture: an approval is consent to ONE act.
+                return Decision("refused", "the approval is not present in this fixture log")
+            # This fixture consumes an approval once in this process.
             bound = self._approved_hash(approval)
             if bound is None:
                 return Decision("refused", "the approval is scope-only (a bearer token) — "
-                                "it names no proposal; this signer will not honor it")
+                                "it names no proposal; this signer reading refuses it")
             if bound != p.content_hash():
-                return Decision("refused", "the approval is bound to a DIFFERENT proposal "
-                                f"({bound} != {p.content_hash()}) — the human did not consent to this act")
+                return Decision("refused", "the approval references a different proposal hash "
+                                f"({bound} != {p.content_hash()})")
             if approval.id in self.spent_approvals:
-                return Decision("refused", "the approval was already spent — consent to one "
-                                "act is not a standing allowance")
+                return Decision("refused", "the approval already appears in this process's consumed set")
             self.spent_approvals.add(approval.id)
             ev = self._sign(p, refs=tuple(p.refs) + (approval.id,))
-            return Decision("signed", "signed under a proposal-bound, single-use cold-root "
-                            "approval (the human consented to exactly this act)", ev)
+            return Decision("signed", "signed after the proposal-bound approval passed the "
+                            "fixture's in-process checks", ev)
 
         if self._context is not None and ctx is not None and ctx != self._context:
             return Decision("refused", f"out of mandate domain ({ctx} != {self._context}) — "
                             "not the hot key's authority")
         if amount is not None and self._ceiling is not None and amount > self._ceiling:
             return Decision("routed", f"over the mandate ceiling ({amount} > {self._ceiling}) "
-                            "— routed to the approval inbox for a human", ticket=p.content_hash())
+                            "— routed to the approval inbox", ticket=p.content_hash())
 
         ev = self._sign(p)
         return Decision("signed", "within the live mandate (right domain, within ceiling)", ev)
@@ -430,18 +397,16 @@ class SignerProcess:
 
 @dataclass
 class Ticket:
-    """A routed proposal waiting at the inbox. Holds the FULL proposal, so the
-    human reviews the same bytes the signer would sign — not a summary."""
+    """A routed proposal waiting at the inbox. It holds the proposal fields that
+    the ceremony reviews; Event signing later adds envelope fields."""
     id: str
     proposal: Proposal
     decided: bool = False
 
 
 class ApprovalInbox:
-    """The second seam, made LIVE. The proposal seam carried agent -> signer; this
-    carries signer -> human -> back. A routed proposal becomes a Ticket the human
-    can pull and review; the human's decision produces a proposal-BOUND approval
-    that travels back through the (untrusted) agent without being re-aimable."""
+    """Stores routed proposals for the simulated cold-root ceremony. The ceremony
+    emits a proposal-bound approval that returns to the signer through the agent."""
 
     def __init__(self) -> None:
         self.tickets: dict[str, Ticket] = {}
@@ -455,9 +420,8 @@ class ApprovalInbox:
         return [t for t in self.tickets.values() if not t.decided]
 
     def review(self, ticket_id: str) -> dict[str, Any]:
-        """What the human SEES — the exact reviewable body and the hash that an
-        approval will bind to. This projection IS the human's trusted base; if it
-        omitted a field, the human's consent would not cover it."""
+        """Return the fixture's reviewable body and the hash an approval binds to.
+        This does not establish what a person actually saw or understood."""
         t = self.tickets[ticket_id]
         return {"hash": t.proposal.content_hash(), "body": t.proposal.review_body()}
 
@@ -467,8 +431,8 @@ class ApprovalInbox:
 
 class AgentProcess:
     """Proposes events and carries approvals back. Holds NO key. Whoever drives it
-    — the honest operator or an attacker — can emit a Proposal and relay an
-    approval, but cannot forge a signature or re-aim a bound approval."""
+    — the configured operator or an attacker — can emit a Proposal and relay an
+    approval. The signer evaluates the returned record and proposal fields."""
 
     def __init__(self, *, signer: SignerProcess, inbox: ApprovalInbox) -> None:
         self._signer = signer
@@ -482,9 +446,8 @@ class AgentProcess:
 
 
 class ColdRootCeremony:
-    """The human with the cold key. Reviews routed proposals at the inbox and signs
-    proposal-BOUND approvals: an approval whose refs name the exact proposal hash
-    the human saw. Absent otherwise — invoked only for ceremony."""
+    """Scripted cold-key holder. It reads routed proposal fields and emits
+    proposal-bound approvals whose refs name the reviewable proposal hash."""
 
     def __init__(self, *, root_pub: str, root_secret: bytes, clock: Clock,
                  log: list[Event]) -> None:
@@ -507,9 +470,8 @@ class ColdRootCeremony:
 
     def review_and_approve(self, inbox: ApprovalInbox, ticket_id: str, amount: int,
                            context: str) -> Event:
-        """The human pulls the ticket, sees the exact bytes, and binds the approval
-        to THAT proposal hash. The approval is minted off the cold key, above the
-        mandate — but it names one act, not a class of acts."""
+        """The simulated ceremony pulls the ticket and binds the approval to the
+        reviewable proposal hash. Signer/timestamp envelope fields are added later."""
         seen = inbox.review(ticket_id)
         inbox.mark_decided(ticket_id)
         return self._emit(type_="AUTHORIZE", predicate="consent.approval",
@@ -518,7 +480,7 @@ class ColdRootCeremony:
 
     def approve_scope_only(self, amount: int, context: str) -> Event:
         """embodiment_fixture's approval, reproduced for the counterfactual: a
-        scope token, bound to no proposal. Shown to be refused, not used in anger."""
+        scope token bound to no proposal, evaluated only as fixture input."""
         return self._emit(type_="AUTHORIZE", predicate="consent.approval",
                           scope={"context": context, "max_total_krw": amount})
 
@@ -549,7 +511,7 @@ def generate() -> dict:
     root_secret, root_pub = keypair("root")
     agent_secret, agent_pub = keypair("agent")
 
-    print("\n1. OFFLINE CEREMONY — the cold root anchors keys, grants a mandate, then")
+    print("\n1. Offline ceremony — the cold root anchors keys, grants a mandate, then")
     print("   goes away. The hot key may sign 'market' acts up to 30000.")
     ceremony = ColdRootCeremony(root_pub=root_pub, root_secret=root_secret,
                                 clock=clock, log=log)
@@ -558,8 +520,8 @@ def generate() -> dict:
     mandate = ceremony.grant_mandate(agent_pub, context="market", ceiling=30000)
     say("custody", f"mandate: hot key signs 'market' <= 30000  [{mandate.id}]")
 
-    print("\n2. BOOT — signer holds the hot key + mandate; agent holds only lines to")
-    print("   the signer and the inbox. The inbox is LIVE: a human will pull from it.")
+    print("\n2. Signer setup — signer holds the hot key + mandate; agent has references to")
+    print("   the signer and the inbox. The simulated ceremony can review routed tickets.")
     inbox = ApprovalInbox()
     signer = SignerProcess(hot_pub=agent_pub, hot_secret=agent_secret, mandate=mandate,
                            clock=clock, log=log)
@@ -570,70 +532,67 @@ def generate() -> dict:
                         payload={"result": "confirmed", "amount_krw": amount,
                                  "payee": payee, "context": context, "provider": "mock_pay"})
 
-    print("\n3. HONEST ESCALATION — over the ceiling, so it routes; the human pulls the")
-    print("   ticket, sees the EXACT proposal, and approves THAT act.")
-    honest = payment(90000, payee="merchant-rho")
-    d_route = agent.propose(honest)
+    print("\n3. Configured escalation — over the ceiling, so it routes; the simulated")
+    print("   ceremony reviews the proposal fields and binds their hash.")
+    approved_target = payment(90000, payee="merchant-rho")
+    d_route = agent.propose(approved_target)
     show("over-ceiling payment 90000", d_route)
-    say("inbox", f"ticket {d_route.ticket} pending for a human")
+    say("inbox", f"ticket {d_route.ticket} pending for the simulated ceremony")
     seen = inbox.review(d_route.ticket)
-    say("human", f"reviews ticket: pays {seen['body']['payload']['amount_krw']} to "
-        f"{seen['body']['payload']['payee']} — recognizes it, approves with the COLD key")
+    say("ceremony", f"reads ticket fields: pay {seen['body']['payload']['amount_krw']} to "
+        f"{seen['body']['payload']['payee']}; emits an approval with the cold key")
     approval = ceremony.review_and_approve(inbox, d_route.ticket, 90000, "market")
-    show("  (re-submitted, bound approval)", agent.propose(honest, approval=approval))
+    show("  (re-submitted, bound approval)", agent.propose(approved_target, approval=approval))
 
-    print("\n4. THE AGENT IS COMPROMISED — the attacker now holds the approval in flight.")
-    print("   It cannot forge a signature. The question is what it can do with consent.")
+    print("\n4. Attacker-controlled agent label — the attacker now holds the approval in flight.")
+    print("   The tested constructed approval fails the cold-root signature check. The comparison concerns approval reuse.")
 
-    print("\n   (a) RE-AIM: bind the human's approval to a DIFFERENT payee, same amount.")
+    print("\n   (a) Re-aim: submit the approval with a different payee, same amount.")
     reaimed = payment(90000, payee="attacker-self")
     cf = scope_only_would_sign(reaimed, approval)
-    say("omniscient", f"a scope-only (bearer) approval WOULD sign this: {cf}  <-- the leak")
+    say("generator", f"scope-only counterfactual would sign this: {cf}")
     show("re-aimed payment 90000", agent.propose(reaimed, approval=approval), attacker=True)
 
-    print("\n   (b) REPLAY: spend the SAME approved act a second time.")
-    show("replay approved payment", agent.propose(honest, approval=approval), attacker=True)
+    print("\n   (b) Replay: submit the approved proposal a second time.")
+    show("replay approved payment", agent.propose(approved_target, approval=approval), attacker=True)
 
-    print("\n   (c) BEARER: forge a fresh scope-only approval shape and ride it.")
+    print("\n   (c) Scope-only: submit a fixture cold-root approval that names no proposal.")
     bearer = ceremony.approve_scope_only(90000, "market")  # a token bound to nothing
-    say("omniscient", "(generator mints a scope-only token to stand in for one an")
-    say("omniscient", " attacker might harvest; the signer's reaction is the point)")
+    say("generator", "mints a scope-only approval as a counterfactual input")
     show("scope-only bearer 90000", agent.propose(payment(90000, "attacker-self"),
                                                   approval=bearer), attacker=True)
 
-    print("\n   (d) FORGE: self-construct an approval OBJECT naming the right hash.")
+    print("\n   (d) Invalid signature: construct an approval object naming the target hash.")
     target = payment(90000, payee="attacker-self")
     forged = Event(id="ev:forged", type="AUTHORIZE", signer=root_pub,
                    predicate="consent.approval", timestamp="2026-06-10T10:59:00Z",
                    refs=(target.content_hash(),),
                    scope={"context": "market", "max_total_krw": 90000},
                    signature="00" * 64)
-    say("omniscient", "the attacker knows the hash it wants approved; it does not know")
-    say("omniscient", "the root secret — the object is right-shaped, the bytes are not")
-    show("forged bound approval", agent.propose(target, approval=forged), attacker=True)
+    say("generator", "constructs the target hash without the root secret; the")
+    say("generator", "illustrative signature check fails")
+    show("invalid-signature approval", agent.propose(target, approval=forged), attacker=True)
 
-    print("\n   (e) OFF-LOG: a validly signed approval that never became a record.")
+    print("\n   (e) Off-log: an illustrative-Ed25519 approval not appended to the log.")
     offlog = _mint(root_secret, root_pub, "2026-06-10T10:58:00Z", type_="AUTHORIZE",
                    predicate="consent.approval", refs=(target.content_hash(),),
                    scope={"context": "market", "max_total_krw": 90000})
-    say("omniscient", "(generator mints one with the root secret and does NOT append it —")
-    say("omniscient", " standing in for consent captured out-of-band, off the log)")
+    say("generator", "mints one with the root secret and does not append it")
     show("off-log bound approval", agent.propose(target, approval=offlog), attacker=True)
 
-    say("omniscient", "all five refused at SIGN-TIME. The approval is consent to ONE act:")
-    say("omniscient", "the human's, on the log, byte-for-byte what they reviewed.")
+    say("fixture", "all five are refused by the named in-process checks.")
+    say("fixture", "The approval binds reviewable proposal fields, not Event envelope bytes.")
 
     verify_log(log)
     return {"log": log, "root": root_pub, "agent": agent_pub,
-            "approval_id": approval.id, "honest_hash": honest.content_hash()}
+            "approval_id": approval.id, "approved_target_hash": approved_target.content_hash()}
 
 
 # ===========================================================================
 # Band data — the same scenario, returned as structure for the reference
-# client's seventh band. The signer's verdicts and the computed counterfactual
-# are produced HERE (the fixture's trusted base); build.py only renders them.
-# The two READINGS are the real toggle finding L exposes: the actual proposal-
-# bound signer vs the scope-only bearer-token signer embodiment_fixture carried.
+# client's seventh band. The signer's verdicts and computed counterfactual are
+# produced here; build.py only renders them. The two readings compare the actual
+# proposal-bound signer with the scope-only policy used by embodiment_fixture.
 # ===========================================================================
 
 READINGS = ["proposal_bound", "scope_only"]   # the actual signer / the counterfactual
@@ -641,10 +600,9 @@ NAMES: dict[str, str] = {}                     # payees are plain strings; no ke
 
 
 def band_data() -> dict:
-    """Run the custody-seam scenario once and return what the band renders:
-    the sign-time WALL (finding K's trichotomy), the live ESCALATION through the
-    second seam, and the ATTEMPTS each judged under BOTH readings (proposal-bound
-    refuses; scope-only would sign — the bearer-token leak, computed not asserted).
+    """Run the approval-return scenario once and return what the band renders:
+    signer-boundary decisions, one routed approval, and attempts judged under
+    both readings (proposal-bound refuses; scope-only may sign).
     No stdout; build.py re-verifies the log it returns."""
     clock = Clock()
     log: list[Event] = []
@@ -675,33 +633,33 @@ def band_data() -> dict:
                 "amount": amount, "payee": payee,
                 "id": d.event.id if d.event else None}
 
-    # --- the wall: the signer's trichotomy (K), agent holds no key ---
-    wall = [
+    # --- signer boundary: the agent holds no key ---
+    signer_boundary = [
         record("in-scope payment", "operator",
                agent.propose(payment(20000, "merchant-rho")), 20000, "merchant-rho"),
     ]
-    honest = payment(90000, "merchant-rho")
-    d_route = agent.propose(honest)
-    wall.append(record("over-ceiling payment", "operator", d_route, 90000, "merchant-rho"))
-    wall.append(record("out-of-domain forgery", "attacker", agent.propose(
+    approved_target = payment(90000, "merchant-rho")
+    d_route = agent.propose(approved_target)
+    signer_boundary.append(record("over-ceiling payment", "operator", d_route, 90000, "merchant-rho"))
+    signer_boundary.append(record("out-of-domain attacker proposal", "attacker", agent.propose(
         Proposal(type="ATTEST", predicate="identity.binding", refs=(mandate.id,),
                  payload={"claim": "controls_external_account", "context": "identity"})),
         None, "—"))
-    wall.append(record("self-mint as root", "attacker", agent.propose(
+    signer_boundary.append(record("self-mint as root", "attacker", agent.propose(
         Proposal(type="AUTHORIZE", predicate="consent.mandate", as_role="root",
                  refs=(agent_pub,), scope={"context": "market", "max_total_krw": 1000000})),
         1000000, "—"))
 
-    # --- the escalation: the human reviews the exact bytes, approves bound ---
+    # --- escalation: the ceremony binds the reviewable proposal-field hash ---
     seen = inbox.review(d_route.ticket)
     approval = ceremony.review_and_approve(inbox, d_route.ticket, 90000, "market")
-    d_signed = agent.propose(honest, approval=approval)   # SIGNED; spends the approval
+    d_signed = agent.propose(approved_target, approval=approval)   # SIGNED; spends the approval
     escalation = {"ticket": d_route.ticket, "payee": "merchant-rho", "amount": 90000,
                   "approval_id": approval.id, "signed_id": d_signed.event.id,
                   "review_payee": seen["body"]["payload"]["payee"],
                   "review_amount": seen["body"]["payload"]["amount_krw"]}
 
-    # --- the attempts: the approval in flight through the untrusted agent, each
+    # --- the attempts: the approval returning through the agent, each
     #     judged under both readings. proposal_bound = the actual signer (calling
     #     handle has no side effect since all three refuse); scope_only = the
     #     computed counterfactual (the bearer-token signer that would sign). ---
@@ -717,35 +675,36 @@ def band_data() -> dict:
                     "scope_only": {"verdict": "signed" if cf else "refused",
                                    "reason": cf_reason}}}
 
-    # the bearer token is a REAL cold-root act on the log — a scope-only approval
-    # an attacker might harvest. It passes the seam's authentication (signature,
-    # granter, log membership); what the signer refuses is its SHAPE: it names no
+    # The bearer token is a fixture cold-root record on the log — a scope-only approval
+    # an attacker might obtain. It passes the return-path checks (signature,
+    # granter, log membership); what the signer refuses is its shape: it names no
     # proposal, so it is consent to a class of acts, not to one. (handle now
     # authenticates every carried approval, so an unsigned stand-in would be
-    # refused for the wrong reason — the bearer leak is the reason under test.)
+    # refused for the wrong reason.)
     bearer = ceremony.approve_scope_only(90000, "market")
     attempts = [
         attempt("re-aim to a new payee", payment(90000, "attacker-self"), approval, kind="reaim"),
-        attempt("replay the approved act", honest, approval, kind="replay"),
+        attempt("replay the approved act", approved_target, approval, kind="replay"),
         attempt("scope-only bearer token", payment(90000, "attacker-self"), bearer, kind="bearer"),
     ]
 
-    # omniscient: who actually drove each act. The wall/attempt rows never see it.
-    omniscient = [
-        {"label": "in-scope + over-ceiling payments", "who": "the honest operator"},
+    # Generator-only stipulations; the signer-boundary and attempt rows do not use them.
+    generator_only = [
+        {"label": "in-scope + over-ceiling payments", "who": "the configured operator"},
         {"label": "out-of-domain, self-mint, re-aim, replay, bearer", "who": "the attacker"},
-        {"note": "a valid in-scope proposal is the SAME object whoever composed it — "
-                 "the signer never reads this strip"},
+        {"note": "the signer evaluates proposal fields and does not receive this "
+                 "private author label"},
     ]
 
     verify_log(log)
-    return {"events": log, "wall": wall, "escalation": escalation, "attempts": attempts,
-            "omniscient": omniscient, "ceiling": 30000, "context": "market",
+    return {"events": log, "signer_boundary": signer_boundary,
+            "escalation": escalation, "attempts": attempts,
+            "generator_only": generator_only, "ceiling": 30000, "context": "market",
             "root": root_pub, "agent": agent_pub}
 
 
 # ===========================================================================
-# Standalone run — narrate, then state what making the seam live revealed.
+# Standalone run.
 # ===========================================================================
 
 def main() -> None:
@@ -753,7 +712,7 @@ def main() -> None:
     log = ctx["log"]
 
     print("\n" + "=" * 74)
-    print("WHAT REACHED THE LOG — every payment over the ceiling refs the approval")
+    print("Records appended to the log — every payment over the ceiling refs the approval")
     print("that authorized it, and every approval refs the one proposal it covered.")
     print("=" * 74)
     by_id = {e.id: e for e in log}
@@ -767,57 +726,42 @@ def main() -> None:
                   f"approval={appr or '(none, in-mandate)'}  bound={bound}")
 
     print("\n" + "=" * 74)
-    print("THE FINDING — the escalation return path is a second custody surface")
+    print("Fixture result — proposal-bound and scope-only approval readings")
     print("=" * 74)
     print("""
-  embodiment_fixture moved the KEY behind the signer: a compromised agent yields
-  proposals, never signatures. But escalation forced a return path, and that path
-  runs back through the same untrusted agent. So the approval is a capability in
-  flight — and custody's question returns: whoever holds it, can spend it.
+  The signer holds the hot key, while the agent carries proposals and approval
+  records. The scope-only counterfactual checks context and amount but does not
+  bind an approval to one proposal. scope_only_would_sign() therefore returns
+  True for the authored re-aim and replay cases.
 
-  embodiment_fixture's approval was a SCOPE token (context + amount); its signer
-  checked only `amount <= cap`. Run forward to a live inbox, that token is a BEARER
-  token. The counterfactual is computed, not claimed: scope_only_would_sign()
-  returns True for a re-aimed payment to the attacker's own payee. The human
-  reviewed ONE act; a scope token lets the return path spend their consent on
-  others, and replay it.
-
-  Binding the approval to the proposal's content hash closes it. The approval names
-  the exact bytes the human saw; the signer signs only the proposal that matches,
-  exactly once (consumption in its trusted base) — and only after AUTHENTICATING
+  Binding the approval to the proposal's content hash closes the tested re-aim
+  path. The hash covers reviewable proposal fields; the Event signer adds envelope
+  fields. This fixture refuses a replay through an in-memory consumed set and,
+  before applying that check, authenticates
   the carried approval itself: its own signature verifies, its signer is the
-  mandate's granter, and it is a record on the log. All five attacks die at sign-
-  time:
+  mandate's granter, and it is a record on the log. The five authored cases are
+  refused at sign time:
 
     * re-aim to a new payee   -> REFUSED  (bound to a different proposal hash)
     * replay the approved act  -> REFUSED  (the approval was already spent)
     * a scope-only bearer token-> REFUSED  (names no proposal; not honored)
-    * a forged approval object -> REFUSED  (its own signature does not verify)
-    * an off-log approval      -> REFUSED  (consent that never became a record
-                                            is a message, not an approval)
+    * an invalid-signature approval -> REFUSED  (its own signature does not verify)
+    * an off-log approval      -> REFUSED  (not present in this fixture log)
 
-  The residue is where it lands. Binding makes the HUMAN a second signer. The
-  approval is only as good as what the human SAW — so the inbox must show the human
-  the same bytes the signer signs (review_body() is one projection, used for both).
-  Show them less — a summary that hides the payee — and their consent does not
-  cover the difference: a confused deputy, the first seam's "sign what you saw"
-  property now owed to a human's eyes. ROUTE is not "defer to a human"; it opens a
-  second custody boundary where the human is the signer and the proposal-binding is
-  the mandate.
+  The approval is a separately signed record. This fixture cannot establish what
+  a person saw or understood; it checks only that the approval references the hash
+  over review_body() and that the signer applies the named in-process checks.
 
-  Two boundaries the live seam does NOT remove:
+  Two limitations remain:
 
     * availability. A return path is a new place to stall: an approval can be
-      dropped or withheld, and escalation blocks. The minimal slice's one-way
-      proposal seam could not be starved this way.
-    * the human's trusted base. Binding moves the question from the key to the
-      review, it does not shrink it — a human who rubber-stamps the inbox is the
-      ceremony fatigue key-custody.md §8 already names, now on the second seam.
+      dropped or withheld, and escalation blocks. The one-way proposal path does
+      not model this return-path dependency.
+    * review reliability. Binding does not establish comprehension or protect
+      against a misleading presentation; those questions remain outside the fixture.
 
-  Offered as a probe finding — the runtime expression of the second seam
-  embodiment_fixture left dead, not settled doctrine. The crypto is real so
-  "this approval validates against that one proposal" is a fact; not a security
-  product.
+  The Ed25519 implementation is illustrative, and the consumed set is in-process
+  fixture state. This is not a complete verifier or deployment model.
 """)
 
 

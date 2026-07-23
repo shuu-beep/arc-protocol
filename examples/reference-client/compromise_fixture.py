@@ -1,95 +1,73 @@
 #!/usr/bin/env python3
 """
-ARC compromise fixture — a stolen hot key, and the exact size of the damage.
+ARC compromise fixture — a stipulated stolen hot key under one fold policy.
 
 What this is
 ------------
-Every probe before this one ran on a mock signature, because every question
-before this one lived INSIDE the log. Custody lives outside it: the open claim
-in key-custody.md §5 is that a compromised hot key can do *exactly* what its
-mandate covers — nothing more — and that recovery is the composition of two
-mechanisms the canon already has (time-scoped revocation + mandate death). That
-claim cannot be tested on a hash that pretends to be a signature. It needs a
-real one.
+This fixture uses illustrative Ed25519 so it can exercise possession of signing
+key material rather than a deterministic hash stub. It tests one mandate and
+withdrawal policy; it does not establish custody, payment execution, or a general
+damage bound.
 
-So this fixture uses REAL Ed25519 (the RFC 8032 reference, pure stdlib — no
-dependency, still standalone-runnable). Keys are genuine keypairs: a secret that
-signs, a public value that verifies. Compromise is modeled honestly — the
-attacker EXFILTRATES the agent's secret bytes (the custody failure: a hot key
-was resident on a device and stolen) and from then on produces signatures that
-genuinely verify against the agent's public key. No forgery of math; a real
-theft of the thing custody is supposed to protect.
+This fixture uses an illustrative Ed25519 reference (RFC 8032, pure stdlib).
+Compromise is a fixture stipulation: the generator copies the agent's secret
+bytes to an attacker label, which can then produce signatures that
+pass the fixture verifier against the agent's public key. No payment is executed.
 
-The cast (real keys):
+The cast (illustrative keypairs):
 
-    root      cold ceremonial key — the human. Signs rarely: the mandate, the
-              revocation, the challenge. NEVER resident where a runtime reaches
-              it, so the attacker never holds it. The DISPUTANT — it invokes the
-              commons; it does not judge its own challenge.
+    root      fixture key for the mandate, withdrawal, and challenge. The
+              generator does not copy this secret to the attacker label.
     agent     hot device key — narrow mandate (context "market", <= 30000).
-              Signs the in-scope acts the mandate covers, without re-asking.
-    attacker  holds NO key of its own that matters — it holds the agent's
-              stolen secret, and signs AS the agent.
-    community the market community's adjudicating key — the commons authority
-              (event-registry §4.5: ADJUDICATE's authority source is a community
-              process, not an individual key). The only signer whose per-act
-              void the fold honors, and WHICH adjudicator a reader honors is the
-              reader's policy choice (A&C §9), exactly like coldstart's
-              honored-adjudicator knob.
+              Signs the in-scope records the fixture permits.
+    attacker  a generator label that uses a copy of the agent secret.
+    community the configured adjudicator key honored by this fold. Which
+              adjudicator a reader honors is a policy choice (A&C §9).
 
 The flow:
 
     1. root anchors keys and grants the agent a narrow mandate.
-    2. the agent acts once, legitimately, in scope (20000).
-    3. COMPROMISE — an out-of-log fact. The attacker now has the agent's secret.
-    4. the attacker forges four events, each a real valid signature:
+    2. the agent records one pre-compromise in-scope act (20000).
+    3. the generator copies the agent secret to the attacker label.
+    4. the attacker authors four records whose signatures pass the fixture verifier:
          (a) in-scope      25000, market         -> within the mandate
          (b) over-ceiling   90000, market         -> above the mandate
          (c) out-of-context a non-market act      -> outside the mandate
-         (d) self-elevation AUTHORIZE to a fresh attacker key -> tries to escape
-       (a) is the dangerous one. (b)(c) are bounded by scope. (d) fails on the
-       tier line: the attacker has the HOT key, not the cold root, and cannot
-       forge the root's signature, so it cannot grant itself authority.
-    5. root (cold key) REVOKES, read time-scoped.
-    6. the attacker, still holding the secret, forges one more in-scope act
-       AFTER the revoke (25000 again).
+         (d) an AUTHORIZE naming a fresh attacker key
+       This fold honors (a) and declines (b), (c), and (d) under its configured
+       scope and signer rules.
+    5. root records a withdrawal, read time-scoped.
+    6. the attacker label authors one more in-scope record after withdrawal.
 
-What the fold computes, and what it forces:
+What the fold computes:
 
-  * verify_log PASSES on every forgery. A valid signature is a LOG FACT; it says
-    a key signed, and the key did. Custody failure is invisible at the signature
-    layer. What bounds the damage is not the signature — it is the mandate fold.
-  * blast radius = the set of forged events the fold HONORS = exactly the
-    in-scope forgeries inside the window (compromise, revocation). (b)(c)(d) and
+  * verify_log checks Ed25519 signatures and prior key registration; it cannot
+    establish who controlled a secret or whether a payment occurred.
+  * fixture-classified honored exposure is the attacker-authored records this
+    fold honors: in-scope records inside the stipulated pre-withdrawal window.
+    (b)(c)(d) and
     the post-revoke act are each excluded, each with a reason printed.
-  * the sharpening of §5 this probe surfaces: the in-scope forgery (25000) is
-    BYTE-INDISTINGUISHABLE from the legitimate act (20000) — same scope, both
-    honored under the time-scoped reading, neither honored under cascade. The fold
-    returns the SAME verdict for both. So the blast radius is not "mandate scope"
-    alone; it is mandate scope x detection latency, and the in-scope
-    pre-revocation window is UNRECOVERABLE BY REVOCATION ALONE. Time-scoped
-    revocation preserves the forgery; cascade declines to honor the honest history too.
-    Surgically removing only the compromised act needs per-act ADJUDICATION — the
-    human files a CHALLENGE, and an ADJUDICATE from the community adjudicator the
-    reader honors voids that one event. The disputant cannot be the judge: the
-    root's own ADJUDICATE lands on the log and verifies (events are evidence),
-    but the fold counts rulings only from an honored adjudicator, so a
-    self-ruling moves nothing (registry §4.5, A&C §5). The three-layer split
-    again: signature valid (log) / scope honored (fold) / adjudicated void
-    (authority).
+  * the attacker-authored in-scope record (25000) is different from the
+    pre-compromise record (20000), but this fold returns
+    the same verdict for both. Scope and the pre-withdrawal window are two modeled
+    controls; this is not an exact general damage formula. The in-scope
+    pre-withdrawal records are not changed by withdrawal under the time-scoped
+    policy; cascade also excludes the pre-compromise history.
+    A later CHALLENGE and an ADJUDICATE from the configured adjudicator target
+    that record. Under this fold, the root's separate self-ruling remains a
+    recorded claim but is not counted because the root is not in the configured
+    adjudicator set (registry §4.5, A&C §5).
 
-Refusals (as deliberate as the content):
-  * who is the attacker is GROUND TRUTH the generator holds because it wrote the
-    flow. It is rendered as "the omniscient view, available to no observer" and
-    the fold never reads it — exactly the cold-start fixture's discipline. The
+Limits:
+  * who is the attacker is a private fixture classification the generator holds.
+    It is rendered separately as generator-only information, and the fold never
+    reads it. The
     log alone cannot mark a valid in-scope signature as compromised.
   * no new event type. Theft is not an event (it is the absence of custody);
     revocation is the existing AUTHORIZE consent.withdraw + nullifies; the
     dispute is CHALLENGE + ADJUDICATE.
 
-Deliberately small, real where it must be (the keys), mock nowhere that matters.
-A fixture for the viewer; a probe when run directly. Not a custody spec, not
-doctrine — the adversarial test key-custody.md §5 marked as owed, now run.
+This is an illustrative viewer fixture, not a custody specification.
 
 Run:  python3 compromise_fixture.py
 """
@@ -106,10 +84,8 @@ READINGS = ("time_scoped", "cascade")
 
 
 # ===========================================================================
-# Real Ed25519 — the RFC 8032 reference, pure stdlib. Slow but genuine: a
-# secret signs, a public value verifies, and you cannot produce a passing
-# signature without the secret. This is the whole point of a CUSTODY probe —
-# the signature has to mean something for "a stolen key" to mean anything.
+# Illustrative Ed25519 — the RFC 8032 reference, pure stdlib. This is not a
+# production cryptographic profile or custody proof.
 # ===========================================================================
 
 _b = 256
@@ -229,15 +205,15 @@ def ed25519_verify(sig: bytes, m: bytes, pk: bytes) -> bool:
 
 
 # ===========================================================================
-# Keyring — real keypairs. Secrets are derived deterministically from a seed so
-# a run is reproducible; in the real world they would be 32 random bytes. The
+# Keyring — illustrative keypairs. Secrets are derived deterministically from a
+# seed so a run is reproducible; a production profile would define key generation.
 # distinction this whole probe rests on: holding the SECRET is the power to
 # sign. Custody is the question of who holds it. Compromise is the secret moving.
 # ===========================================================================
 
 class Keyring:
-    """Maps a party name -> its real Ed25519 (secret, public). The public key
-    hex IS the signer identity on the log; secrets never appear on the log."""
+    """Maps a fixture party name to illustrative Ed25519 key material. The public
+    key hex is the record's signer field; secrets are not included in Events."""
 
     def __init__(self) -> None:
         self._secret: dict[str, bytes] = {}
@@ -256,25 +232,23 @@ class Keyring:
         return self._public[name].hex()
 
     def steal(self, victim: str, thief: str) -> None:
-        """The compromise, made literal: the victim's SECRET bytes are copied
-        into the thief's possession. Nothing else changes — same secret, so the
-        thief now produces signatures indistinguishable from the victim's. This
-        is the only line in the file that models custody failing."""
+        """Copy the victim's secret bytes under a new fixture holder label. The
+        public key is unchanged, so signatures made with the copy verify against
+        the victim's public key."""
         self._secret[thief] = self._secret[victim]
         self._public[thief] = self._public[victim]
 
     def sign_as(self, holder_secret_of: str, body: bytes, signer_pub_hex: str) -> str:
-        """Sign `body` with the secret of `holder_secret_of`, asserting authorship
-        by `signer_pub_hex`. For an honest signer the two refer to the same key.
-        For the ATTACKER they also refer to the same key — because the attacker
-        STOLE the agent's secret. That is exactly why the forgery verifies."""
+        """Sign `body` with the secret named by `holder_secret_of` and place
+        `signer_pub_hex` in the Event. The fixture separately classifies who invoked
+        this operation; the signature check cannot recover that classification."""
         sk = self._secret[holder_secret_of]
         pk = bytes.fromhex(signer_pub_hex)
         return ed25519_sign(body, sk, pk).hex()
 
 
 # ===========================================================================
-# The Event — same lean shape as the other probes, now over a real signature.
+# The Event — the same fixture shape over illustrative Ed25519.
 # ===========================================================================
 
 @dataclass(frozen=True)
@@ -300,10 +274,9 @@ class Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: real Ed25519 check + signer anchored by a prior
-    KEY register. Note what it CANNOT check: whether the secret was stolen. The
-    attacker's forgeries pass here in full — a valid signature proves a key
-    signed, and the agent's key really did. Custody is invisible to this layer."""
+    """Fixture replay check: Ed25519 signature and prior KEY registration only.
+    It cannot establish secret custody, human authorship, execution, or complete
+    conformance."""
     registered: set[str] = set()
     for ev in events:
         if not ed25519_verify(bytes.fromhex(ev.signature), ev.signing_bytes(),
@@ -318,7 +291,8 @@ def verify_log(events: list[Event]) -> None:
 
 # ===========================================================================
 # The fold: log -> honoring. Parameterized by the revocation reading. This is
-# the boundary logic the viewer would render; nothing here reads ground truth.
+# the boundary logic the viewer would render; nothing here reads the private
+# generator classification.
 # ===========================================================================
 
 def project_compromise(events: list[Event], *, root: str, agent: str,
@@ -329,7 +303,7 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
     `honored_adjudicators` is the reader's POLICY-layer choice (A&C §9) of whose
     ADJUDICATE rulings count — the same honored-adjudicator knob the cold-start
     fixture folds by. Default is none: a per-act void moves nothing unless the
-    reader honors its signer. In particular a disputant's ruling on its OWN
+    reader honors its signer. In particular a disputant's ruling on its own
     challenge is just an event on the log — evidence, not authority (registry
     §4.5: ADJUDICATE's authority source is a community process, not an
     individual key).
@@ -339,17 +313,17 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
       * the root's own signature is honored on its own authority;
       * an act bearing a live, sufficient root consent.approval is honored;
       * otherwise the act must sit within the agent's mandate — right context,
-        amount within the ceiling — AND the mandate must be LIVE at the act's
+        amount within the ceiling — and the mandate must be live at the act's
         time. "Live" is where the two readings split (key-custody §5, the same
         divergence finding G drew on the delegation graph):
           time_scoped  a withdrawal ends mandate force at/after its timestamp;
-                       acts the key signed BEFORE the revoke stay honored;
+                       acts the key signed before withdrawal stay honored;
           cascade      acts depending on the withdrawn mandate are not honored
                        by this projection.
-      * anything else ESCALATES — i.e. is not honored without a human.
+      * anything else is not honored under this fixture policy.
 
-    Crucially, this fold cannot see who is the attacker. An in-scope forgery and
-    a genuine act are the same object to it. Nothing here is stored; recomputed
+    Crucially, this fold cannot see who is the attacker. Different records can
+    receive the same verdict. Nothing here is stored; recomputed
     from the log on demand."""
     assert reading in READINGS, f"unknown reading {reading!r}"
     by_id = {e.id: e for e in events}
@@ -407,8 +381,8 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
         if mcontext is not None and ctx is not None and ctx != mcontext:
             return {"honored": False, "basis": f"out of mandate context ({ctx} != {mcontext}) — escalates"}
         if ev.type == "AUTHORIZE":
-            return {"honored": False, "basis": "the mandate grants spending, not the power to "
-                    "delegate — a hot key cannot mint authority (escalates)"}
+            return {"honored": False, "basis": "the mandate grants spending, not delegation; "
+                    "this agent-signed AUTHORIZE is not root-signed (escalates)"}
         if amount is not None and ceiling is not None and amount > ceiling:
             return {"honored": False, "basis": f"exceeds the mandate ceiling {ceiling} — escalates"}
         if not mandate_live(ev.timestamp):
@@ -420,8 +394,8 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
     rows = []
     for e in events:
         if e.signer != agent or e.type not in ("ATTEST", "AUTHORIZE"):
-            continue                     # judge the agent's acts (genuine and forged); the
-                                         # root's own grants/revokes/rulings ARE the authority
+            continue                     # evaluate the agent's pre-compromise and attacker-authored acts;
+                                         # root-authored records are handled separately
         h = honor(e)
         rows.append({"id": e.id, "signer": e.signer, "type": e.type,
                      "predicate": e.predicate, "amount": e.payload.get("amount_krw"),
@@ -432,36 +406,36 @@ def project_compromise(events: list[Event], *, root: str, agent: str,
             "revoke_ts": revoke.timestamp if revoke else None, "rows": rows}
 
 
-def blast_radius(events: list[Event], ground_truth_forged: set[str], *,
-                 root: str, agent: str, reading: str = "time_scoped",
-                 honored_adjudicators: tuple[str, ...] = ()) -> dict:
-    """The actual damage: forged events the fold HONORS. Computed by INTERSECTING
-    the fold (which cannot see `ground_truth_forged`) with the omniscient set
-    (which no observer can see). The point of separating them: an observer
-    folding the log gets the `honored` column WITHOUT the `forged` column — it
-    cannot tell a compromised honored act from a legitimate one."""
+def modeled_exposure(events: list[Event], fixture_attacker_authored: set[str], *,
+                     root: str, agent: str, reading: str = "time_scoped",
+                     honored_adjudicators: tuple[str, ...] = ()) -> dict:
+    """Fixture-classified honored exposure. This intersects the fold, which does
+    not receive `fixture_attacker_authored`, with the generator's private
+    classification. An observer folding the log gets the `honored` column without
+    that authorship classification and cannot infer secret custody from these
+    records."""
     proj = project_compromise(events, root=root, agent=agent, reading=reading,
                               honored_adjudicators=honored_adjudicators)
-    forged_rows = [r for r in proj["rows"] if r["id"] in ground_truth_forged]
-    honored_damage = [r for r in forged_rows if r["honored"]]
-    krw = sum(r["amount"] or 0 for r in honored_damage)
+    forged_rows = [r for r in proj["rows"] if r["id"] in fixture_attacker_authored]
+    honored_attacker_authored = [r for r in forged_rows if r["honored"]]
+    krw = sum(r["amount"] or 0 for r in honored_attacker_authored)
     return {"reading": reading, "forged_rows": forged_rows,
-            "honored_damage": honored_damage, "honored_krw": krw,
+            "honored_attacker_authored": honored_attacker_authored, "honored_krw": krw,
             "ceiling": proj["mandate_ceiling"], "revoke_ts": proj["revoke_ts"]}
 
 
 # ===========================================================================
-# Participants — each holds one keypair and emits its OWN signed events. The
-# attacker is the exception: it emits AS the agent, with the agent's stolen
-# secret. `forged` records ground truth — who actually held the pen — and is
-# NEVER passed to the fold.
+# Participants — each holds one illustrative keypair and emits its own Events. The
+# attacker is the exception: it emits with the agent signer field and copied
+# secret. `forged` is a stable internal name for a private fixture classification
+# that is not passed to the fold.
 # ===========================================================================
 
 class Ledger:
     def __init__(self, keyring: Keyring) -> None:
         self.events: list[Event] = []
         self.keyring = keyring
-        self.forged: set[str] = set()        # GROUND TRUTH — omniscient only
+        self.forged: set[str] = set()        # private fixture classification
         self._clock = 0
         self._revoke_clock = 9               # events at/after this are "afternoon"
 
@@ -484,7 +458,7 @@ class Ledger:
         self.events.append(ev)
         if forged:
             self.forged.add(ev.id)
-        tag = "  <-- FORGED (attacker holds the agent's stolen secret)" if forged else ""
+        tag = "  <-- ATTACKER-AUTHORED (uses the copied agent secret)" if forged else ""
         who = self.keyring.name_of[signer_pub]
         print(f"    -> {who:<8} {type_} {predicate}  [{ev.id}] @ {ev.timestamp}{tag}")
         return ev
@@ -511,25 +485,24 @@ def generate_log() -> tuple[list[Event], set[str], Keyring, dict]:
              payload={"key": root_pub})
     led.emit(holder="agent", signer_name="agent", type_="KEY", predicate="id.key_register",
              payload={"key": agent_pub})
-    say("custody", "root key is COLD (ceremonial); agent key is HOT (resident on the device)")
+    say("fixture", "the generator keeps separate root and agent key material")
 
     print("\n2. A narrow mandate — the hot key may sign market acts up to 30000")
     mandate = led.emit(holder="root", signer_name="root", type_="AUTHORIZE",
                        predicate="consent.mandate", refs=(agent_pub,),
                        scope={"context": "market", "max_total_krw": 30000})
 
-    print("\n3. The agent acts legitimately, in scope")
+    print("\n3. The agent records a pre-compromise in-scope act")
     legit = led.emit(holder="agent", signer_name="agent", type_="ATTEST",
                      predicate="commerce.payment_result", refs=(mandate.id,),
                      payload={"result": "confirmed", "amount_krw": 20000,
                               "context": "market", "provider": "mock_pay"})
 
-    print("\n4. COMPROMISE (an out-of-log fact) — the attacker exfiltrates the")
-    print("   agent's secret. No event marks this; theft is the ABSENCE of custody.")
+    print("\n4. Private fixture stipulation — copy the agent secret to the attacker label")
     kr.steal(victim="agent", thief="agent_stolen")
-    say("omniscient", "from here the attacker signs AS the agent, with valid signatures")
+    say("fixture", "from here the stipulated attacker uses the agent secret")
 
-    print("\n5. The attacker forges four events — every signature genuinely verifies")
+    print("\n5. The attacker authors four records — each passes the fixture verifier")
     forge_a = led.emit(holder="agent_stolen", signer_name="agent", type_="ATTEST",
                        predicate="commerce.payment_result", refs=(mandate.id,), forged=True,
                        payload={"result": "confirmed", "amount_krw": 25000,
@@ -544,42 +517,39 @@ def generate_log() -> tuple[list[Event], set[str], Keyring, dict]:
     led.emit(holder="agent_stolen", signer_name="agent", type_="AUTHORIZE",
              predicate="consent.mandate", refs=(kr.pub("attacker_key"),), forged=True,
              scope={"context": "market", "max_total_krw": 1000000})
-    say("attacker", "(d) tries to grant ITSELF a mandate — but cannot forge the COLD root")
+    say("attacker", "the authored AUTHORIZE uses the agent signer, not the root signer")
 
-    print("\n6. Detection + recovery — the COLD root revokes (time-scoped read)")
-    say("root", "the attacker never had this key; revocation is signed from the cold ceremony")
+    print("\n6. The root records a withdrawal (time-scoped read)")
+    say("root", "the fixture signs the withdrawal with the separate root key")
     led.emit(holder="root", signer_name="root", type_="AUTHORIZE", predicate="consent.withdraw",
              refs=(agent_pub,), nullifies=(mandate.id,),
              payload={"reason": "key_compromise"})
 
-    print("\n7. The attacker still holds the secret — forges one more in-scope act")
+    print("\n7. The attacker label authors one more in-scope record after withdrawal")
     led.emit(holder="agent_stolen", signer_name="agent", type_="ATTEST",
              predicate="commerce.payment_result", refs=(mandate.id,), forged=True,
              payload={"result": "confirmed", "amount_krw": 25000,
                       "context": "market", "provider": "mock_pay"})
 
-    print("\n8. The residue — the human KNOWS (out of band) that (a) was not theirs,")
-    print("   and disputes that ONE event. Revocation could not reach it; adjudication can.")
-    print("   The dispute routes to the commons: the market community anchors its key.")
+    print("\n8. The fixture adds a challenge targeting the attacker-authored record")
+    print("   and a ruling from the configured community adjudicator.")
     led.emit(holder="community", signer_name="community", type_="KEY",
              predicate="id.key_register", payload={"key": community_pub})
     led.emit(holder="root", signer_name="root", type_="CHALLENGE", predicate="dispute.open",
              refs=(forge_a.id,), payload={"reason": "not_authorized_by_holder"})
-    say("root", "tempted to close its own case, the disputant signs a ruling itself —")
-    say("root", "it verifies (events are evidence), but no honoring fold will count it")
+    say("root", "also records a self-ruling; this fold does not count its signer")
     self_ruling = led.emit(holder="root", signer_name="root", type_="ADJUDICATE",
                            predicate="gov.ruling", refs=(forge_a.id,),
                            payload={"ruling": "void", "context": "market"})
-    say("community", "the commons rules on the disputed act (registry §4.5: community")
-    say("community", "process, not an individual key — and not the disputant)")
+    say("community", "records the ruling counted by this fixture's adjudicator policy")
     ruling = led.emit(holder="community", signer_name="community", type_="ADJUDICATE",
                       predicate="gov.ruling", refs=(forge_a.id,),
                       payload={"ruling": "void", "context": "market"})
 
     verify_log(led.events)
-    print(f"\nGenerated log: {len(led.events)} signed events, real Ed25519, none hand-written.")
-    print("verify_log PASSES — every forgery included. A valid signature is a log fact;")
-    print("it proves the agent's key signed. It cannot prove the human held the key.")
+    print(f"\nGenerated log: {len(led.events)} hand-authored fixture events, illustrative Ed25519.")
+    print("verify_log checks signatures and prior key registration only; it cannot")
+    print("establish secret custody, authorship, or payment execution.")
     meta = {"root": root_pub, "agent": agent_pub, "community": community_pub,
             "legit_id": legit.id, "forge_a_id": forge_a.id,
             "self_ruling_id": self_ruling.id, "ruling_id": ruling.id}
@@ -587,8 +557,8 @@ def generate_log() -> tuple[list[Event], set[str], Keyring, dict]:
 
 
 # ===========================================================================
-# Standalone run — verify, fold both ways, size the blast radius, and show the
-# residue revocation cannot reach.
+# Standalone run — run the fixture checks, compare both fold readings, and report
+# fixture-classified exposure before per-act adjudication.
 # ===========================================================================
 
 def _verdict(honored: bool) -> str:
@@ -602,28 +572,25 @@ def main() -> None:
     # this reader's policy-layer choice (A&C §9): whose ADJUDICATE counts
     honors = (meta["community"],)
 
-    # Two views of the same log. `pre` is the world right after the revocation,
-    # before the human disputes individual acts — this is where the blast radius
-    # is actually measured. `events` is the full log, where adjudication closes
-    # the residue. Splitting them is the whole demonstration: revocation and
-    # adjudication reach DIFFERENT damage.
+    # Two views of the same log. `pre` is the fixture record set immediately after
+    # withdrawal and before the individual challenge; `events` includes the later
+    # adjudication. The two mechanisms affect different records under this policy.
     pre = [e for e in events if e.type not in ("CHALLENGE", "ADJUDICATE")]
 
     print("\n" + "=" * 72)
-    print("THE OMNISCIENT VIEW — available to NO observer (the generator wrote the")
-    print("flow, so it knows who held the pen; the fold below never sees this).")
+    print("Generator-only classification — not supplied to the observer fold")
     print("=" * 72)
     name = lambda pk: kr.name_of.get(pk, pk[:8])
     for e in events:
         if e.signer == agent and e.type in ("ATTEST", "AUTHORIZE"):
-            mark = "FORGED   " if e.id in forged else "genuine  "
+            mark = "ATTACKER-AUTHORED" if e.id in forged else "PRE-COMPROMISE"
             amt = f"{e.payload.get('amount_krw')} KRW" if e.payload.get("amount_krw") else "-"
             print(f"    {mark} {name(e.signer):<8} {e.predicate:<26} {amt:>11}  [{e.id}]")
 
     print("\n" + "=" * 72)
-    print("THE FOLD, just after the revocation — what an observer folding from the")
-    print("root actually sees. No 'forged' column exists here. A valid signature in")
-    print("scope is honored, whoever held the secret.")
+    print("Selected fold, just after the revocation — what an observer folding from the")
+    print("root actually sees. No authorship-classification column exists here. A record")
+    print("passing the signature check is then read under the selected scope policy.")
     print("=" * 72)
     for reading in READINGS:
         proj = project_compromise(pre, root=root, agent=agent, reading=reading,
@@ -636,88 +603,83 @@ def main() -> None:
                   f"[{r['id']}] — {r['basis']}")
 
     print("\n" + "=" * 72)
-    print("BLAST RADIUS — forged events the fold HONORS (the actual damage),")
-    print("intersecting the fold with the omniscient set the observer cannot see.")
+    print("Fixture-classified honored exposure — attacker-authored records this")
+    print("fold honors; no payment or exact damage is established.")
     print("=" * 72)
     for reading in READINGS:
-        br = blast_radius(pre, forged, root=root, agent=agent, reading=reading,
-                          honored_adjudicators=honors)
+        exposure = modeled_exposure(pre, forged, root=root, agent=agent, reading=reading,
+                                    honored_adjudicators=honors)
         print(f"\n  reading = {reading}")
-        for r in br["forged_rows"]:
+        for r in exposure["forged_rows"]:
             amt = f"{r['amount']} KRW" if r["amount"] else "-"
-            flag = "==> DAMAGE" if r["honored"] else "blocked   "
+            flag = "==> HONORED" if r["honored"] else "not honored"
             print(f"    {flag} {r['predicate']:<26} {amt:>11} [{r['id']}] — {r['basis']}")
-        print(f"    --> honored damage: {len(br['honored_damage'])} event(s), "
-              f"{br['honored_krw']} KRW  (mandate ceiling {br['ceiling']} per act)")
+        print(f"    --> honored attacker-authored fixture records: "
+              f"{len(exposure['honored_attacker_authored'])} event(s), "
+              f"{exposure['honored_krw']} KRW in recorded claims "
+              f"(mandate ceiling {exposure['ceiling']} per act)")
 
     print("\n" + "=" * 72)
-    print("THE FINDING — blast radius = mandate scope x DETECTION LATENCY")
+    print("Modeled controls — scope and pre-withdrawal time")
     print("=" * 72)
     ts = project_compromise(pre, root=root, agent=agent, reading="time_scoped",
                             honored_adjudicators=honors)
     cas = project_compromise(pre, root=root, agent=agent, reading="cascade",
                              honored_adjudicators=honors)
     row = lambda proj, eid: next(r for r in proj["rows"] if r["id"] == eid)
-    print("\n  The legitimate act and the in-scope forgery, side by side (pre-dispute):")
-    for label, eid in (("legitimate (20000)", legit_id), ("FORGED in-scope (25000)", forge_a_id)):
+    print("\n  Pre-compromise and attacker-authored records, side by side (pre-dispute):")
+    for label, eid in (("pre-compromise (20000)", legit_id),
+                       ("attacker-authored (25000)", forge_a_id)):
         t, c = row(ts, eid), row(cas, eid)
         print(f"    {label:<26} time_scoped={_verdict(t['honored'])}, "
               f"cascade={_verdict(c['honored'])}  [{eid}]")
     print("""
-  Read those two rows. The fold returns the SAME pair of verdicts for both —
-  because on the log they ARE the same: a valid agent signature, in context,
-  within the ceiling, before the revoke. The only difference lives in the
-  omniscient strip the observer cannot see. The honored 25000 IS the blast
-  radius — bounded, but not zero.
+  The fold returns the same pair of verdicts for both records,
+  even though the records have different payloads, IDs, and bytes. Both carry an
+  agent signature, are in context, within the ceiling, and precede withdrawal.
+  The private generator classification assigns their authors differently.
 
-  So key-custody.md §5 is right but incomplete. The blast radius is bounded by
-  the mandate's scope PER ACT (the 90000 and the out-of-context act were rejected
-  by scope alone; the self-elevation by the tier line — a hot key cannot mint
-  authority) — but the NUMBER of in-scope acts the attacker gets honored is
-  bounded only by how long until the revoke. Scope sets the height of the damage;
-  detection latency sets its width. The product is the blast radius.
+  Under this policy the honored exposure is limited by
+  the mandate's per-record scope (the 90000 and out-of-context records were declined
+  by scope alone; the self-elevation is not root-signed). The number of in-scope
+  attacker-authored records honored is
+  affected by how many records precede withdrawal. This is not a general
+  damage formula and no payment is executed.
 
-  And the pre-revoke in-scope window is UNRECOVERABLE BY REVOCATION ALONE:
-    * time_scoped revocation preserves it (keeps the honest history — and the
-      forgery riding inside it);
-    * cascade revocation declines to honor it (rejecting the forgery — and the
-      honest 20000 act with it in that projection).
-  Neither reading excises only the compromise, because the log gives no basis to
-  tell the two apart.""")
+  The time-scoped policy preserves pre-withdrawal records, including both fixture
+  classes. The cascade policy excludes both from its current honoring result.
+  Neither reading excludes only the attacker-authored class, because the fold is
+  not given the private authorship classification.""")
 
     print("\n" + "=" * 72)
-    print("RECOVERY THE REVOCATION COULD NOT REACH — per-act adjudication")
+    print("Per-act adjudication after withdrawal")
     print("=" * 72)
     upto_self = events[:next(i for i, e in enumerate(events)
                              if e.id == meta["self_ruling_id"]) + 1]
     mid = project_compromise(upto_self, root=root, agent=agent, reading="time_scoped",
                              honored_adjudicators=honors)
     fm = row(mid, forge_a_id)
-    print("\n  First, the guard: the DISPUTANT'S OWN ruling is on the log — and moves")
-    print("  nothing (registry §4.5: adjudication is honored by WHO signed it):")
-    print(f"    FORGED in-scope (25000)    {_verdict(fm['honored'])}  [{forge_a_id}] — {fm['basis']}")
-    print(f"    (the root's self-ruling [{meta['self_ruling_id']}] verifies as an event;")
+    print("\n  First, the root's self-ruling is present but its signer is not in the")
+    print("  configured adjudicator set (registry §4.5):")
+    print(f"    attacker-authored (25000)  {_verdict(fm['honored'])}  [{forge_a_id}] — {fm['basis']}")
+    print(f"    (the root's self-ruling [{meta['self_ruling_id']}] passes the fixture checks;")
     print(f"     it is not an honored adjudicator, so the fold does not count it)")
     full_ts = project_compromise(events, root=root, agent=agent, reading="time_scoped",
                                  honored_adjudicators=honors)
     lt, ft = row(full_ts, legit_id), row(full_ts, forge_a_id)
-    print(f"\n  Then the COMMUNITY rules on the disputed event (full log, time_scoped):")
-    print(f"    legitimate (20000)         {_verdict(lt['honored'])}  [{legit_id}] — {lt['basis']}")
-    print(f"    FORGED in-scope (25000)    {_verdict(ft['honored'])}  [{forge_a_id}] — {ft['basis']}")
+    print(f"\n  Then the configured community ruling is included (full log, time_scoped):")
+    print(f"    pre-compromise (20000)     {_verdict(lt['honored'])}  [{legit_id}] — {lt['basis']}")
+    print(f"    attacker-authored (25000)  {_verdict(ft['honored'])}  [{forge_a_id}] — {ft['basis']}")
     print("""
-  Now they separate — but only because the human supplied, off the log, the one
-  fact the log never held (that 25000 was not theirs), and because the COMMONS
-  ruled on it: the root's CHALLENGE invoked the community, and the community's
-  ADJUDICATE voids exactly that event while the genuine 20000 stays honored.
-  The root's own attempted self-ruling counted for nothing — an adjudication is
-  honored by WHO signed it, not by its shape (registry §4.5; which adjudicator a
-  reader honors is the reader's policy choice, A&C §9). Three layers, the same
-  split every ARC probe finds: signature valid (log) / scope honored (fold) /
-  void (authority).
+  Now they separate because a CHALLENGE and honored ADJUDICATE target the 25000
+  record using the fixture's off-log authorship stipulation. The 20000 record is
+  not targeted and remains honored under this policy.
+  The root's self-ruling is not counted because its signer is outside this
+  fixture's configured adjudicator set. Which adjudicator a reader honors is a
+  policy choice (registry §4.5, A&C §9).
 
-  No new event type was needed — theft is the absence of custody, revocation is
-  consent.withdraw + nullifies, the dispute is CHALLENGE + ADJUDICATE. Offered as
-  a probe finding extending key-custody.md §5/§8, not as settled doctrine.
+  This fixture represents withdrawal and dispute with the current Event types;
+  theft remains a private fixture stipulation rather than an Event.
 """)
 
 

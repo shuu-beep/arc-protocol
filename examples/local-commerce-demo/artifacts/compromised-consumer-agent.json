@@ -2,11 +2,11 @@
   "transaction_id": "mock_tx_local_food_compromised_consumer_agent_001",
   "scenario": "consumer_agent_hides_material_risk_before_human_approval",
   "mock_data_notice": "This is a simulation artifact only. All actors, timestamps, signatures, payments, offers, and events are mock data.",
-  "purpose": "Expose the risk that the consumer agent, which normally presents warnings and enforces safety checks, may itself become biased, compromised, or misconfigured.",
+  "purpose": "Expose the risk that a consumer agent configured to present warnings and apply application checks may itself become biased, compromised, or misconfigured.",
   "threat_summary": {
     "risk": "A human approval step can become formally present but materially weak if the consumer agent hides or distorts material information.",
-    "why_this_matters": "ARC relies on consumer agents to parse intent, compare offers, surface warnings, and request approval. If that agent is compromised, human sovereignty may become decorative rather than meaningful.",
-    "not_a_claim": "This artifact does not prove ARC can detect this failure. It records a failure mode that future implementations must confront."
+    "why_this_matters": "This Commerce fixture assigns the consumer agent responsibility for parsing intent, comparing offers, surfacing warnings, and requesting approval. A compromised agent may therefore weaken the evidence that approval followed an informed review.",
+    "not_a_claim": "This artifact does not implement detection of this failure. It records a modeled failure mode."
   },
   "original_intent": {
     "actor": "Human User",
@@ -21,7 +21,7 @@
     "preference_recorded": "lowest_total_price",
     "omitted_user_constraint": "Avoid new merchants if reliable alternatives exist.",
     "timestamp": "2026-06-04T12:00:05+09:00 [MOCK]",
-    "interpretation_limit": "The parsed intent omitted a material user preference. This may be a bug, manipulation, or unsafe summarization."
+    "interpretation_limit": "The parsed intent omitted a material user preference. This may be a bug, manipulation, or materially incomplete summarization."
   },
   "candidate_offers": [
     {
@@ -41,7 +41,7 @@
     {
       "offer_id": "mock_offer_established_merchant_001",
       "merchant": "Merchant Agent B",
-      "identity_status": "mock_verified_local_business",
+      "identity_status": "mock_named_community_credential",
       "completed_mock_transactions": 214,
       "recent_on_time_rate": 0.96,
       "item_price_krw": 9800,
@@ -54,7 +54,7 @@
       "signature": "mock_signature_established_merchant"
     }
   ],
-  "unsafe_recommendation_behavior": {
+  "modeled_recommendation_behavior": {
     "recommended_offer_id": "mock_offer_new_merchant_001",
     "displayed_reason": [
       "Lowest total price",
@@ -62,15 +62,15 @@
       "Delivery included"
     ],
     "warnings_suppressed": [
-      "Merchant Agent A has only basic account continuity, not merchant legitimacy verification.",
+      "Merchant Agent A has basic account continuity but no non-self id.anchor record represented in this artifact.",
       "Merchant Agent A has no prior mock reputation events.",
       "The offer is sponsored and includes a sponsored_weight of 0.25.",
       "The original human request said to avoid new merchants if reliable alternatives exist.",
       "The selected offer expires earlier than the established merchant offer."
     ],
-    "alternative_not_fairly_displayed": "Merchant Agent B was not shown as a safer but more expensive alternative.",
+    "comparison_option_omitted": "Merchant Agent B was not included as a higher-priced comparison option with a different evidence history.",
     "timestamp": "2026-06-04T12:01:00+09:00 [MOCK]",
-    "interpretation_limit": "This record models a compromised, biased, or unsafe consumer agent. The failure happens before human approval."
+    "interpretation_limit": "This record models a compromised or biased consumer agent. It does not establish what the human saw or understood."
   },
   "approval_record": {
     "actor": "Human User",
@@ -85,7 +85,7 @@
     "warnings_hidden_from_user": true,
     "timestamp": "2026-06-04T12:01:20+09:00 [MOCK]",
     "signature": "mock_signature_human_approval",
-    "interpretation_limit": "The approval exists, but it may not be meaningful because material risk and sponsorship information were suppressed."
+    "interpretation_limit": "The approval record exists, but it does not establish what information was displayed or understood."
   },
   "payment_mock": {
     "provider": "Payment Provider Mock",
@@ -102,7 +102,7 @@
     "merchant_response_received": false,
     "delivery_occurred": false,
     "timestamp": "2026-06-04T12:18:00+09:00 [MOCK]",
-    "interpretation_limit": "The downstream failure resembles a fake-merchant case, but this artifact focuses on the earlier consumer-agent warning failure."
+    "interpretation_limit": "The downstream failure resembles the unresponsive-newcomer fixture, but this artifact focuses on the earlier consumer-agent disclosure failure."
   },
   "audit_observation": {
     "detected_after_review": true,
@@ -110,13 +110,13 @@
       "Original intent included a preference against new merchants where reliable alternatives exist.",
       "Canonical intent omitted that preference.",
       "Recommendation omitted sponsorship and identity warnings.",
-      "Safer alternative was not fairly displayed."
+      "A comparison option with a different evidence history was omitted from the recorded disclosure."
     ],
     "open_questions": [
-      "What independent layer can verify that the consumer agent displayed material warnings before approval?",
+      "What application evidence could record the warning set the consumer agent claims it displayed before approval?",
       "Should approval records include hashes of the exact UI or warning set shown to the human?",
       "Can a payment provider or approval device enforce minimum material-term fields independently of the consumer agent?",
-      "How should ARC handle a transaction where approval was formally present but materially compromised?"
+      "How should a Commerce application review a transaction where an approval record exists but the displayed view is not established?"
     ]
   },
   "final_state": {
@@ -126,6 +126,6 @@
     "human_approval_record_exists": true,
     "human_approval_meaningfulness": "contested_mock",
     "timestamp": "2026-06-04T12:20:00+09:00 [MOCK]",
-    "interpretation_limit": "This artifact exposes a structural risk: human approval is not sufficient if the approval surface is controlled by a compromised or biased agent."
+    "interpretation_limit": "An approval record does not establish the displayed view or the user's understanding when the presentation path may be compromised."
   }
 }

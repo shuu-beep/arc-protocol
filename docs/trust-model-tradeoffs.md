@@ -16,65 +16,65 @@ ARC's trust trade-offs are real but scattered: a list in [glossary.md](./glossar
 
 Read together they fall onto two axes. This note states those axes once, so later work can locate a given tension instead of rediscovering it. It adds nothing to the model; it only makes the existing shape legible.
 
-## 2. The Core Trilemma
+## 2. A Recurring Three-Way Trade-off
 
-Three properties a reputation system might want cannot all be held at once:
+The current reputation research repeatedly encounters tension among three properties:
 
-- **Portability** — reputation moves across communities. Valuable (it prevents lock-in, see [reputation.md](./reputation.md) §10), but it lets reputation earned in a weak or captured context be imported where it was not earned (laundering).
-- **Sybil-resistance** — real expulsion and real accountability need identity persistence and cost ([threat-model.md](./threat-model.md) §4, [governance.md](./governance.md) §6.1). But persistent, costly identity pulls against the next property.
-- **Privacy / no universal score** — local-first, contextual, non-concentrated trust, with no global profile of a person ([reputation.md](./reputation.md) §3.4, [object-model.md](./object-model.md) §6). But removing the global anchor removes the thing that would otherwise stop Sybil and laundering.
+- **Portability** — a compatible profile may import reputation evidence across contexts. This may reduce switching cost, but may also import signals from a weak or captured context ([reputation.md](./reputation.md) §10).
+- **Sybil resistance** — identity continuity, external anchors, and participation cost are candidate profile controls ([threat-model.md](./threat-model.md) §4, [governance.md](./governance.md) §6.1). They do not prove distinct principals and may increase exclusion or privacy risk.
+- **Privacy / no universal score** — a contextual profile can avoid requiring one global profile of a person ([reputation.md](./reputation.md) §3.4, [object-model.md](./object-model.md) §6). That choice may limit evidence sharing while leaving Sybil and import-manipulation risks unresolved.
 
-Strengthening any one tends to weaken another. There is no setting that maximizes all three at once.
+Strengthening one may weaken another under a given identity, disclosure, and import policy. This note does not establish a formal impossibility result or identify a setting that maximizes all three.
 
-## 3. ARC Has Chosen a Corner
+## 3. Policy Explored by the Commerce/Reputation Research
 
-ARC does not claim to beat the trilemma. It picks a corner.
+The current Commerce/reputation research explores one policy choice; base ARC does not mandate it.
 
-ARC favors local, contextual, non-transferable reputation ([reputation.md](./reputation.md) §3.1, §13), computed as an on-demand projection over signed events with no stored global profile ([object-model.md](./object-model.md)). In trilemma terms, ARC **sacrifices full portability** to keep **Sybil-resistance and privacy within one bounded community**.
+That research uses local, contextual, non-transferable reputation ([reputation.md](./reputation.md) §3.1, §13), computed as a named Projection over declared Events rather than an authoritative global profile ([object-model.md](./object-model.md)). It accepts less portability. Locality alone does not establish Sybil resistance, privacy, or a required community topology.
 
-This is a legitimate choice, but it does not dissolve the trilemma. It **relocates** it — to the boundary between communities (spatial axis, §4) — and it leaves one face of the problem entirely untouched (temporal axis, §5).
+This choice moves some questions to boundaries between contexts (spatial axis, §4) and leaves time-dependent reputation questions open (temporal axis, §5).
 
-Locality is also ARC's scaling stance: by reducing the global negotiation surface, it lowers scaling pressure. This is not a claim that ARC solves internet-scale coordination — it is a claim that ARC tries to need less of it.
+The current documents have not established the scaling effects of this policy. A local deployment may reduce some shared coordination requirements while duplicating others.
 
 ## 4. The Spatial Axis: Portability ↔ Sybil-resistance ↔ Privacy
 
-Locality relaxes this axis *inside* a single community: within one bounded context, trust is local, cheap to keep contextual, and needs no global score.
+Within one bounded context, a local profile can avoid requiring a global score. Sybil, privacy, disclosure, and governance risks still depend on the profile and deployment.
 
-At the boundary *between* communities it returns in full:
+At boundaries between communities, related risks may appear:
 
-- importing reputation reopens Sybil and laundering risk ([reputation.md](./reputation.md) §10, [threat-model.md](./threat-model.md) §13.1)
+- importing reputation may increase Sybil and evidence-laundering risk ([reputation.md](./reputation.md) §10, [threat-model.md](./threat-model.md) §13.1)
 - refusing all import leaves every community with its own cold start, and a malicious actor expelled in one can re-enter another fresh ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md) §8, [reputation.md](./reputation.md) §13)
 
-So locality does not remove the spatial tension; it **converts it into a bootstrap tax** — N communities, N cold starts — paid in exchange for keeping Sybil-resistance and privacy local. The existing knob is the receiving community's choice: accept fully, partially weight, require probation, require extra verification, or reject ([reputation.md](./reputation.md) §10). None of these options is free, and none is settled.
+Locality can therefore create recurring cold-start costs across communities. A receiving community may accept imported evidence, partially weight it, require probation or additional checks, or reject it ([reputation.md](./reputation.md) §10). None of these policies is settled, and none by itself establishes Sybil resistance or privacy.
 
 ## 5. The Temporal Axis: Decay ↔ Recovery ↔ Attack
 
-Locality does nothing for this axis. Even inside one community, the same tension persists over time:
+Locality does not by itself resolve this axis. Even inside one community, related tensions may persist over time:
 
-- **Decay** — old trust should lose weight as ownership, staff, and behavior change ([reputation.md](./reputation.md) §7). Decay too fast and an honest dormant participant is punished; decay too slow and stale trust misleads.
-- **Recovery** — ordinary failure should be recoverable ([reputation.md](./reputation.md) §8). Make recovery too easy and abuse is forgiven; too hard and honest rehabilitation is foreclosed.
-- **Attack** — the gap between decay and recovery is exactly where wash-trading lives: build reputation, abuse it, let it decay, rebuild ([reputation.md](./reputation.md) §6 velocity, §12 collusion heuristics; [colluding-reputation-farming.json](../examples/local-commerce-demo/artifacts/colluding-reputation-farming.json)).
+- **Decay** — a named policy may reduce the weight of old evidence as ownership, staff, and behavior change ([reputation.md](./reputation.md) §7). Faster decay can disadvantage dormant participants; slower decay can retain stale signals.
+- **Recovery** — a named policy may allow recovery after ordinary failure ([reputation.md](./reputation.md) §8). Easier recovery can also reduce the cost of repeated abuse; stricter recovery can exclude legitimate rehabilitation.
+- **Attack** — the interaction between decay and recovery creates one possible wash-trading surface: build reputation, abuse it, let it decay, rebuild ([reputation.md](./reputation.md) §6 velocity, §12 collusion heuristics; [colluding-reputation-farming.json](../examples/local-commerce-demo/artifacts/colluding-reputation-farming.json)).
 
 The existing knobs — velocity limits, weighting old vs recent history, review triggers on sudden spikes — manage but do not resolve this. Detection thresholds remain unsolved ([threat-model.md](./threat-model.md) §16, §18).
 
-## 6. Why Locality Relocates But Does Not Dissolve
+## 6. Effects of Locality
 
 Putting the two axes together:
 
-- the **spatial** tension is relaxed inside a community and reappears at the inter-community boundary as a bootstrap tax
+- the **spatial** tension changes across community boundaries and may recur as cold-start cost
 - the **temporal** tension is untouched by locality and persists everywhere
 
-ARC's locality choice is therefore best understood not as a solution but as a *relocation*: it trades a hard cross-community problem for many local cold starts, and it does not address trust over time at all.
+The explored locality policy is therefore not a solution: it may exchange some cross-community coordination for repeated local cold starts, and it does not resolve time-dependent reputation questions.
 
-A reference-client fixture ([`examples/reference-client`](../examples/reference-client/), `coldstart_fixture.py`) suggests a sharper formulation of what each relocated cold start *is*: **legitimacy is not a property of a node — it is a relation between an observer's fold policy and the log.** In the fixture, three observers fold the same events through three defensible policies (a path from one's own root, outcome history, transitive vouching) and legitimately disagree about the same newcomers, with each policy failing on a different one. The corollary is that **observer policy is unavoidable**: even a stored global score would not escape the choice, it would only be one policy imposed on everyone — the corner ARC already declines (§7). This is offered as a probe finding, not a settled rule: ARC fixes the evidence and returns the reading to the observer.
+A reference-client fixture ([`examples/reference-client`](../examples/reference-client/), `coldstart_fixture.py`) demonstrates policy-relative newcomer readings. Three observers fold the same supplied Events through three fixture policies (a path from one's own root, outcome history, transitive vouching) and return different results, with each policy missing a different private generator classification. The fixture shows that observer policy affects its output; it does not establish legitimacy, exhaust all policies, or require a global/local topology.
 
-## 7. The Defining Proposition: Computed vs Governed Trust
+## 7. Computed and Governed Models
 
-Underneath both axes sits one proposition, already stated as positioning language in [landscape-and-positioning.md](./landscape-and-positioning.md) §9: is trust **computed** (a score or proof on shared infrastructure) or **governed** (a community process over evidence)?
+The positioning document distinguishes **computed** models (a score or proof on shared infrastructure) from **governed** models (a community process over evidence) ([landscape-and-positioning.md](./landscape-and-positioning.md) §9).
 
-A single stored universal score would appear to ease the spatial axis (portable by construction) and the simplicity problem (one number). ARC declines it, because that same global number is the privacy failure ([object-model.md](./object-model.md) §6) and turns the temporal-attack surface into one target worth gaming globally. ARC accepts more friction — local cold starts, contextual projection, community review — to avoid a stored global profile.
+A shared score under a compatible interface may simplify exchange and operation while creating concentration, privacy, and gaming risks ([object-model.md](./object-model.md) §6). The current Commerce/reputation research instead explores contextual Projections and community review. Base ARC defines neither policy as a required deployment topology.
 
-This is a bet, not a verdict, and the terms "computed" and "governed" are positioning language, not ARC protocol primitives.
+The terms "computed" and "governed" are positioning language, not ARC protocol primitives.
 
 ## 8. Related Trade-offs That Are Not the Trilemma
 
@@ -95,16 +95,16 @@ This consolidation does not resolve any trade-off. It makes them legible, not so
 
 ## 10. Open Questions
 
-- Is there any safe standard for cross-community reputation import, or must the bootstrap tax always be paid in full? (spatial)
+- What cross-community reputation-import profiles, if any, can state bounded privacy and manipulation properties? (spatial)
 - What detection thresholds distinguish wash-trading from honest early activity without punishing newcomers? (temporal, shared with [reputation.md](./reputation.md) §6, §12)
-- Is any degree of portability safe, or does portability always reopen the privacy/Sybil corner?
+- What bounded privacy and manipulation properties, if any, can a portable reputation profile support?
 - Friction quality — the unsolved center shared with approval fatigue and delegation ([delegation-and-spending-mandates.md](./delegation-and-spending-mandates.md) §7) — cuts across these axes whenever a human is asked to weigh imported or aged trust.
 
 ## 11. Current ARC Position
 
 This is a consolidation note. It introduces no new primitive, event type, Canon, or governance structure, and it reorganizes existing material from [glossary.md](./glossary.md) §23, [reputation.md](./reputation.md) §17, [local-commerce-simulation.md](./local-commerce-simulation.md) §10, and [threat-model.md](./threat-model.md) §16 into two axes:
 
-- **spatial** — portability ↔ Sybil-resistance ↔ privacy, relaxed locally and relocated to the inter-community boundary as a bootstrap tax
+- **spatial** — portability, Sybil resistance, and privacy across context boundaries and recurring cold starts
 - **temporal** — decay ↔ recovery ↔ attack, untouched by locality
 
-The defining proposition beneath both is computed vs governed trust. ARC has chosen a governed, local corner, and remains honest that this relocates the trilemma rather than dissolving it.
+The note also compares computed and governed trust as positioning language. The current Commerce/reputation research explores a governed, local policy; base ARC mandates neither that topology nor its trust heuristics.

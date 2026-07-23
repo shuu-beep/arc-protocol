@@ -4,7 +4,7 @@
 >
 > **Purpose:** Separate observations about earlier decentralized commerce from inferences about what AI agents may change and open hypotheses about which implementations may become useful.
 >
-> This is not a prediction that blockchain adoption is inevitable, a proposal for an ARC token, or an expansion of ARC into payments or marketplace operation. For ARC's current boundaries, see [landscape-and-positioning.md](./landscape-and-positioning.md) and [liability-boundaries.md](./liability-boundaries.md).
+> This is not a prediction that blockchain adoption is inevitable or an expansion of ARC into payments or marketplace operation. For ARC's current boundaries, see [landscape-and-positioning.md](./landscape-and-positioning.md) and [liability-boundaries.md](./liability-boundaries.md).
 
 ---
 
@@ -20,7 +20,7 @@ The distinction matters because neither the difficulty of earlier systems nor th
 
 This note did not begin as an argument for blockchain-based commerce. It emerged while examining whether personal AI agents remain meaningfully independent when closed platforms control discovery, ranking, and recommendation. That threat model suggested that an agent may be less susceptible to emotional persuasion while remaining algorithmically dependent, renewing the importance of open, inspectable discovery and explicit authority boundaries ([philosophy.md](./philosophy.md) §§2–3).
 
-**Analytical hinge.** That inquiry raised a second question. Some earlier systems required people to handle some combination of wallets, keys, tokens, bridges, escrow selection, and reputation evaluation directly. If software can absorb operational work that people previously bore, agent mediation may change the relevant cost structure even though the underlying complexity does not disappear. Some assumptions behind earlier decentralized-commerce failures may therefore deserve re-examination. This document explores that possibility. It does not argue that earlier conclusions were wrong or that blockchain adoption is inevitable. The open question is whether software agents can absorb enough of that complexity while preserving human authority and the conditions for informed consent.
+That inquiry raised a second question. Some earlier systems required people to handle combinations of wallets, keys, tokens, bridges, escrow selection, and reputation evaluation directly. Agent mediation may change who bears those operational costs without removing them. This note asks which burdens move and which remain, including human-authored authority and evidence of the approval process.
 
 ## 2. Observation: Earlier Commerce Carried a Full-Stack Burden
 
@@ -66,7 +66,7 @@ The remaining questions include:
 
 Automation may also scale poor decisions. A faster route through an opaque market is not necessarily a more trustworthy route.
 
-## 5. Inference: Payment Access Is Not Decision Sovereignty
+## 5. Inference: Payment Access Is Not Decision Control
 
 **An agent can be emotionally indifferent yet algorithmically dependent.**
 
@@ -74,7 +74,7 @@ Agent payments are one layer. Wallet access and autonomous settlement can establ
 
 The discovery layer remains subject to the dependency described in [philosophy.md](./philosophy.md) §§2–3. If recommendation provenance and authority boundaries remain opaque, the agent may still depend on platform-controlled discovery, ranking, fees, or available alternatives. That is an incentive and observability problem, not proof that every closed system is biased.
 
-Decision sovereignty therefore depends on more than possession of a wallet. It also depends on whether the user or an independent reader can inspect what authority covered the action, which inputs shaped the recommendation, what alternatives were omitted, and who can contest the result.
+Decision control depends on more than possession of a wallet. It also depends on whether the user or an independent reader can inspect what authority covered the action, which inputs shaped the recommendation, what alternatives were omitted, and who can contest the result.
 
 ## 6. ARC's Narrow Relevance
 

@@ -12,8 +12,8 @@ treasury board, a co-signed spend, an M-of-N committee. `key-custody.md` §8 lis
 
 This probe asks the smallest version of it:
 
-> Can M-of-N joint authority be represented with the existing five types — and if
-> so, *where does the quorum rule live?*
+> Can one M-of-N evidence policy be encoded with the current five types — and
+> where does this fixture's counting rule live?
 
 The setup is a 2-of-3 board. The principal grants an agent a spending mandate that
 is only honored when **two of three named members approve** a candidate act:
@@ -24,8 +24,8 @@ is only honored when **two of three named members approve** a candidate act:
     m1         --ATTEST   quorum.approve-------->  candidate            [1 of 3]
     m2         --ATTEST   quorum.approve-------->  candidate            [2 of 3]  quorum
     principal  --AUTHORIZE consent.withdraw------>  tries to nullify m2's approval
-                                                    (NOT honored: not the author, §4.6)
-    m2         --AUTHORIZE consent.withdraw------>  nullifies m2's OWN approval
+                                                    (not honored: signer labels differ)
+    m2         --AUTHORIZE consent.withdraw------>  nullifies m2's own approval
 
 Nothing here is a new event type. The joint set is recorded as **scope on one
 ordinary AUTHORIZE** (members + threshold are parameters, exactly like
@@ -41,39 +41,41 @@ CONSENT (an AUTHORIZE that composes authority) is posed by this probe and
 resolved by no document (event-registry §10). The probe models the evidence
 reading and does not claim it is the right one.
 
-The core finding
-----------------
+The bounded fixture result
+--------------------------
 The threshold *number* lives in an event (scope). The quorum *rule* — what counts
 as an approval, whether non-members or duplicates count, how a later revocation
-re-reads the count — does NOT. It lives in the fold. So joint authority opens a
-fresh observer-relative boundary, on two independent axes the probe crosses:
+re-reads the count — does not. It lives in this fixture's fold policy. Outputs
+therefore vary on two configured axes:
 
   * revocation reading (the finding-G axis): withdraw an approval after reliance.
     An earlier event subset establishes `authorized_at_reliance=True`. Against
-    the SAME full current log:
+    the same full current log:
       - preserve  -> candidate_honored_now=True;
       - cascade   -> candidate_honored_now=False (the withdrawn approval no
                      longer counts in this projection).
-  * counting policy (the new axis): the SAME approvals
+  * counting policy (the new axis): the same approvals
       - strict   (distinct named members only) -> a stray key does not count;
       - lenient  (any anchored signer)         -> a stray key restores quorum.
-    A party holding ONE member key plus a stray key can satisfy the candidate
-    gate against any counterparty whose fold uses the lenient rule.
+    A party holding one member key plus a stray key can satisfy the candidate
+    gate under the lenient rule.
 
-One boundary is NOT policy: who may withdraw. The fold honors a `nullifies` only
-from the target's own author (event-registry §4.6) — the principal's attempt to
-withdraw m2's approval is recorded but changes no count; only m2's own withdrawal
-does. Only an honored ADJUDICATE can explicitly void another party's event.
+This fixture accepts a withdrawal only when its signer label exactly matches the
+target's signer label. It has no key-rotation records or lineage traversal. The
+principal's attempt to withdraw m2's approval is recorded but changes no count;
+only m2's own withdrawal does. Only an honored ADJUDICATE can explicitly void
+another party's event.
 
 And one guard, shown cheaply: quorum cannot *widen* scope. A spend over the
 mandate's ceiling is unauthorized even at a full 3-of-3.
 
-Deliberately dirty and small. Explicitly:
+Limits:
   * stdlib only, single process, no network, no transport, no storage;
   * signatures are MOCK (a hash, not Ed25519) — the finding is about the FOLD,
     not custody;
   * the five canonical types are reused as-is — no new primitive, no stored
     authority object;
+  * this fixture does not model or validate key-rotation lineage;
   * this is a probe, not a multisig spec and not doctrine.
 
 Run:  python3 probe.py
@@ -116,7 +118,7 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies."""
+    """MOCK. This fixture uses a deterministic hash for reproducible replay, not production security; ARC has no selected normative signature suite, so implementations and named profiles select and declare their suite."""
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
 
@@ -132,11 +134,11 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: signature check + signer anchored by a prior KEY."""
+    """Fixture replay check: deterministic mock signature and key registration."""
     registered: set[str] = set()
     for ev in events:
         if ev.signature != stub_sign(ev.signer, ev.signing_bytes()):
-            raise ValueError(f"bad signature on {ev.id}")
+            raise ValueError(f"bad mock signature on {ev.id}")
         is_root = ev.type == "KEY" and ev.predicate == "id.key_register"
         if not is_root and ev.signer not in registered:
             raise ValueError(f"signer {ev.signer} not anchored by a KEY register ({ev.id})")
@@ -184,17 +186,16 @@ def project_quorum(events: list[Event], candidate_id: str, *,
                  and candidate_id in e.refs]
 
     # withdrawals: which approvals no longer count under the chosen reading?
-    # Nullifier authority is NOT one of the policy knobs (event-registry §4.6):
-    # only the approval's own author may withdraw it (this probe has no key
-    # rotation, so lineage reduces to the author). A cross-party withdrawal
-    # stays on the log as evidence but changes no count.
+    # This fixture's withdrawal check is exact signer-label equality, not a
+    # configured axis. It has no key-rotation records or lineage traversal. A
+    # cross-party withdrawal stays on the log as evidence but changes no count.
     withdrawn: set[str] = set()
     for w in events:
         if w.type == "AUTHORIZE" and w.predicate == "consent.withdraw":
             for nid in w.nullifies:
                 target = by_id.get(nid)
                 if target is None or w.signer != target.signer:
-                    continue  # §4.6: not the target's author -> not honored
+                    continue  # exact target-signer-label check fails
                 # Cascade stops counting the approval for the completed candidate;
                 # preserve applies withdrawal only at/after its timestamp.
                 if retroactive or w.timestamp <= act.timestamp:
@@ -333,7 +334,7 @@ def run() -> None:
     principal.emit("AUTHORIZE", "consent.withdraw", refs=("k:m2", mandate.id),
                    nullifies=(appr2.id,), payload={"reason": "member_standing_withdrawn"})
     print("\n   --- (3) NULLIFIER AUTHORITY (event-registry §4.6): the principal is not the")
-    print("       approval's author, so the fold does NOT honor this withdrawal ---")
+    print("       approval's signer label, so the fold does not honor this withdrawal ---")
     show_honoring(project_quorum(led.events, candA.id,
                                  retroactive=True, counting="strict"))
 
@@ -363,7 +364,7 @@ def run() -> None:
         print(f"    {label}: candidate_honored_now={r['candidate_gate_satisfied']}  "
               f"({r['reason']}){flag}")
 
-    print(f"\nGenerated log: {len(led.events)} signed events. verify_log passes.")
+    print(f"\nGenerated log: {len(led.events)} mock-signed fixture Events; replay checks pass.")
     verify_log(led.events)
     print_finding()
 
@@ -372,42 +373,41 @@ def print_finding() -> None:
     print("""
 What this probe exposes
 -----------------------
-  * Can M-of-N be represented in the five types?
-      Yes. The joint set is scope on ONE ordinary AUTHORIZE (members + threshold,
+  * Can this fixture encode one M-of-N evidence policy with the five types?
+      Yes, for this authored construction. The joint set is scope on one AUTHORIZE (members + threshold,
       like any other scope parameter); each approval is an ordinary ATTEST
       (`quorum.approve` — not `consent.*`, reserved for AUTHORIZE; whether a
       quorum approval is evidence or consent stays this probe's declared open
       question, event-registry §10); the revocation is the existing `nullifies`
-      field. NO sixth type, no stored authority object, no "multisig" primitive.
+      field. This does not settle canonical joint-authority semantics or all
+      threshold schemes.
   * Where does the quorum RULE live?
       Not in any event. The threshold *number* is recorded, but "did this reach
       quorum?" is a PROJECTION — a fold that counts approvals on demand. The
       counting rule (distinct? members-only? non-members?) is a fold policy.
   * Who may withdraw an approval?
-      Only its author (or the author's rotation lineage) — the nullifier-authority
-      rule of event-registry §4.6, and it is NOT a policy knob. The principal's
-      attempt to withdraw m2's approval is recorded evidence and changes no count;
-      only an honored ADJUDICATE can explicitly void another party's event. Only
-      m2's own withdrawal moves the fold.
-  * Does that make joint authority observer-relative?
-      Yes, on two independent axes the probe crosses:
+      This fixture implements exact signer-label equality only. It has no
+      key-rotation records or lineage traversal. The principal's attempt to
+      withdraw m2's approval is recorded evidence and changes no count; only an
+      honored ADJUDICATE can explicitly void another party's event. Only m2's own
+      withdrawal moves the fold.
+  * Does this fixture produce observer-relative outputs?
+      Yes, on two configured axes:
         - revocation reading (finding-G axis): an earlier subset establishes
-          authorized_at_reliance=True. Against the SAME full current log,
+          authorized_at_reliance=True. Against the same full current log,
           preserve yields candidate_honored_now=True while cascade yields False;
         - counting policy: strict (distinct named members) rejects a stray key
-          that lenient (any anchored signer) counts. A party with ONE member key
-          plus a stray key can satisfy the candidate gate against any counterparty
-          whose fold uses the lenient rule. The threshold is itself an attack
-          surface — not because a type is missing, but because the rule is policy.
+          that lenient (any anchored signer) counts. A party with one member key
+          plus a stray key can satisfy the candidate gate under the lenient rule.
+          The counting rule is a named application-policy input.
   * Does reaching quorum widen what may be done?
       No. Candidate B is unauthorized at a full 3-of-3 because it exceeds the
       mandate ceiling. Quorum satisfies the approval requirement; it does not
       enlarge scope. Scope and quorum are separate gates, both folds.
 
-No sixth type was required. Joint authority is representable; the quorum rule is a
-fold-policy residue — the same shape as findings B/C/D/G — and it adds a second
-observer-relative boundary, now on the count itself. This is a probe, not a
-multisig spec and not doctrine.
+No sixth type was required by this fixture. It demonstrates one application-policy
+encoding and leaves evidence-versus-consent and broader joint-authority semantics
+open. This is a probe, not a multisig spec or Canon rule.
 """)
 
 

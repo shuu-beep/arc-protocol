@@ -73,7 +73,7 @@
     "repeated_prompt_pattern_detected": true,
     "material_changes_detected": 3,
     "quick_approval_after_prior_prompts": true,
-    "attention_quality_unverified": true,
+    "attention_quality_not_established": true,
     "interpretation_limit": "Fast repeated approvals may indicate fatigue or familiarity, but the artifact cannot prove the user's mental state. It records a consent-quality risk, not a psychological conclusion."
   },
   "safeguard_applied": {
@@ -134,8 +134,8 @@
   "open_questions": [
     "How many repeated approval requests should trigger a stronger review surface?",
     "Which changes are material enough to require consolidated re-review rather than another confirmation tap?",
-    "Can a user opt into low-friction approvals without weakening human sovereignty?",
-    "How should ARC distinguish informed speed from approval fatigue without pretending to read the user's intent?"
+    "Can a user opt into low-friction approvals without weakening evidence of deliberate review?",
+    "How should a Commerce application treat informed speed and approval fatigue without inferring the user's intent?"
   ],
   "final_state": {
     "state": "approval_paused_pending_consolidated_re_review_mock",
@@ -144,6 +144,6 @@
     "payment_requested": false,
     "fulfillment_begun": false,
     "timestamp": "2026-06-05T12:03:45+09:00 [MOCK]",
-    "interpretation_limit": "This artifact exposes a consent-quality risk in repeated human approvals. It does not claim ARC solved approval fatigue or can reliably measure human attention."
+    "interpretation_limit": "This artifact exposes a consent-quality risk in repeated mock approvals. It does not establish a solution or reliable measurement of human attention."
   }
 }

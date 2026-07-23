@@ -1,8 +1,8 @@
-# ARC Protocol: Threat Model
+# ARC Protocol: Commerce Reference-Application Threat Model
 
 > **Status:** Exploratory draft
 >
-> **Purpose:** Adversarial coordination analysis for human-approved agent commerce
+> **Purpose:** Adversarial coordination analysis for the Commerce reference application, with protocol-general risks identified where applicable
 >
 > For protocol mechanics, see [protocol.md](./protocol.md).
 >
@@ -18,11 +18,13 @@
 
 This document is not a complete security specification.
 
-ARC Protocol is an exploratory design for human-approved agent commerce. It assumes that hostile behavior, fraud, manipulation, collusion, and governance failure are normal risks in any open commerce system.
+ARC is an implementation-neutral authority protocol; Commerce is its flagship application and first implementation profile. This document analyzes that application and assumes that hostile behavior, fraud, manipulation, collusion, and governance failure are normal risks in an open Commerce system. Signature, key-custody, authority, evidence, and observer-surface risks may also apply beyond Commerce.
 
 The goal of this threat model is not to prove that ARC can prevent all abuse.
 
-The goal is to make likely failure modes visible early enough that protocol design, identity design, reputation design, governance design, and implementation choices can be reviewed under adversarial pressure.
+The goal is to make likely failure modes visible early enough that protocol semantics, Commerce application policy, named Projections, governance research, and deployment choices can be reviewed under adversarial pressure.
+
+Unless a passage identifies a protocol-general signature, authority, or evidence risk, the identity, reputation, discovery, governance, payment, refund, and UI scenarios below are Commerce application threats; infrastructure and privacy scenarios are deployment threats; and the adoption frontier is research.
 
 ARC should be evaluated by asking:
 
@@ -54,7 +56,7 @@ ARC assumes:
 
 ARC also assumes that cryptographic signatures, structured messages, reputation records, and community governance are useful but insufficient by themselves.
 
-A signed offer proves who signed a message. It does not prove that the offer was honest, fair, legal, deliverable, or understood by the human.
+A valid signature checks particular bytes under a named key and security profile. Key provenance, Current Coverage, and applicable semantics are separately required for authority; the signature does not prove execution, external occurrence, outcome truth, honesty, fairness, legality, deliverability, or human understanding.
 
 ---
 
@@ -79,7 +81,7 @@ These categories overlap. A serious attack may combine several of them.
 
 ## 4. Identity Attacks
 
-Identity is the first trust boundary in ARC.
+Identity is an early trust boundary in the Commerce reference application.
 
 ### 4.1 Sybil Agents
 
@@ -104,40 +106,43 @@ Possible mitigations:
 Open question:
 
 ```txt
-How can ARC preserve open participation without allowing cheap fake identity creation to dominate trust signals?
+How should a named application profile balance low-friction participation against low-cost identity multiplication in its own signals?
 ```
 
-#### 4.1.1 Agent Multiplication and the Event Horizon
+#### 4.1.1 Agent Multiplication and the Observer Evidence Boundary
 
 Agent multiplication is the agent-granularity form of Sybil amplification: one
 actor runs many agents, so many signatures need not mean many independent
 counterparties. The standing fold's distinct-signer down-weight (`object-model.md`
 §8) is defeated when one actor holds many keys, and the canon can collapse those
 keys to a single principal only when the shared root is *voluntarily disclosed*.
-This makes voluntary disclosure incentive-incompatible — it correctly collapses
-disclosed sibling agents, but an adversary simply omits the linkage and avoids
-the same correction. The asymmetry is exercised in
+This creates an evasion opportunity absent external incentives or costs: the
+fixture collapses disclosed sibling agents, while a party can omit the linkage
+and avoid that correction. The asymmetry is exercised in
 [`examples/canon-fold-demo`](../examples/canon-fold-demo/) (scenario 11).
 
 A few boundaries follow, stated as limitations rather than guarantees:
 
-* ARC only observes agents once their activity crosses the commons boundary.
-* Pure local workflow agents — agents that never sign a commons-visible event —
-  are outside ARC's event horizon.
-* This boundary is not a safety guarantee; it is a structural limitation. ARC is
-  structurally near-sighted about how many sibling agents stand behind any single
-  commons-crossing signature.
-* Undisclosed sibling agents cannot be certainly collapsed without a stored
-  identity graph or an external cost gate — and both are constitutional
-  trade-offs ARC does not take (the first against the no-stored-relationship /
-  anti-social-credit discipline, the second against value-neutrality).
-* Therefore ARC treats this as local, probabilistic, review-triggered risk rather
-  than automatic punishment: behavioral-correlation review may *suggest* scrutiny
-  of a suspicious cluster, but it does not impose a penalty, and it is fallible.
+* An observer can reason only from Events and other evidence available on its
+  declared surface; there is no universal ARC-visible evidence set.
+* Pure local workflow agents — agents whose relevant evidence never reaches a
+  given observer — are outside that observer's evidence boundary.
+* This boundary is not a safety guarantee; it is an observer-relative structural
+  limitation. A named Projection may be near-sighted about how many sibling agents
+  stand behind any signature on its available surface.
+* Events alone may not reliably link undisclosed sibling agents. External
+  identity evidence or cost mechanisms may add evidence without establishing
+  common ownership with certainty; both remain application, implementation, or
+  research trade-offs rather than current Canon mechanisms.
+* A named identity/reputation profile may treat this as a local, probabilistic
+  review trigger rather than an automatic penalty. Behavioral correlation may
+  support scrutiny under that profile but does not establish common ownership.
 
 Deployment topology (for example, agents running on a personal device versus a
-hosted node) is implementation-specific and is **not** part of the Canon; it does
-not change what ARC observes, which is only the commons-crossing events.
+hosted node) is implementation-specific and is **not** part of the Canon. It does
+not change the meaning of a disclosed Event, but it changes which evidence is
+available and therefore which External Record Verification, Independently
+Recomputable Result, or Publicly Recomputable Result claims are supportable.
 
 ### 4.2 Fake Merchants
 
@@ -145,13 +150,13 @@ A fake merchant may publish attractive offers, collect payment, and disappear.
 
 Possible mitigations:
 
-* verified owner identity
+* owner-identity evidence under a named profile
 * signed offers
 * human approval screen showing identity status
 * payment provider protections
 * escrow-like flows where appropriate
 * community reports and suspension
-* limits on high-value transactions for new or unverified agents
+* limits on high-value transactions for new agents or agents without the profile's named external evidence
 
 ### 4.3 Fake Logistics Providers
 
@@ -181,8 +186,8 @@ This is especially risky in regulated domains such as law, medicine, finance, ar
 
 Possible mitigations:
 
-* credential binding to verified human owner
-* license verification where institutionally supported
+* credential binding to a human principal identified by the credential issuer under a declared check
+* issuer-source license checks where institutionally supported
 * explicit scope declaration
 * visible credential status
 * conservative default permissions
@@ -194,7 +199,7 @@ ARC should not assume that professional credential verification is available or 
 
 ## 5. Reputation Attacks
 
-Reputation signals are valuable and therefore will be attacked.
+Reputation signals create manipulation incentives that a deployment should assess; attack frequency and effectiveness are not established here.
 
 Common patterns — review farming, circular boosting, reputation laundering,
 and coordinated false complaints — are described in detail in [reputation.md](./reputation.md).
@@ -203,8 +208,10 @@ The threat-model concern is different:
 
 Reputation attacks are dangerous not because they fool a single transaction,
 but because they corrupt the trust layer that human approval depends on.
-A compromised reputation layer makes human approval meaningless —
-the human is approving based on false signals.
+A compromised reputation Projection can distort the information presented to a
+human. The authorization remains a record of authority from the responsible
+principal or authority holder, but the information presented before authorization
+may be misleading. Current Commerce profiles are typically human-rooted.
 
 The most serious reputation attacks are therefore not individual fraud events.
 They are sustained manipulation campaigns that degrade the signal quality
@@ -223,7 +230,7 @@ These signals should support human and community review, not automatic penalties
 
 ## 6. Discovery Attacks
 
-Discovery determines who is seen.
+Discovery influences which parties are surfaced on the selected application surface.
 
 Even if ARC is open, discovery systems may become concentrated, biased, manipulated, or pay-to-play.
 
@@ -231,7 +238,7 @@ Even if ARC is open, discovery systems may become concentrated, biased, manipula
 
 A discovery backend may secretly promote paying merchants without disclosure.
 
-ARC should treat undisclosed sponsored ranking as a protocol violation.
+The named Commerce discovery policy treats undisclosed sponsored ranking as an application-policy violation, not a base-protocol violation.
 
 Possible mitigations:
 
@@ -265,7 +272,7 @@ Possible mitigations:
 * alternative discovery backends
 * transparency reports
 * visible ranking concentration metrics
-* optional verified-new-entrant exposure
+* optional new-entrant exposure conditioned on declared profile checks
 * user control over filtering strictness
 
 ### 6.4 Discovery Entrenchment
@@ -304,11 +311,10 @@ A hostile actor does not need to win disputes.
 Flooding governance queues with marginal reports and repeated appeals
 can exhaust volunteer moderators and delay legitimate enforcement.
 
-**Legitimacy collapse.**
-If participants believe governance is captured or inconsistent,
-they stop reporting, stop appealing, and start defecting.
-A reputation and governance layer that nobody trusts
-provides less protection than no layer at all.
+**Perceived governance failure.**
+If participants believe governance is captured or inconsistent, reporting,
+appeals, or continued participation may decline. This document does not establish
+the size of that effect or its outcome relative to having no governance layer.
 
 Possible mitigations:
 - moderator rotation and term limits
@@ -334,7 +340,7 @@ An attacker may send a fake payment request that looks like a legitimate ARC app
 
 Possible mitigations:
 
-* payment only through trusted provider flow
+* payment only through a named provider flow with declared source checks
 * clear approval UI
 * signed transaction references
 * warnings for external links
@@ -347,9 +353,9 @@ A malicious agent may claim that payment succeeded when it did not.
 
 Possible mitigations:
 
-* direct provider confirmation
-* payment state verification
-* fulfillment only after confirmed payment
+* direct provider result obtained through a named integration with declared source checks
+* payment-result checks under a declared profile
+* a fulfillment policy conditioned on the provider result passing those checks
 * signed payment event references where available
 
 ### 8.3 Refund Abuse
@@ -362,7 +368,7 @@ Possible mitigations:
 * proof-of-delivery
 * dispute reporter history
 * proportional dispute weighting
-* false-report penalties
+* reviewable governance findings for repeated or knowingly abusive reporting, with no automatic penalty for a dismissed or unsupported report
 
 ### 8.4 Escrow Manipulation
 
@@ -382,7 +388,7 @@ Escrow is not an ARC MVP requirement and should not be treated as solved.
 
 ## 9. Human Approval Attacks
 
-ARC is human-approved, but human approval can be manipulated.
+The current Commerce reference profile is typically human-rooted, and its approval surfaces can be manipulated.
 
 ### 9.1 Approval Fatigue
 
@@ -473,12 +479,12 @@ Example:
 
 ```txt
 User said: "under $10"
-Canonical intent becomes: "max_total_price": 100
+Application-parsed intent becomes: "max_total_price": 100
 ```
 
 Possible mitigations:
 
-* canonical intent review where ambiguity matters
+* structured intent review where ambiguity matters
 * human correction before negotiation
 * schema validation
 * discrepancy detection between original text and parsed fields
@@ -490,7 +496,7 @@ A consumer agent may invent facts about price, distance, stock, reviews, or safe
 Possible mitigations:
 
 * source-linked recommendation data
-* separate verified fields from generated explanation
+* separate source-linked fields whose declared checks pass from generated explanation
 * no unsupported claims in approval screen
 * fallback to uncertainty when data is missing
 
@@ -503,7 +509,7 @@ Possible mitigations:
 * signed offers
 * offer expiry rules
 * material term logs
-* comparison based on verified fields
+* comparison based on fields whose declared source and profile checks pass
 * dispute review of repeated misrepresentation
 
 ### 10.5 Model Drift
@@ -521,7 +527,7 @@ Possible mitigations:
 
 ## 11. Infrastructure Attacks
 
-ARC-compatible implementations may use relays, databases, discovery backends, shared ledgers, or combinations of them. Each deployment choice creates infrastructure risks.
+ARC-compatible implementations may use relays, databases, discovery backends, shared ledgers, or combinations of them. These are deployment-specific threats; each choice creates infrastructure risks.
 
 ### 11.1 Relay Surveillance
 
@@ -558,7 +564,7 @@ Possible mitigations:
 
 * replaceable backends
 * exportable data
-* protocol compatibility tests
+* named-profile compatibility tests
 * community-hosted alternatives
 * no single mandatory provider
 
@@ -587,15 +593,15 @@ Possible mitigations:
 * no single required provider
 * regional adaptation
 
-ARC should not pretend that open protocol design eliminates infrastructure dependency.
+Open protocol design does not eliminate infrastructure dependency. A private deployment may preserve ARC Event semantics and internal recomputability while supporting neither independent nor public recomputability. Evidence hidden from an external observer cannot support verification claims about the undisclosed records.
 
 ---
 
 ## 12. Privacy Threats
 
-Trust systems can become surveillance systems.
+Identity and reputation systems may create surveillance risk.
 
-ARC reputation, dispute, identity, and transaction logs may reveal sensitive information.
+Commerce reputation, dispute, identity, and transaction evidence may reveal sensitive information.
 
 Risks include:
 
@@ -612,7 +618,7 @@ Possible mitigations:
 * minimum necessary disclosure
 * local-first user data
 * retention limits
-* private evidence with public outcome summaries
+* private evidence with observer-appropriate adjudication summaries
 * redaction of sensitive fields
 * privacy-preserving proofs where useful
 * user export and deletion where legally possible
@@ -623,7 +629,7 @@ Privacy and auditability are in tension. ARC should keep that tension explicit.
 
 ## 13. Cross-Community Threats
 
-ARC is designed for local and regional adaptation.
+The Commerce application research explores local and regional adaptation.
 
 That creates cross-community risks.
 
@@ -654,15 +660,15 @@ Possible mitigations:
 
 Different communities may define fraud, evidence, lateness, refund fairness, or professional scope differently.
 
-ARC should allow local variation while making differences visible.
+Named profiles may allow local variation and should disclose claim-relevant differences to affected observers. Base ARC cannot guarantee visibility in an opaque deployment.
 
-A fixture in the reference client ([`examples/reference-client`](../examples/reference-client/), `federation_fixture.py`) probes this frontier directly: a strict community and a lenient one issue opposite rulings on the same vendor, and a recognition bridge between them carries one into the other's view. It suggests three things about the mitigations above. Making differences **visible** (13.3) has a concrete terminal form — when a reader recognizes two communities that disagree and ranks neither, the honest output is a *contested* status, not a synthesized verdict. **Weak import** (13.1) is bounded constitutionally, not only by weighting: a bridge can route only authority the reader already grants, so it cannot mint trust an importer never extended. And **fraud migration** (13.2) is only half-addressed by severance — cutting a bridge stops *future* imports but does not undo rulings already folded; withdrawing recognition does not re-sort the past. What stays outside the log entirely is *why* one community recognizes another (§18.1's adoption frontier): the bridge records that recognition exists, never why it was extended. Offered as a probe finding, not a settled rule.
+A fixture in the reference client ([`examples/reference-client`](../examples/reference-client/), `federation_fixture.py`) models a strict and a lenient community issuing opposite rulings, with one named recognition policy importing the other community's records. Under the fixture's no-precedence policy, the Projection returns `CONTESTED`; other named policies may choose differently. Severing the modeled bridge stops future imports under that policy without changing prior records. The fixture does not require federation, establish community legitimacy, or disclose why recognition was granted.
 
 ---
 
 ## 14. Threats to Protocol Stewardship
 
-ARC's open, uncaptured-stewardship orientation reduces some platform incentives, but it does not eliminate power concentration.
+Apache-2.0 publication and the current stewardship preference change some project incentives, but the corpus does not establish that they reduce capture or power concentration.
 
 Possible risks:
 
@@ -708,9 +714,9 @@ This framework is only a starting point.
 
 The threat model suggests several design directions:
 
-* keep human approval meaningful, not decorative
-* distinguish verified records from generated explanations
-* make sponsorship visible
+* check Current Coverage under the declared profile
+* distinguish external records whose declared checks pass from generated explanations and outcome claims
+* make sponsorship visible where the named Commerce discovery policy requires it
 * keep reputation contextual
 * limit reputation velocity
 * support recovery without ignoring repeated abuse
@@ -741,7 +747,7 @@ ARC cannot guarantee:
 
 ARC should not claim otherwise.
 
-The protocol should be judged by whether it makes manipulation harder to hide, easier to contest, and less concentrated in a single opaque platform.
+Each claim should be judged by what its declared observer surface makes verifiable, recomputable, and contestable. Hidden evidence may still support internal operation, but it cannot support stronger external, independent, or public claims.
 
 ---
 
@@ -758,27 +764,23 @@ The protocol should be judged by whether it makes manipulation harder to hide, e
 * model behavior monitoring
 * safe approval UI requirements
 * how to audit discovery ranking without exposing sensitive data
-* how to prevent reputation from drifting into social credit infrastructure
+* how a named reputation profile can avoid universal person-level scoring
 * how to support regulated domains without unauthorized practice risks
 
 ### 18.1 The Adoption Frontier
 
-Why a rational counterparty would choose to honor a particular community's authority — rather than ignore, fork, or defect — remains an open question. It is the first frontier that ARC's executable-probe methodology cannot reach: adoption incentives are off-ledger and do not fold. The canon can *represent* a sanction and *select* who honors it, but it cannot model the *incentive* to honor.
+Why a counterparty would choose to honor a particular community's authority — rather than ignore, fork, or decline it — remains an open question. Current probes do not establish adoption incentives or willingness to honor ARC authority. The Canon can represent a sanction and a named policy can select which authority it honors, but the corpus does not model the incentive to honor it.
 
-The question belongs to coordination economics: switching costs, network effects, legitimacy signals, trust markets. ARC intentionally leaves it unresolved. The right entry point is "why might a party *not* honor this authority" — not a confident adoption model. Asserting one prematurely would misrepresent ARC's current state. [`adoption-and-defection.md`](adoption-and-defection.md) works from that entry point: it maps why each actor can rationally wait, defect, fork, or reject, then holds the countering mechanisms as hypotheses rather than claims.
+The question belongs to coordination economics: switching costs, network effects, authority-recognition signals, and application incentives. This document uses "why might a party not honor this authority" as its selected research framing. [`adoption-and-defection.md`](adoption-and-defection.md) groups possible responses into wait, defect, fork, and reject categories, then treats countering mechanisms as hypotheses rather than claims.
 
-A fixture in the reference client ([`examples/reference-client`](../examples/reference-client/), `coldstart_fixture.py`) shows this frontier from a single node's point of view. A newcomer has exactly three exits from the cold start — *earn* edges slowly, *manufacture* volume with undisclosed agents, or *borrow* an established party's weak tie — and the resulting appearances are indistinguishable on the log: **cold start cannot be resolved from the log alone.** Three observers folding the same log with different policies reach different, individually defensible readings of the same newcomers, so what the client renders is the disagreement, not a verdict — the fixture's ground truth is shown separately, available to no observer, because pretending the protocol could see it would be the failure mode ("identity verified by protocol") this document warns against. This is offered as a probe finding, not a settled rule.
+A fixture in the reference client ([`examples/reference-client`](../examples/reference-client/), `coldstart_fixture.py`) models three illustrative cold-start paths: slowly earning edges, manufacturing volume with undisclosed agents, and borrowing an established party's weak tie. Three supplied observer policies return different readings over the same fixture Events, and each misses a different private generator classification. The fixture demonstrates policy-relative outputs for those inputs; it does not exhaust real cold-start paths, establish legitimacy, or guarantee that a deployment renders every disagreement.
 
 ---
 
 ## 19. Current Status
 
-This document is an exploratory threat model.
+This document is an exploratory Commerce reference-application threat model.
 
-No implementation exists.
+Executable probes and Commerce simulations exercise unanchored-newcomer, collusion, disputed-claim, discovery-bias, and approval-fatigue scenarios, but no production security implementation or security proof exists.
 
-The next useful contribution is a small simulation that intentionally includes fake merchants, colluding agents, false disputes, discovery bias, and approval fatigue.
-
-The purpose should not be to prove that ARC is secure.
-
-The purpose should be to expose where the system fails.
+They exercise modeled failure cases; they do not prove production behavior or ARC security.

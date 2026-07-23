@@ -10,47 +10,64 @@
 
 ## 1. Current Boundary
 
-ARC Protocol is currently a protocol-oriented design project, not a complete protocol specification.
+ARC is currently an exploratory, implementation-neutral authority protocol, not a complete independently implementable specification.
 
-The existing documents describe philosophy, actors, message intentions, state transitions, threat models, and mock failure artifacts. They do not yet define a normative wire protocol, compatibility test suite, transport profile, or conformance process.
+The existing documents define current Event and authority semantics and describe philosophy, actors, message intentions, Commerce state transitions, threat models, and executable failure artifacts. They do not yet define a normative wire/security profile, compatibility test suite, transport profile, or complete conformance process.
 
-This distinction matters. A useful protocol must eventually define not only what should happen, but how independent implementations can interoperate and fail safely.
+This distinction matters. A future interoperability claim needs shared observable behavior, declared errors, and reproducible conformance vectors.
 
-## 2. Minimum Future Specification Areas
+## 2. Future Specification and Profile Work
 
-A future ARC protocol specification would need at least the following pieces.
+Completing ARC's base specification and the separately named Commerce profile requires work in their respective layers below. Commerce rows are not base-protocol requirements.
 
-| Area | Future Requirement |
-| --- | --- |
-| Message envelope | Canonical fields, identifiers, timestamps, sender/receiver identity, signature requirements, and replay protection. |
-| Message type registry | Stable definitions for `offer_request`, `offer_response`, `approval_request`, `payment_intent`, `fulfillment_update`, `dispute_report`, and related messages. |
-| State machine | Normative transaction states, allowed transitions, terminal states, and invalid-transition handling. |
-| Error model | Standard error codes for expired offers, duplicate messages, stale approvals, invalid signatures, payment failure, unavailable logistics, and unsupported versions. |
-| Idempotency | Rules preventing repeated requests, double approvals, duplicate payment attempts, and accidental repeated fulfillment authorization. |
-| Timeout and expiry | Clock assumptions, expiry validation, retry windows, refreshed-offer handling, and stale-message rejection. |
-| Versioning | Backward compatibility, feature negotiation, deprecation rules, and protocol version identifiers. |
-| Discovery | How agents find compatible merchants, logistics providers, relays, communities, and discovery backends without assuming one global directory. |
-| Transport profile | Transport-agnostic requirements, plus profiles for HTTP/webhook, WebSocket relay, WebRTC DataChannel, or asynchronous inbox flows. |
-| Security profile | Signature algorithms, key rotation, compromised-key handling, message integrity, transport authentication, and audit-log requirements. |
-| Conformance tests | Reproducible fixtures that verify independent implementations reject unsafe transitions and preserve human approval boundaries. |
+| Area | Layer | Future Requirement |
+| --- | --- | --- |
+| Event envelope | Core Event Conformance plus a named encoding/security profile | Normative semantic fields, canonical signing bytes, identifiers, algorithm/version identifiers, errors, and replay behavior. JSON is only a current illustrative encoding. |
+| Message type registry | Commerce application/profile | Stable definitions for `offer_request`, `offer_response`, `approval_request`, `payment_intent`, `fulfillment_update`, `dispute_report`, and related Commerce messages. These are not top-level Event types. |
+| State machine | Named Commerce Projection/profile | Declared transaction states, allowed transitions, terminal states, ordering/as-of policy, and invalid-transition handling. |
+| Error model | Core and named profiles | Shared envelope/version errors where required, plus profile-scoped errors for expired offers, duplicate messages, stale approvals, payment failure, unavailable logistics, and unsupported fields. |
+| Idempotency | Named functional profile and implementation | Rules for repeated requests, act-specific approval reuse, duplicate payment attempts, and repeated fulfillment instructions without adding a new Event type. |
+| Timeout and expiry | Named clock/deployment profile | Clock assumptions, expiry validation, retry windows, refreshed-offer handling, and stale-message treatment. |
+| Versioning | Conformance | Backward compatibility, feature negotiation, deprecation rules, and profile/version identifiers. |
+| Discovery | Commerce application/profile | How agents find compatible merchants, logistics providers, relays, communities, and discovery backends without assuming one global directory. |
+| Transport profile | Named functional profile and implementation | Transport-independent behavior plus optional profiles for HTTP/webhook, WebSocket relay, WebRTC DataChannel, or asynchronous inbox flows. |
+| Security profile | Named security profile | Signature suite, key rotation, compromised-key handling, message integrity, transport authentication, and evidence-surface requirements for the claim being made. No signature suite is selected by base ARC. |
+| Conformance tests | Conformance | Reproducible vectors for the explicitly named Core Event, Projection, or Functional Profile claim. |
 
-## 3. Protocol vs Reference Implementation
+Use claim names precisely:
 
-A technology stack such as Next.js, React, Node.js, PostgreSQL, Redis, WebSocket, or WebRTC may be useful for a reference implementation.
+- **Core Event Conformance** covers the named Event envelope/security requirements; it does not prove current authority or execution.
+- **Named Projection Conformance** identifies the Event set, Projection name/version, policy and ordering/as-of inputs, unsupported behavior, and expected output.
+- **Named Functional Profile Conformance** applies only to an explicitly named profile and version.
+- **External Record Verification** verifies disclosed records and key provenance without asserting completeness or payload truth.
+- **Independently Recomputable Result** requires the declared evidence set/completeness contract and Projection inputs needed by a separate implementation.
+- **Publicly Recomputable Result** additionally makes that package public; ARC does not require a public evidence surface.
+
+Every consequential act must have **Current Coverage** from a human-authored `AUTHORIZE`: an act-specific authorization for the unchanged exact target, or an unexpired, unrevoked scoped mandate that covers the act under the named Projection/profile. Material target changes require new coverage.
+
+Three boundaries remain explicit:
+
+- **OPEN — MUST NOT BE IMPLIED BY CURRENT DOCUMENTATION:** quorum member participation is not yet classified universally as either `ATTEST` or `AUTHORIZE`.
+- **REQUIRED BEFORE INTEROPERABILITY CLAIM:** a named deterministic mandate profile must define its closed grammar, typed terms, operators, normalization, comparison, attenuation, expiry/material-target, and error semantics with cross-implementation vectors.
+- **REQUIRED BEFORE INTEROPERABILITY CLAIM:** atomic cumulative mandate consumption remains unresolved for causally concurrent acts. No lock, reservation, sequencer, or new Event is selected here.
+
+## 3. Protocol, Profiles, and Executable Corpus
+
+A technology stack such as Next.js, React, Node.js, PostgreSQL, Redis, WebSocket, or WebRTC may be useful for an implementation or executable reference corpus.
 
 Those tools are not ARC itself.
 
 ARC should avoid treating any particular framework, database, relay topology, payment provider, map provider, or AI model as part of the protocol unless a future specification explicitly requires it.
 
-A reference implementation may demonstrate one path. A protocol specification must allow multiple compatible implementations.
+The current executable corpus demonstrates selected paths without defining a conformance standard. A protocol specification must allow multiple implementations that make the same explicitly named conformance claim.
 
-## 4. Discovery Is Not Yet Solved
+## 4. Commerce Discovery Is Not Yet Solved
 
-Discovery remains one of the hardest unsolved parts of ARC.
+Discovery remains unresolved for the Commerce flagship application. It is application/profile work, not a base authority primitive.
 
-Open discovery does not automatically prevent concentration. Multiple discovery backends can reduce single-platform dependency, but they can also create new trust problems: biased indexes, malicious directories, pay-to-play ranking, suppression of new entrants, or backend capture.
+Open discovery does not automatically prevent concentration. Multiple discovery backends can reduce single-platform dependency, but they can also create risks such as biased indexes, malicious directories, pay-to-play ranking, suppression of new entrants, or backend capture.
 
-A future discovery specification would need to address:
+A future Commerce discovery profile would need to address:
 
 - backend identity and accountability
 - sponsored ranking disclosure
@@ -60,15 +77,15 @@ A future discovery specification would need to address:
 - new entrant visibility without Sybil exposure
 - portability of merchant profiles across discovery systems
 
-ARC does not currently solve the network bootstrap problem. It does not yet explain how enough consumers, merchants, logistics providers, and discovery backends would join at the same time to create a useful network.
+The Commerce application does not currently solve the network bootstrap problem. It does not yet explain how enough consumers, merchants, logistics providers, and discovery backends would join at the same time to create a useful network.
 
-## 5. Concurrency, Inventory, and Reservation
+## 5. Commerce Concurrency, Inventory, and Reservation
 
-Real commerce is stateful.
+The Commerce application is stateful.
 
-A merchant offer may depend on limited inventory, changing price, staff availability, delivery slots, or time-limited capacity. ARC does not yet define how inventory reservations, offer locks, concurrent approvals, or payment retries should work across independent agents.
+A merchant offer may depend on limited inventory, changing price, staff availability, delivery slots, or time-limited capacity. The Commerce reference profile does not yet define how inventory reservations, offer locks, concurrent approvals, or payment retries should work across independent agents.
 
-Future work must examine:
+Future Commerce-profile work would need to examine:
 
 - whether an offer reserves inventory
 - how long a reservation remains valid
@@ -80,13 +97,13 @@ Future work must examine:
 
 Until these questions are specified, ARC should not claim to solve production commerce coordination.
 
-## 6. Clock and Expiry Trust
+## 6. Named Clock and Expiry Profiles
 
-ARC relies heavily on expiry times. That creates a clock-trust problem.
+The Commerce reference profile and other profiles that use expiry introduce clock and as-of assumptions.
 
-A signed `expires_at` value proves that an agent signed a claim about expiry. It does not prove that all participants shared the same clock, that the timestamp was honest, or that network delay did not affect the approval window.
+Under a declared security profile, a signed `expires_at` value supports a check that a key signed an expiry claim. It does not establish that all participants shared the same clock, that the timestamp was accurate, or that network delay did not affect the approval window.
 
-Future work should define:
+A named clock/as-of profile should define:
 
 - accepted timestamp formats
 - clock skew tolerance
@@ -102,7 +119,7 @@ Natural-language requests are not stable protocol input.
 
 A request such as "find lunch nearby" may involve hidden priorities: price, distance, delivery time, taste, dietary restrictions, safety, sponsorship avoidance, merchant reputation, past user habits, or novelty.
 
-Future ARC implementations should distinguish:
+Commerce implementations should distinguish, as application policy:
 
 - original human text
 - parsed canonical intent
@@ -112,12 +129,12 @@ Future ARC implementations should distinguish:
 - unavailable or uncertain fields
 - human corrections before negotiation
 
-No implementation should treat inferred preferences as unquestionable user intent.
+A named Commerce interface profile may require inferred preferences to remain distinguishable from user-authored constraints.
 
 ## 8. Non-Goals for This Stage
 
-This document does not define a final ARC wire format.
+This document does not define a final ARC wire format. Current JSON examples are illustrative and do not select a canonical serialization or signing suite.
 
-It does not choose a mandatory transport, payment provider, identity provider, blockchain, database, model provider, governance procedure, or ranking algorithm.
+It does not choose a mandatory transport, payment provider, identity provider, database, model provider, governance procedure, ranking algorithm, public log, or federation topology.
 
-Its purpose is narrower: make clear what remains missing before ARC can move from protocol-oriented design toward implementable specification.
+Its purpose is narrower: distinguish missing base-specification work from optional functional profiles and Commerce application work.

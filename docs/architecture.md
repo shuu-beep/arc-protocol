@@ -1,7 +1,7 @@
-# ARC Protocol: Architecture
+# ARC Protocol: Commerce Reference Architecture
 
 > **Status:** Draft v1.0
-> **Purpose:** Technical architecture and system design reference
+> **Purpose:** Non-normative technical architecture for the flagship Commerce application
 > For philosophy and motivation, see [philosophy.md](./philosophy.md).
 
 ---
@@ -10,24 +10,24 @@
 
 ARC is not designed to replace existing infrastructure.
 
-It is designed to connect existing infrastructure — payment providers, map APIs, identity systems, communication protocols — into an open, interoperable layer for agent-to-agent commerce.
+This reference architecture connects existing infrastructure — payment providers, map APIs, identity systems, communication protocols — in an agent-to-agent Commerce application of ARC's authority layer.
 
 > **Scope: commerce reference architecture, not the full protocol architecture.**
 > This is drawn for commerce because that is ARC's first implementation, not
-> because the layer is commerce-specific. Two things are mixed here on purpose:
+> because Commerce defines ARC's protocol boundary. Two things are mixed here on purpose:
 > commerce-specific roles (consumer / merchant / logistics / payment) and
-> protocol-general seams (communication, discovery, identity, human approval,
-> audit) that carry any human-approved delegation. Read "commerce" throughout as
+> reusable authority/evidence seams and application concerns (communication,
+> discovery, identity, human approval, audit). Read "commerce" throughout as
 > the first load placed on those general seams — the first application of a
 > general authority, approval, and audit layer for AI agents — not as the
-> protocol's boundary ([README §7](../README.md#7-first-implementation-commerce)).
+> protocol's boundary ([README §7](../README.md#7-flagship-application-commerce)).
 
-Three principles guide every architectural decision:
+Four current design principles guide this reference architecture:
 
-- **Speed over purity.** Real-time commerce cannot wait for blockchain consensus. Use existing fast infrastructure wherever possible.
-- **Hybrid over dogmatic.** Full decentralization is not required from day one. A realistic hybrid model is more valuable than an ideologically pure system that never ships.
-- **Human approval as a hard constraint.** No architectural shortcut should bypass the requirement for explicit human confirmation of significant transactions.
-- **Idle by default.** Agents are not continuously reasoning processes. Presence is established on contact, not maintained around the clock, keeping the cost of participation proportional to use (see §5.5).
+- **Low-latency Commerce operations.** Use existing fast infrastructure wherever possible.
+- **Deployment pragmatism.** A deployment selects infrastructure appropriate to its named profile; the base protocol does not mandate a topology.
+- **Current Coverage as a hard constraint.** No architectural shortcut should bypass human-authored coverage for consequential acts, whether exact-target or valid mandate-scoped authority.
+- **Idle by default.** In this reference profile, presence is established on contact rather than maintained continuously (see §5.5). Cost effects remain unmeasured.
 
 ### 1.1 Storage Boundary
 
@@ -48,7 +48,7 @@ worth its added complexity — never a requirement of the protocol.
 | Routine reputation records | No | Primary |
 | Reputation integrity checkpoints | Optional | Primary |
 | Dispute transparency checkpoints | Optional | Primary |
-| Agent identity proof | Optional | Primary |
+| Agent identity evidence | Optional | Primary |
 | Governance transparency checkpoints | Optional | Primary |
 
 ---
@@ -82,7 +82,7 @@ worth its added complexity — never a requirement of the protocol.
                              ▼
 +----------------------------------------------------------+
 |           Reputation & Identity Layer                    |
-|   public keys · signed records · verified transactions   |
+| public keys · signed evidence · named projections       |
 +----------------------------------------------------------+
                              |
                              ▼
@@ -110,12 +110,12 @@ Responsibilities:
 - Parse natural language requests into structured queries
 - Contact merchant and logistics agents
 - Compare offers against user preferences
-- Filter unsafe or low-reputation offers
-- Prepare a recommendation with auditable reasoning
-- Request human approval before any payment
-- Submit reputation events after transaction completion
+- Filter offers under declared application-policy thresholds
+- Prepare a recommendation with inspectable inputs and explanation
+- Require Current Coverage before any payment
+- Submit Canon Events carrying reputation evidence after transaction completion
 
-**Hard constraint:** The consumer agent must not execute payment without explicit human approval. A future implementation may explore user-defined, auditable low-risk pre-authorization rules as a limited exception, not the default.
+**Commerce profile constraint:** The consumer agent must not execute payment unless the exact act has Current Coverage. Fresh confirmation is this reference application's default; a valid user-authored scoped mandate may also provide coverage.
 
 ### 3.2 Merchant Agent
 
@@ -136,12 +136,12 @@ Responsibilities:
 - Respond to pickup and delivery queries
 - Provide estimated times and fees
 - Sign delivery commitments
-- Submit proof of completion
+- Submit completion evidence or claims
 - Maintain delivery reputation metrics
 
 ### 3.4 Community Governance Agent
 
-Represents a local or regional community.
+Carries decisions from a declared local or regional community process. The interface itself has no authority; a decision has effect only through an authorized `ADJUDICATE` under the named profile.
 
 Responsibilities:
 - Receive and process fraud reports
@@ -153,7 +153,7 @@ Responsibilities:
 
 ## 4. Message Types
 
-All agent communication uses typed, signed JSON messages.
+This Commerce reference profile represents agent communication as typed, signed JSON messages. Other profiles may select different serialization and signature suites.
 
 | Type | Direction | Purpose |
 |------|-----------|---------|
@@ -162,32 +162,32 @@ All agent communication uses typed, signed JSON messages.
 | `logistics_request` | Consumer → Logistics | Query for pickup/delivery availability |
 | `logistics_response` | Logistics → Consumer | Delivery time, fee, and commitment |
 | `approval_request` | Consumer Agent → Human | Present best offer for human confirmation |
-| `approval_confirmed` | Human → Consumer Agent | Signed approval to proceed with payment |
-| `payment_intent` | Consumer Agent → Payment Provider | Initiate payment after human approval |
-| `reputation_event` | Any party → Reputation Layer | Submit verified transaction rating |
+| `approval_confirmed` | Human → Consumer Agent | Signed act-specific approval record |
+| `payment_intent` | Consumer Agent → Payment Provider | Initiate payment after Current Coverage |
+| `reputation_event` | Any party → Reputation Layer | Submit an evidence-linked transaction rating claim |
 | `dispute_report` | Any party → Governance Layer | Report fraud or transaction failure |
 | `suspension_notice` | Governance → Agent | Notify agent of suspension decision |
 
-These are transport message types, not stored records. Under the canonical object model the records that persist are Events: `offer_response` and `reputation_event` are `ATTEST`, `dispute_report` is `CHALLENGE`, and `suspension_notice` is an `ADJUDICATE` (`gov.*`); requests, `payment_intent`, and similar notices are transport and are not stored. See [event-registry.md](./event-registry.md).
+These are Commerce-profile transport message types, not stored records. Under the canonical object model the records that persist are Events: `offer_response` and `reputation_event` are `ATTEST`, `dispute_report` is `CHALLENGE`, and `suspension_notice` is an `ADJUDICATE` (`gov.*`); requests, `payment_intent`, and similar notices are transport and are not stored. See [event-registry.md](./event-registry.md).
 
 For the full exploratory message type list and lifecycle flow, see [protocol.md](./protocol.md).
 
-### 4.1 Transaction Lifecycle States
+### 4.1 Named Commerce Lifecycle Projection
 
 Transactions are not binary. A transaction may move through several states:
 
 | State | Description |
 |-------|-------------|
 | `pending_approval` | Offer prepared, awaiting human confirmation |
-| `approved` | Human confirmed, payment initiated |
-| `fulfilled` | Delivery or service completed |
+| `approved` | The exact act has Current Coverage and payment may be requested |
+| `fulfilled` | Available evidence contains the profile's fulfillment claim |
 | `disputed` | One or more parties opened a dispute |
 | `refund_partial` | Partial refund issued after resolution |
 | `refund_full` | Full refund issued after resolution |
 | `cancelled` | Transaction cancelled before fulfillment |
 | `expired` | Offer or approval window lapsed without action |
 
-These states are not stored fields. They are a projection over the transaction's events (see [object-model.md](./object-model.md) §4).
+These states are not stored fields. They are outputs of the named Commerce lifecycle Projection over its declared Event set and ordering/as-of inputs (see [object-model.md](./object-model.md) §4).
 
 Refund and dispute rates are relevant reputation signals and should remain visible to users evaluating an offer.
 
@@ -195,28 +195,28 @@ Refund and dispute rates are relevant reputation signals and should remain visib
 
 ARC does not prescribe a universal payment provider. It is not a payment network, card network, wallet, banking system, or settlement rail.
 
-Payment infrastructure varies across countries, regulations, markets, and merchant categories. ARC is designed to interoperate with existing and future payment systems rather than replace them.
+Payment infrastructure varies across countries, regulations, markets, and merchant categories. ARC selects no payment provider; integrations and their compatibility requirements are Commerce-profile choices.
 
-ARC focuses on the trust and coordination layers around payment execution: approval, identity, reputation, governance, discovery, interoperability, and signed records. Actual payment execution remains the responsibility of payment providers.
+This Commerce architecture applies ARC authority and signed-evidence semantics around payment execution. Actual payment execution remains the responsibility of payment providers, and provider records are external claims rather than proof supplied by ARC.
 
-Any agent-mediated payment should remain blocked until explicit human approval exists, or until a user-defined, auditable authorization rule applies. ARC should not treat payment automation as the default.
+This reference application blocks an agent-mediated payment unless the exact act has Current Coverage from an act-specific authorization or a valid scoped mandate. Coverage does not itself prove payment execution or outcome truth.
 
 ---
 
 ## 5. Communication Layer
 
-### 5.1 Primary: WebRTC DataChannel
+### 5.1 Reference-Profile Primary: WebRTC DataChannel
 
-Agent-to-agent communication uses WebRTC DataChannel for direct peer-to-peer messaging where possible.
+This reference profile uses WebRTC DataChannel for direct peer-to-peer messaging where possible.
 
 Advantages:
 - Low latency
 - No central server required for data transit
 - Suitable for real-time offer negotiation
 
-### 5.2 Fallback: WebSocket Relay
+### 5.2 Reference-Profile Fallback: WebSocket Relay
 
-When direct P2P is not available (NAT traversal failure, mobile network constraints), communication falls back to a relay server using WebSocket.
+In this reference profile, direct-P2P failure (NAT traversal failure, mobile network constraints) falls back to a relay server using WebSocket.
 
 ARC does not require full decentralization. Relay servers are acceptable and pragmatic.
 
@@ -230,9 +230,9 @@ ARC does not mandate one communication model. Implementations may use real-time 
 
 Relay infrastructure is pragmatic but may expose message metadata to its operator. Communities operating relay services should document their policies.
 
-### 5.4 Message Format
+### 5.4 Reference-Profile Message Format
 
-All agent messages are structured JSON with mandatory signature fields:
+This reference profile uses structured JSON with its selected signature fields:
 
 ```json
 {
@@ -261,21 +261,21 @@ registry endpoint -> idle -> contact (knock) -> wake -> presence check -> capabi
 
 This sequence spans three concerns that should not be conflated:
 
-- **Transport.** The contact, presence, and capability messages are ephemeral transport, not events. They assert no truth, grant no permission, and enter no log or projection ([event-registry.md](./event-registry.md) §2.3 — requests are not events). No signed Event exists until negotiation yields one: an `ATTEST` offer or an `AUTHORIZE` approval. Any of §5.1–§5.3 (P2P, relay, async inbox) may carry the wake.
+- **Transport.** The contact, presence, and capability messages are ephemeral transport, not canonical Events ([event-registry.md](./event-registry.md) §2.3). They may carry claims, but they do not enter an ARC Projection unless separately recorded or attested. Any of §5.1–§5.3 (P2P, relay, async inbox) may carry the wake.
 - **Architecture.** Presence is established on contact rather than maintained continuously. The handshake is the bridge between discovery (§6, which locates an endpoint) and the message layer (§5.4, which carries signed exchanges). It introduces no new message type beyond a reachability probe and a capability response.
-- **Economics.** Continuous reasoning is an agent's dominant operating cost, and an always-on reasoning process per merchant is infeasible for small local participants. Idle-by-default makes the cost of presence proportional to actual contact rather than wall-clock uptime — the same ordinary-infrastructure, low-cost stance as §1.1, and a precondition for the local-commerce cost model ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md)).
+- **Economics.** Idle-by-default may reduce inference and connection costs compared with continuous operation. The dominant cost, feasibility for small participants, and total savings are not established; they remain Commerce application research questions ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md)).
 
 Real-time availability — whether the merchant is open, the kitchen is ready, an item is in stock — belongs in the capability response, not in a signed record: it is volatile live state, not an Event. Durable capabilities (service categories, delivery radius, accepted payment methods, hours) may instead be carried as ordinary `ATTEST` evidence where a counterparty needs them after the fact.
 
 ---
 
-## 6. Discovery Layer
+## 6. Commerce Discovery Layer
 
 How agents find each other is as important as how they communicate.
 
-ARC does not impose a single discovery mechanism. Communities may operate their own discovery backends.
+The base protocol does not define discovery. This Commerce application allows multiple discovery mechanisms, including community-operated backends.
 
-Discovery establishes contactability, not authority: a backend surfaces reachable endpoints, but legitimacy, permission, and fulfillment capacity are decided in other layers (identity, approval, governance, fulfillment) — never by appearing in a directory.
+Discovery establishes contactability, not authority: a backend may surface endpoints, while observers evaluate identity, permission, and fulfillment-capacity claims under named policies and available evidence. Appearing in a directory establishes none of those claims by itself.
 
 ### 6.1 Discovery Methods
 
@@ -283,7 +283,7 @@ Discovery establishes contactability, not authority: a backend surfaces reachabl
 |--------|-------------|
 | Local community registry | Community-operated merchant directory for a geographic area |
 | Map provider integration | Google Maps, Naver Map, OpenStreetMap for location-based discovery |
-| Reputation-weighted index | Discovery sorted by verified reputation score |
+| Reputation-weighted index | Discovery sorted by a named reputation Projection output |
 | Category index | Domain-specific registries (food, logistics, services) |
 | Direct agent address | Known agent ID for direct contact |
 
@@ -291,11 +291,11 @@ Discovery establishes contactability, not authority: a backend surfaces reachabl
 
 Users may configure which discovery backend their consumer agent uses.
 
-If a user believes a discovery backend is biased or compromised, they can switch to an alternative without changing anything else in the system. This is a core anti-monopoly design feature.
+If a user believes a discovery backend is biased or compromised, an implementation may offer an alternative. Switching depends on compatible schemas, identity references, evidence, and ranking semantics; it is not guaranteed by base ARC.
 
 ### 6.3 Sponsored Discovery
 
-Merchants may pay to appear higher in discovery results. This is permitted under ARC, with one requirement: the sponsored placement must be explicitly declared.
+Merchants may pay to appear higher in this Commerce application's discovery results. Its named discovery policy requires sponsored placement to be explicitly declared.
 
 ```json
 {
@@ -306,11 +306,11 @@ Merchants may pay to appear higher in discovery results. This is permitted under
 }
 ```
 
-Undisclosed sponsored placement is a protocol violation.
+Undisclosed sponsored placement violates that named Commerce discovery policy, not the base protocol.
 
 ### 6.4 Discovery Infrastructure Sustainability
 
-Discovery infrastructure is a public goods problem. Open directories, indexes, relay endpoints, moderation queues, and reputation displays create value for many participants, but the cost of operating them does not disappear. ARC does not assume that merchants alone must pay for this infrastructure.
+Discovery infrastructure has operating costs that may be shared across participants. The Commerce research does not select who must fund directories, indexes, relay endpoints, moderation queues, or reputation displays.
 
 Possible funding and operation models to study may include:
 
@@ -323,20 +323,20 @@ Possible funding and operation models to study may include:
 - merchant-hosted or association-hosted registries
 - consumer-supported or donation-supported discovery tools
 
-For small merchants, the most attractive ARC-compatible systems may be those that reduce platform dependency, lower intermediary overhead, improve settlement transparency, and preserve reputation portability. However, ARC should not claim that all merchants will participate or that infrastructure can be free. The practical question is how coordination costs can be made more transparent, portable, and less extractive than closed platform models.
+Potential effects on platform dependency, intermediary overhead, settlement visibility, and reputation portability require testing with merchants and operators. The corpus establishes no preference, cost reduction, participation outcome, or comparison with closed platforms.
 
-These are practical questions for communities, not protocol-level economic requirements.
+These are Commerce application questions for communities, not protocol-level economic requirements.
 
 ### 6.5 Privacy Principles
 
-Consumer agents may handle sensitive data such as location, purchase history, dietary preferences, and budget constraints. ARC does not define a complete privacy specification at this stage, but identifies directional principles:
+Consumer agents may handle sensitive data such as location, purchase history, dietary preferences, and budget constraints. This Commerce reference architecture does not define a complete privacy profile, but identifies directional application principles:
 
 - **Local-first storage.** User preference and behavioral data should default to storage on the user's device.
 - **Minimum necessary sharing.** Agents should share only the data needed for a specific transaction.
 - **Explicit consent for retention.** Retaining data beyond the immediate transaction should require opt-in.
 - **User data portability.** Users should be able to export or delete their data from an ARC-compatible implementation.
 
-These are design intentions rather than finalized protocol requirements.
+These are application design intentions rather than finalized protocol requirements.
 
 ---
 
@@ -351,7 +351,7 @@ These are design intentions rather than finalized protocol requirements.
   "identity_provider": "google",
   "public_key": "ed25519:...",
   "community": "seoul-local-commerce",
-  "status": "verified",
+  "status": "profile_check_passed",
   "created_at": "2026-01-01T00:00:00Z",
   "last_active": "2026-06-01T10:00:00Z"
 }
@@ -359,9 +359,9 @@ These are design intentions rather than finalized protocol requirements.
 
 Here `status` is shown inline for readability, but it is a projected view rather than a stored field: it is folded from the key's `KEY` lifecycle events, credential attestations, and any commons `ADJUDICATE`. The stored unit is the Event. See [object-model.md](./object-model.md) and [event-registry.md](./event-registry.md).
 
-### 7.2 Signed Offers
+### 7.2 Signed Offers in This Commerce Profile
 
-Every offer must be cryptographically signed:
+This profile represents each offer as a cryptographically signed record; Ed25519 below is a reference-fixture choice, not a universal ARC signature suite:
 
 ```json
 {
@@ -382,9 +382,11 @@ Every offer must be cryptographically signed:
 
 ---
 
-## 8. Reputation Layer
+## 8. Named Commerce Reputation Projection
 
-### 8.1 Reputation Event
+### 8.1 Legacy Commerce Reputation-Input Example
+
+This illustrative application-shaped payload is not a Canon Event envelope. A Canon-aligned profile would carry the claim in an `ATTEST` or use an authorized `ADJUDICATE` as governance evidence.
 
 ```json
 {
@@ -392,7 +394,7 @@ Every offer must be cryptographically signed:
   "agent_id": "merchant_abc_001",
   "transaction_id": "tx_001",
   "rating": 5,
-  "verified": true,
+  "declared_record_checks_passed": true,
   "metrics": {
     "on_time": true,
     "accurate_description": true,
@@ -415,11 +417,11 @@ Every offer must be cryptographically signed:
 | `response_speed` | Average time to respond to offer requests |
 | `community_trust_score` | Composite signal projected from community governance events, not a stored universal score |
 
-These metrics are projection outputs computed on demand from reputation events, not fields stored on the agent. The reputation event in §8.1 is the stored record (an `ATTEST` of an outcome); the score is a fold over such events. See [object-model.md](./object-model.md) and [event-registry.md](./event-registry.md).
+These metrics are outputs of the named Commerce reputation Projection computed on demand from its declared evidence set, not fields stored on the agent. In the §8.1 example, `declared_record_checks_passed` is an application label for a bounded record check; a corresponding `ATTEST` would claim an outcome but would not prove it. See [object-model.md](./object-model.md) and [event-registry.md](./event-registry.md).
 
 ---
 
-## 9. Human Approval Layer
+## 9. Commerce Approval UI
 
 ### 9.1 Approval Request
 
@@ -452,7 +454,7 @@ Always require per-transaction approval: new merchants with no reputation
 Block: agents with dispute rate above 10%
 ```
 
-Any pre-authorized low-risk rule remains user-defined, reviewable, and subordinate to the requirement for explicit approval of meaningful economic actions.
+These are Commerce application policies. Every consequential act still requires Current Coverage: either exact act-specific authority or a valid user-authored scoped mandate.
 
 ---
 
@@ -460,9 +462,10 @@ Any pre-authorized low-risk rule remains user-defined, reviewable, and subordina
 
 > **Not prescribed by the protocol.** ARC defines protocol semantics, not
 > infrastructure — none of the choices below are required for an implementation
-> to be ARC-conformant. This is one illustrative stack for the Stage 1 commerce
-> MVP, recorded so that build is concrete. Any equivalent stack that produces
-> signed events and recomputable projections is equally valid.
+> to claim Core Event Conformance, Named Projection Conformance, or Named
+> Functional Profile Conformance. This is one illustrative stack for the Stage 1
+> Commerce MVP, recorded so that build is concrete. No complete conformance claim
+> is made for this untested stack sketch.
 
 ### Frontend
 - Next.js + React
@@ -505,7 +508,7 @@ Any pre-authorized low-risk rule remains user-defined, reviewable, and subordina
 
 ### MVP Success Criteria
 
-A user can type a request, receive competing offers from simulated agents, see a comparison with auditable reasoning, approve one option, and see a mock transaction logged with a reputation event.
+A user can type a request, receive competing offers from simulated agents, inspect the fixture inputs and comparison explanation, approve one option, and see a mock transaction logged with an application standing input.
 
 ---
 
@@ -517,18 +520,16 @@ This repository is currently organized as a protocol research corpus, not a prod
 arc-protocol/
 ├── README.md            ← project compass and entry point
 ├── LICENSE, CONTRIBUTING.md
-├── docs/                ← normative models, tradeoffs, custody, threat model, glossary, roadmap
-│   │                      (object-model, event-registry, authority-and-conflict, key-custody,
-│   │                       delegation-and-spending-mandates, identity, reputation, governance,
-│   │                       trust-model-tradeoffs, threat-model, future-protocol-spec, …)
+├── docs/                ← normative, explanatory, application, historical, and research material
+│   │                      (README identifies the authority hierarchy and each document's role)
 │   └── adjacent-ideas/  ← exploratory essays
-├── examples/            ← executable probes and reference clients
+├── examples/            ← executable validation probes and reference clients
 │   ├── reference-client/             browser client for observing authority/approval bands
-│   ├── canon-fold-demo/, canon-ts/   canonicalization and type-level custody locks
+│   ├── canon-fold-demo/, canon-ts/   canonicalization and type-level authority constraints
 │   ├── authority-revocation-demo/, threshold-authority-demo/, cache-discipline-demo/
 │   ├── end-to-end-demo/, local-commerce-demo/
-├── diagrams/            ← discovery-topology.md, dispute-flow.md, transaction-lifecycle.md
+├── diagrams/            ← explanatory application diagrams
 └── apps/, packages/     ← reserved placeholders, not yet populated
 ```
 
-The earlier `apps/web` and `packages/*` layout was an aspirational sketch of a reference implementation, not a current commitment; treat it as non-normative. The README is the canonical map of the corpus.
+The earlier `apps/web` and `packages/*` layout was an aspirational sketch of a reference implementation, not a current commitment; treat it as non-normative. The README is the current map of the corpus and its authority hierarchy.

@@ -1,6 +1,7 @@
-# ARC Protocol: Transaction Lifecycle
+# ARC Commerce Reference Application: Transaction Lifecycle
 
-> **Purpose:** Visual reference for the full transaction state machine
+> **Purpose:** Visual reference for an illustrative Commerce application Projection
+> These application states are not additional ARC Canon Event types.
 > For message flow detail, see [protocol.md](../docs/protocol.md).
 
 ## State Diagram
@@ -22,31 +23,31 @@ stateDiagram-v2
     logistics_received --> pending_approval : recommendation prepared
     logistics_unavailable --> pending_approval : user informed, pickup fallback
 
-    pending_approval --> approved : human confirms
+    pending_approval --> approved : named-profile coverage check passes
     pending_approval --> rejected : human declines
     pending_approval --> expired : approval window lapses
 
     approved --> payment_pending : payment initiated
-    payment_pending --> payment_confirmed : provider confirms
+    payment_pending --> payment_confirmed : provider confirmation recorded
     payment_pending --> payment_failed : provider fails
 
     payment_confirmed --> fulfillment_pending : merchant or logistics begins
-    fulfillment_pending --> fulfilled : completed as agreed
+    fulfillment_pending --> fulfilled : fulfillment claim recorded
     fulfillment_pending --> cancelled : cancelled before completion
     fulfillment_pending --> disputed : complaint filed
 
-    fulfilled --> reputation_pending : reputation event prepared
-    reputation_pending --> completed : reputation event recorded
+    fulfilled --> reputation_pending : standing input prepared
+    reputation_pending --> completed : standing input recorded
 
     disputed --> resolved_no_fault : dismissed
     disputed --> resolved_partial_refund : partial resolution
     disputed --> resolved_full_refund : full refund
-    disputed --> resolved_confirmed_fraud : fraud confirmed
+    disputed --> resolved_fraud_finding : fraud finding recorded
 
     resolved_no_fault --> reputation_pending
     resolved_partial_refund --> reputation_pending
     resolved_full_refund --> reputation_pending
-    resolved_confirmed_fraud --> governance_action_pending : governance review initiated
+    resolved_fraud_finding --> governance_action_pending : governance review initiated
     governance_action_pending --> reputation_pending : outcome recorded after appeal window
 
     completed --> [*]
@@ -60,6 +61,7 @@ stateDiagram-v2
 ## Notes
 
 - `logistics_unavailable` resolves to `pending_approval` rather than terminating, because pickup fallback may still be available.
-- `resolved_confirmed_fraud` moves into `governance_action_pending` because severe outcomes may require suspension, appeal, or cross-community review before final closure.
-- Dispute states feed back into `reputation_pending` to ensure verified outcomes are recorded.
+- `resolved_fraud_finding` moves into `governance_action_pending` because adjudicated application findings may require suspension, appeal, or cross-community review before final closure.
+- Dispute states feed back into `reputation_pending` to record application outcome claims as evidence.
+- State labels summarize recorded claims and application findings; they are not outcome proof.
 - This diagram reflects the exploratory model in protocol.md and may change as the design matures.

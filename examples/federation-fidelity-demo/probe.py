@@ -1,85 +1,73 @@
 #!/usr/bin/env python3
 """
-ARC federation fidelity-laundering probe — single file, stdlib only.
+ARC federation bridge-reading probe — single file, stdlib only.
 
 What this isolates
 ------------------
 Two earlier probes meet here:
 
-  * finding J (federation bridge, federation_fixture): a community recognizes
-    another's authority with a scoped `AUTHORIZE fed.recognition`. The bridge
-    *routes* authority, it does not *mint* it; a recognizing fold reads the
-    bridge categorically — binding / advisory / ignored — and CONTESTED is an
-    honest terminal output.
-  * finding M (signer fidelity, signer_fidelity_fixture): a valid signature
-    proves a key signed; it does NOT prove the signer read its mandate
-    faithfully. Two signers on the same key and the same mandate can DRIFT
-    apart in their private reading; the in-scope acts are indistinguishable,
-    and the drift only surfaces as honoring-disagreement.
+  * finding J (federation bridge, federation_fixture): a scoped `AUTHORIZE
+    fed.recognition` is read as binding, advisory, or ignored by this fixture.
+  * finding M (signer fidelity, signer_fidelity_fixture): verification under a
+    declared signature profile can check record bytes against a configured public
+    key, but it does not establish who controlled that key or how the signer label's
+    associated party interpreted its mandate.
 
 The composition question:
 
-  > When a drifted signer's act crosses a federation bridge, does the bridge
-  > LAUNDER the drift?
+  > When an act produced under a stipulated drifted reading crosses a federation
+  > bridge, does the receiver re-evaluate the recorded scope locally?
 
 The setup is two communities. **harbor** grants its agent a market mandate with
-an on-log ceiling of 30000. harbor's signer is DRIFTED — it signs acts harbor's
+an on-log ceiling of 30000. harbor's signer has a stipulated drifted reading and
+mock-signs acts harbor's
 own mandate, as written, would not authorize. **orchard** recognizes harbor's
 market authority over a bridge, then folds harbor's acts three ways:
 
     orchard --AUTHORIZE fed.recognition--> scope={domain:market, community:harbor}
     harbor  --AUTHORIZE consent.mandate--> scope={category:market, max:30000}
-    harbor  --AUTHORIZE consent.execute--> three acts, signed under harbor's drift
+    harbor  --AUTHORIZE consent.execute--> three mock-signed acts
 
 Nothing here is a new event type. The bridge is one `AUTHORIZE fed.recognition`
 (finding J); severance is the existing `nullifies` field; the drift is a signer's
 reading (finding M), never an event and never a stored "fidelity score".
 
-The core finding
-----------------
-Interpretation does not travel on the wire — only events do. So orchard's choice
-of how to read the bridge IS the choice of whose interpretation to trust:
+Configured bridge readings
+--------------------------
+The Event does not record the signer's private interpretation. This fixture applies
+three bridge readings:
 
-  * binding   -> orchard HONORS whatever harbor's signer signed, deferring to
-                 harbor's authority WITHOUT re-folding against the on-log mandate.
-                 harbor's drift is imported invisibly. The act is LAUNDERED.
-  * advisory  -> orchard RE-FOLDS each act under its own faithful reading of the
+  * binding   -> after finding a live matching recognition, this branch returns
+                 HONORED without checking the act against the recorded mandate
+                 ceiling or orchard classifier. No remote verdict is represented.
+  * advisory  -> orchard re-folds each act under its own configured reading of the
                  same on-log mandate. The numeric drift (over the recorded
-                 ceiling) is caught and DECLINED. The drift is EXPOSED.
+                 ceiling) is reported and DECLINED.
   * ignored   -> the act is NOT_RECOGNIZED; nothing transmits.
 
-So finding J's categorical bridge-reading maps exactly onto finding M's fidelity
-axis: **binding = import the remote reading (and its drift); advisory = substitute
-your own reading (and expose numeric drift); ignored = no transmission.**
+The probe crosses two stipulated interpretation differences:
 
-But the M residue survives the bridge in BOTH directions. The probe crosses two
-drift kinds:
-
-  * NUMERIC drift (an amount over the on-log ceiling): advisory catches it,
-    because the violated bound is recorded. binding launders it.
+  * NUMERIC drift (an amount over the on-log ceiling): advisory reports it,
+    because the violated bound is recorded. binding skips the local mandate checks.
   * CATEGORICAL drift (an ambiguous item harbor calls "market" and orchard would
-    not): advisory does not "catch" it — it only DISAGREES (CONTESTED). Two
-    faithful folds legitimately read the category differently; neither certifies
-    the other. So even advisory does not OBSERVE harbor's faithfulness; it only
-    substitutes orchard's judgment. The truly unobservable layer of finding M
-    is not closed by re-folding — it is relocated to orchard.
+    not): advisory returns CONTESTED. The fixture does not establish which category
+    interpretation is preferable; it only applies orchard's configured classifier.
 
 And severance inherits finding J's preserve/cascade asymmetry: orchard can sever
 the bridge (`fed.severance` + `nullifies`), but an act already HONORED under
-binding — and the payment orchard recorded on its basis — STAYS in orchard's
-history. Severance bounds the future; it does not un-launder the past. The
-laundered act outlives the bridge.
+binding — and the payment orchard recorded on its basis — remains in orchard's
+history under this preserve-style policy. Severance bounds the future; it does
+not remove the earlier act from the Event set.
 
-Deliberately dirty and small. Explicitly:
+Fixture limits:
   * stdlib only, single process, no network, no transport, no storage;
-  * signatures are MOCK (a hash, not Ed25519). finding M used real Ed25519 to
-    make its in-scope acts BYTE-identical; here the point is reading-semantics
+  * signatures are MOCK (a hash, not Ed25519). finding M used illustrative
+    Ed25519; here the point is reading-semantics
     across the bridge, not custody, so the control asserts EVENT-identity (the
     recognized event is the same object whatever harbor's signer privately read).
-    Lifting this to a real-signer fixture is a later upgrade, not this probe;
   * the five canonical types are reused as-is — no new primitive, no stored
     authority object, no stored fidelity score;
-  * this is a probe, not a federation spec and not doctrine.
+  * this is a probe, not a federation specification.
 
 Run:  python3 probe.py
 """
@@ -121,11 +109,10 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies.
+    """Deterministic fixture hash, not a signature or proof of key possession.
 
-    Note: a faithful and a drifted signer on the SAME key produce the SAME
-    signature on the SAME act — exactly finding M's point. The mock makes that
-    free: the signature is a function of (signer, bytes), never of the reading.
+    The hash is a function of the signer label and bytes, not the fixture's
+    stipulated interpretation. A production profile must declare its suite.
     """
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
@@ -142,16 +129,15 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: signature check + signer anchored by a prior KEY.
+    """Fixture replay check: deterministic mock signature and key registration.
 
-    Note what verify_log CANNOT see: that harbor's signer drifted. Every act
-    below verifies — the signature is honest. Fidelity is not a signature
-    property (finding M), and federation does not add one.
+    Deliberately no signer-reading check exists here. This is not production
+    signature verification, completeness checking, or a fidelity determination.
     """
     registered: set[str] = set()
     for ev in events:
         if ev.signature != stub_sign(ev.signer, ev.signing_bytes()):
-            raise ValueError(f"bad signature on {ev.id}")
+            raise ValueError(f"bad mock signature on {ev.id}")
         is_root = ev.type == "KEY" and ev.predicate == "id.key_register"
         if not is_root and ev.signer not in registered:
             raise ValueError(f"signer {ev.signer} not anchored by a KEY register ({ev.id})")
@@ -170,8 +156,8 @@ def as_of(events: list[Event], t: str) -> list[Event]:
 # policy, not anything on the log. harbor never published how it classifies.
 #   in        — orchard agrees this is a consumer-market good
 #   out       — orchard is sure this is outside its recognized domain
-#   ambiguous — a judgment call; orchard's reading and harbor's legitimately
-#               differ, and neither is provably the faithful one (finding M).
+#   ambiguous — the configured orchard and harbor readings differ; this fixture
+#               does not select a preferred classifier.
 # ---------------------------------------------------------------------------
 
 def orchard_reads_domain(item: str) -> str:
@@ -190,7 +176,7 @@ def orchard_reads_domain(item: str) -> str:
 #
 # Verdicts:
 #   HONORED         — orchard treats the act as authorized
-#   DECLINED        — orchard rejects it (a bound it can prove was crossed)
+#   DECLINED        — orchard rejects it (a recorded bound is crossed)
 #   CONTESTED       — orchard disagrees on an ambiguous reading; cannot certify
 #   NOT_RECOGNIZED  — no live bridge, or reading == ignored
 # ---------------------------------------------------------------------------
@@ -234,19 +220,18 @@ def project_fidelity(events: list[Event], act_id: str, *, reading: str) -> dict:
     item = act.payload.get("item", "?")
 
     if reading == "binding":
-        # orchard defers to harbor's authority. It does NOT re-fold against the
-        # on-log mandate — that is what "binding" means. Whatever harbor's signer
-        # signed under the recognized mandate, orchard honors. The drift, of
-        # either kind, is imported here and is invisible at this fold.
+        # This branch returns HONORED once a matching live recognition exists. It
+        # does not inspect the recorded mandate ceiling/category or consume a
+        # remote verdict.
         return {"act": act_id, "verdict": "HONORED",
-                "reason": f"defers to harbor; on-log mandate NOT re-folded "
+                "reason": f"matching recognition; local mandate checks skipped "
                           f"(amount={amount}, item={item})"}
 
     if reading == "advisory":
-        # orchard re-folds under its OWN faithful reading of the same on-log
+        # orchard re-folds under its OWN configured reading of the same on-log
         # mandate. Two independent checks:
         if ceiling is not None and amount is not None and amount > ceiling:
-            # NUMERIC drift — the violated bound is recorded, so orchard catches it.
+            # NUMERIC drift — the violated bound is recorded, so this policy reports it.
             return {"act": act_id, "verdict": "DECLINED",
                     "reason": f"{amount} > on-log ceiling {ceiling} — harbor's "
                               f"signer exceeded the recorded mandate"}
@@ -256,10 +241,10 @@ def project_fidelity(events: list[Event], act_id: str, *, reading: str) -> dict:
                     "reason": f"item '{item}' is outside orchard's recognized market domain"}
         if dom == "ambiguous":
             # CATEGORICAL drift — orchard's reading differs from harbor's, but
-            # neither is provably faithful. Re-folding only substitutes judgment.
+            # this fixture does not establish a preferred interpretation.
             return {"act": act_id, "verdict": "CONTESTED",
                     "reason": f"item '{item}': orchard reads it outside market, harbor "
-                              f"inside — neither fold certifies the other (finding M)"}
+                              f"inside — this policy returns CONTESTED"}
         return {"act": act_id, "verdict": "HONORED",
                 "reason": f"within on-log ceiling and orchard's market reading "
                           f"(amount={amount}, item={item})"}
@@ -304,14 +289,14 @@ def say(who: str, msg: str) -> None:
     print(f"  [{who}] {msg}")
 
 
-# the omniscient ground truth — which acts came from harbor's drifted reading.
-# It is rendered in a strip "available to NO observer"; no fold ever reads it.
-GROUND_TRUTH = {
-    "act_in":  "faithful — 20000 groceries, within the mandate under any reading",
+# Generator-only stipulations — which acts use harbor's drifted reading.
+# Observer folds do not receive this mapping.
+FIXTURE_STIPULATIONS = {
+    "act_in":  "20000 groceries, within the mandate under either configured reading",
     "act_num": "DRIFT (numeric) — 40000 over the on-log 30000 ceiling; harbor's "
                "signer honored it as if the ceiling were soft",
     "act_cat": "DRIFT (categorical) — harbor's signer classified an ambiguous item "
-               "as 'market'; faithful folds may legitimately disagree",
+               "as 'market'; the configured classifiers disagree",
 }
 
 
@@ -339,8 +324,8 @@ def run() -> None:
     bridge = orchard.emit("AUTHORIZE", "fed.recognition", refs=("k:harbor_p",),
                           scope={"domain": "market", "community": "harbor"})
 
-    print("\n4. harbor's agent signs three acts — under harbor's OWN (drifted) reading")
-    print("   Every one of them verifies. The signature is honest; the reading is not.")
+    print("\n4. harbor's agent mock-signs three acts — stipulated drifted reading")
+    print("   Every one passes this fixture's mock-signature/key-registration check.")
     acts = {}
     acts["act_in"] = harbor_a.emit("AUTHORIZE", "consent.execute", refs=(mandate.id,),
                                    scope={"total_krw": 20000, "category": "market"},
@@ -353,7 +338,8 @@ def run() -> None:
                                     payload={"item": "industrial_solvent"})
 
     print("\n5. The fold matrix — orchard reads each act under three bridge-readings")
-    print("   (binding = defer to harbor / advisory = re-fold locally / ignored = drop)\n")
+    print("   (binding = recognize without local mandate checks / "
+          "advisory = re-fold locally / ignored = drop)\n")
     labels = {"act_in":  "act_in  — 20000 groceries (in-scope)",
               "act_num": "act_num — 40000 bulk_order (NUMERIC drift)",
               "act_cat": "act_cat — 15000 solvent (CATEGORICAL drift)"}
@@ -365,15 +351,15 @@ def run() -> None:
         print(f"    {labels[name]:<46}{cells[0]:<12}{cells[1]:<12}{cells[2]:<8}")
 
     print("\n   Reading the rows:")
-    print("     act_in  — HONORED under binding AND advisory: in-scope, the laundering")
-    print("               is invisible here (the finding-M byte/event-identity control).")
-    print("     act_num — binding HONORED, advisory DECLINED: binding LAUNDERED a spend")
-    print("               over the recorded ceiling; the local re-fold caught it.")
+    print("     act_in  — HONORED under binding AND advisory: both configured readings")
+    print("               accept the same Event.")
+    print("     act_num — binding HONORED, advisory DECLINED: binding skips the recorded")
+    print("               ceiling check; the advisory re-fold applies it.")
     print("     act_cat — binding HONORED, advisory CONTESTED: advisory did not 'catch'")
-    print("               a violation, it only DISAGREED; harbor's fidelity stays unobserved.")
+    print("               a recorded violation; the configured classifiers disagree.")
 
-    print("\n6. orchard, operating BINDING, honors act_num and records a payment on its basis")
-    say("orchard", "binding recognition → act_num is authorized → paying")
+    print("\n6. orchard uses the binding reading for act_num and records a payment-result claim")
+    say("orchard", "binding recognition → recording the fixture payment-result claim")
     pay = orchard.emit("ATTEST", "commerce.payment_result", refs=(acts["act_num"].id,),
                        payload={"result": "confirmed", "amount_krw": 40000, "provider": "mock_pay"})
 
@@ -382,7 +368,7 @@ def run() -> None:
     orchard.emit("AUTHORIZE", "fed.severance", refs=("k:harbor_p",), nullifies=(bridge.id,),
                  payload={"reason": "standards_divergence"})
 
-    print("\n8. After severance — a NEW harbor act is dropped, but the laundered past persists")
+    print("\n8. After severance — a new harbor act is dropped; earlier records remain")
     act_late = harbor_a.emit("AUTHORIZE", "consent.execute", refs=(mandate.id,),
                              scope={"total_krw": 18000, "category": "market"},
                              payload={"item": "groceries"})
@@ -391,17 +377,18 @@ def run() -> None:
     still = project_fidelity(led.events, acts["act_num"].id, reading="binding")
     print(f"   already-honored act_num under binding: {still['verdict']}  "
           f"(severance moved 0 past cells; recognition was live when honored)")
-    print(f"   orchard's payment on act_num [{pay.id}] is NOT nullified by the severance —")
-    print(f"   the laundered act, and the money paid on it, outlive the bridge.")
+    print(f"   orchard's payment on act_num [{pay.id}] is not nullified by the severance —")
+    print("   the earlier act and mock payment-result record remain in the Event set.")
 
-    print(f"\nGenerated log: {len(led.events)} signed events. verify_log passes.")
+    print(f"\nGenerated log: {len(led.events)} mock-signed fixture Events; replay checks pass.")
     verify_log(led.events)
 
-    print("\n--- omniscient view — available to NO observer (folds never read this) ---")
-    for name, truth in GROUND_TRUTH.items():
+    print("\n--- generator-only stipulations (observer folds do not receive these) ---")
+    for name, truth in FIXTURE_STIPULATIONS.items():
         print(f"    {name}: {truth}")
-    print("    The log carries the acts and the bridge. It does NOT carry harbor's")
-    print("    signer's reading. binding imports it unseen; advisory substitutes its own.")
+    print("    The log carries the acts and the bridge. It does not carry harbor's")
+    print("    signer's private reading or a remote verdict. The binding branch does not")
+    print("    inspect that reading; advisory applies orchard's configured checks.")
 
     print_finding()
 
@@ -410,39 +397,30 @@ def print_finding() -> None:
     print("""
 What this probe exposes
 -----------------------
-  * Does federation launder a drifted signer's act?
-      It depends on how the recognizing community READS the bridge — and that
-      categorical choice (finding J: binding / advisory / ignored) IS the choice
-      of whose interpretation to trust (finding M: faithful vs drifted reading).
-        - binding  defers to harbor without re-folding the on-log mandate, so it
-                   IMPORTS harbor's reading and LAUNDERS the drift;
-        - advisory re-folds locally and EXPOSES numeric drift (a crossed bound
+  * Does the receiving policy re-evaluate the recorded scope locally?
+      It depends on the configured bridge reading in this fixture:
+        - binding  returns HONORED after a matching live recognition without
+                   checking the recorded mandate ceiling or orchard classifier;
+        - advisory re-folds locally and reports numeric drift (a crossed bound
                    that the mandate recorded);
         - ignored  transmits nothing.
   * Does re-folding (advisory) recover harbor's fidelity?
-      Only for drift against a RECORDED bound (the numeric ceiling). For an
-      ambiguous category, advisory does not catch a violation — it only
-      DISAGREES (CONTESTED). Two faithful folds may read the category differently;
-      neither certifies the other. Re-folding substitutes orchard's judgment for
-      harbor's; it does not OBSERVE harbor's faithfulness. Finding M's unobservable
-      layer is not closed by the bridge — it is relocated to the recognizer.
-  * What does binding recognition actually cost?
-      It makes orchard's clean log contingent on a signer it can observe even less
-      than its own — harbor's. finding K's clean log rested on the local signer's
-      fidelity; binding recognition extends that dependency across the bridge to a
-      remote one. "Binding" is not free deference; it is importing an unobservable
-      trust assumption one community further away.
-  * Does severing the bridge undo the laundering?
-      No. Severance bounds the future (a new harbor act is NOT_RECOGNIZED) but the
-      act already honored under binding — and the payment recorded on it — stay in
-      orchard's history. Severance is finding J's "resolution by amnesia": it does
-      not un-launder the past.
+      Only for drift against a recorded bound (the numeric ceiling). For an
+      ambiguous category, advisory returns CONTESTED because the configured
+      classifiers disagree. Re-folding substitutes orchard's policy; it does not
+      establish harbor's private interpretation.
+  * What does binding recognition do?
+      In this fixture, it treats a matching live recognition as sufficient for
+      HONORED and skips the recorded-ceiling and orchard-classifier checks. The
+      fixture does not represent or consume a remote verdict.
+  * What does severing the bridge do under this preserve-style policy?
+      It bounds future recognition. The earlier act and mock payment-result record
+      remain in the Event set and keep their prior fixture treatment.
 
 No sixth type was required. The bridge is one AUTHORIZE fed.recognition; severance
 is the nullifies field; the drift is a signer's reading, never an event and never a
-stored fidelity score. The laundering is a fold-policy residue at the composition of
-findings J and M — binding recognition routes not just authority but unobservable
-interpretation. This is a probe, not a federation spec and not doctrine.
+stored fidelity score. This is one bridge encoding with three configured readings;
+base ARC does not select a federation policy. This is a probe, not a federation specification.
 """)
 
 

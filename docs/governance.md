@@ -1,7 +1,7 @@
-# ARC Protocol: Governance
+# ARC Protocol: Commerce and Community Governance Research
 
 > **Status:** Exploratory draft
-> **Purpose:** Community governance model, dispute resolution philosophy, and governance limits
+> **Purpose:** Commerce/community institution research, dispute resolution philosophy, and governance limits
 > For system architecture, see [architecture.md](./architecture.md).
 > For payment and legal boundaries, see [liability-boundaries.md](./liability-boundaries.md).
 
@@ -9,45 +9,41 @@
 
 ## 1. Why Governance Matters
 
-Trust cannot be enforced by code alone.
+Under a declared security profile, a signature can support a check that a key signed the covered offer bytes. It does not establish who controlled the key, covering authority, merchant honesty, product quality, delivery conduct, or dispute truth.
 
-Cryptographic signatures verify that an offer came from a specific key. They do not verify that the merchant behind that key is honest, that the food was edible, that the delivery driver did not steal the package, or that a dispute report is truthful.
+Human review can add context that Event records alone do not supply. This application-governance research explores how communities could organize that review — handling fraud reports, reviewing disputes, and maintaining a named reputation Projection.
 
-Human judgment is irreplaceable in commerce. ARC's governance model exists to organize that judgment — to give communities a structured way to handle fraud reports, review disputes, and maintain the integrity of the reputation layer.
+Governance is one proposed way to review manipulation claims and provide appeals. It does not eliminate reputation gaming, abusive participation, capture, or arbitrary decisions.
 
-Without governance, reputation becomes gameable. Without community enforcement, bad actors can accumulate fake trust and exploit it. Without a clear appeal process, suspension becomes arbitrary and abusive.
-
-ARC treats governance as a first-class design concern, not an afterthought.
-
-But governance is not magic. It is labor, process, judgment, funding, and accountability under adversarial pressure.
+Governance requires labor, process, judgment, funding, and accountability under adversarial pressure.
 
 ---
 
-## 2. Core Governance Principles
+## 2. Possible Commerce-Profile Governance Principles
 
-**Local over central.**
-Communities closest to the commerce may be better positioned to understand context than a distant algorithm or corporate trust-and-safety team. This is an aspirational design position, not a guarantee that local governance will be fair, sustainable, or capture-resistant.
+**Local review.**
+Local review may add contextual information while also introducing capture, consistency, and sustainability risks. This is an application research choice, not a guarantee or base-protocol topology.
 
-**Transparent process.**
-Every governance decision — warning, suspension, expulsion — should produce a reviewable record. Participants should be able to understand why a decision was made.
+**Reviewable process.**
+A named Commerce governance profile may require warning, suspension, and expulsion decisions to produce records reviewable by affected parties on its declared evidence surface. The base protocol does not require a public surface.
 
-**Right to appeal.**
-No suspension should be final without an appeal path. Mistakes happen. Malicious reports happen. The system must allow correction.
+**Appeal policy.**
+A profile may define an appeal and correction path for suspension decisions. Base ARC does not mandate one.
 
-**Proportional response.**
-Penalties should match the severity of the violation. A first-time late delivery is not equivalent to systematic fraud. The governance model should reflect that.
+**Response policy.**
+A profile may distinguish response levels by its declared findings and severity rules.
 
-**No single point of control.**
-No single corporation, individual, or community should have unilateral authority over the entire network. Governance is federated by design.
+**Topology remains a profile choice.**
+This application research explores local and federated institutions; base ARC mandates no governance topology.
 
 **Limited authority.**
-ARC governance may affect ARC-compatible reputation, discovery visibility, warnings, or local participation status. It does not replace courts, payment-provider dispute systems, consumer protection law, professional regulators, or public legal authority.
+A named Commerce governance profile may affect its reputation Projection, discovery visibility, warnings, or local participation status. Its decisions are evidence and standing decisions, not proof of execution or legal truth, and do not replace courts, payment-provider dispute systems, consumer protection law, professional regulators, or public legal authority.
 
 ---
 
-## 3. Governance Layers
+## 3. Commerce Governance Institutions and Project Governance
 
-ARC governance operates at multiple levels:
+This application research explores multiple institutional levels; they are not a universal protocol topology:
 
 ### 3.1 Local Community
 
@@ -60,8 +56,8 @@ Responsibilities:
 - Community reputation adjustments
 
 Possible composition:
-- Active verified merchants
-- Active verified consumers
+- Active merchants whose declared application checks pass
+- Active consumers whose declared application checks pass
 - Elected or rotating community moderators
 - Independent reviewers where available
 
@@ -78,10 +74,10 @@ Scope: Broader geography or cross-community disputes.
 Responsibilities:
 - Appeals from local community decisions
 - Cross-community fraud patterns
-- Protocol compliance review
+- Named profile and application-policy compatibility review
 - Coordination between local communities
 
-### 3.3 Protocol Maintainers
+### 3.3 Protocol and Conformance Stewardship
 
 Scope: The open-source protocol itself.
 
@@ -91,7 +87,7 @@ Responsibilities:
 - Governance model updates
 - Compatibility and interoperability standards
 
-Protocol maintainers govern the rules, not the participants. They do not have authority over individual merchant suspensions or local disputes unless they also operate a separate community with its own disclosed rules.
+Project maintainers steward the specification and conformance documents, not deployment participants. A conformance claim names its profile and version. Maintainers do not have authority over individual merchant suspensions or local disputes unless they also operate a separate community with its own disclosed rules.
 
 ---
 
@@ -112,7 +108,7 @@ A dispute may be initiated when:
 ```txt
 User submits dispute report
           ↓
-Transaction log retrieved and verified where possible
+Transaction log retrieved and External Record Verification applied where evidence is available
           ↓
 Signed offer records checked
           ↓
@@ -136,8 +132,8 @@ Decision finalized or modified
 Potentially useful evidence includes:
 
 - Signed offer records
-- Approved transaction records
-- Delivery confirmation or failure logs
+- Authorization records, distinguished from execution and outcome evidence
+- Delivery confirmation or failure records treated as external claims
 - Payment-provider status where available
 - Communication logs between agents where retained
 - Prior reputation history
@@ -179,7 +175,7 @@ Overload may occur when:
 - evidence is too sensitive or complex to review quickly
 - local communities lack enough independent participants
 
-If timely review cannot be provided, provisional penalties should be limited, reversible where possible, and clearly labeled as unresolved. ARC should not pretend that slow governance is equivalent to fair governance.
+If timely review cannot be provided, a named profile may limit provisional penalties, make them reversible where possible, and label them unresolved. Slow process does not by itself establish fairness.
 
 ---
 
@@ -191,12 +187,12 @@ Penalties should be proportional to violation severity, evidence quality, and hi
 |-------|---------|---------|
 | 1 | Warning + contextual reputation note | Minor first violation or uncertain concern |
 | 2 | Reputation confidence reduction | Repeated minor issues or unresolved pattern |
-| 3 | Temporary suspension | Confirmed serious failure or high-risk unresolved pattern |
-| 4 | Extended suspension | Repeated fraud, serious harm, or non-cooperation |
-| 5 | Community ban | Systematic verified abuse |
-| 6 | Cross-community flag | Extreme cases with cross-community impact and appeal path |
+| 3 | Temporary suspension | Serious-failure ruling or high-risk unresolved pattern under the named policy |
+| 4 | Extended suspension | Repeated adverse rulings, adjudicated serious harm, or non-cooperation |
+| 5 | Community ban | Systematic abuse upheld under the named governance policy |
+| 6 | Cross-community flag | Profile-defined severe ruling with cross-community scope and an appeal path |
 
-Reputation recovery is possible after suspension periods. Agents are not permanently marked without opportunity for rehabilitation except in cases of serious, repeated, or verified malicious behavior.
+Reputation recovery is possible after suspension periods. Agents are not permanently marked without opportunity for rehabilitation except for serious or repeated abuse upheld under the named governance policy.
 
 Serious penalties should be reviewable and appealable. A community should avoid treating suspicion, anomaly detection, or competitive accusations as proof.
 
@@ -204,9 +200,9 @@ In object-model terms, each penalty here is recorded as an `ADJUDICATE` event (`
 
 ---
 
-## 6. Anti-Gaming Measures
+## 6. Candidate Anti-Gaming Measures
 
-The reputation and governance system must resist manipulation.
+A named Commerce reputation or governance profile may apply measures intended to detect or constrain manipulation. Their effectiveness is not established here.
 
 ### 6.1 Sybil Resistance
 
@@ -230,7 +226,7 @@ These signals should support human review rather than produce automatic penaltie
 Groups of agents may submit coordinated false reviews, fake transactions, circular endorsements, or false dispute reports.
 
 Possible mitigations:
-- Reputation events from related agents are weighted differently
+- Standing inputs from related agents are weighted differently under the named Projection
 - Statistical anomaly detection on review patterns
 - Review triggers for circular transaction clusters
 - Attention to low-value reputation farming
@@ -243,8 +239,8 @@ Collusion detection is not solved. False positives are expected. Review processe
 Users, competitors, or coordinated groups may submit fraudulent dispute reports to harm a merchant, extract refunds, or exhaust moderators.
 
 Possible mitigations:
-- Evidence standards require verifiable records
-- Serial false reporters may face reputation penalties
+- Evidence standards require records that pass declared External Record Verification checks
+- A dismissed or unsupported report causes no automatic reporter penalty. Repeated or knowingly abusive reporting may be considered only after a reviewable governance finding.
 - Reviewers may flag coordinated reporting bursts
 - Provisional penalties should remain reversible where evidence is incomplete
 - Accused parties should have a response opportunity
@@ -268,11 +264,11 @@ No governance model is fully resistant to coordinated capture. ARC's response is
 
 ## 7. Community Self-Governance
 
-ARC is designed so that communities can adapt governance rules to local needs.
+This Commerce governance research allows communities to adapt application rules to local needs.
 
 A community may:
 
-- Set its own penalty thresholds within protocol minimums
+- Set its own penalty thresholds within a named Commerce governance profile
 - Define local reputation metrics relevant to its commerce type
 - Create local identity requirements, such as business registration review
 - Establish community-specific dispute resolution processes
@@ -281,28 +277,22 @@ A community may:
 
 A community may not:
 
-- Override protocol-level security requirements
-- Remove the human approval requirement from transactions
-- Hide sponsorship or paid ranking as neutral discovery
+- Misstate compliance with the security requirements of its declared profile
+- Claim conformance under a profile while accepting a consequential act that lacks Current Coverage; coverage may be exact act-specific authority or a valid scoped mandate
+- Hide sponsorship or paid ranking where the named Commerce discovery policy requires disclosure
 - Mandate exclusive use of a specific payment provider as a protocol requirement
 - Discriminate based on protected characteristics
 - Represent community decisions as legal judgments unless a proper legal process exists
 
 ---
 
-## 8. Governance Stewardship Rationale
+## 8. Project and Research Stewardship Rationale
 
-ARC does not reject commercial adoption. Companies can implement ARC, fund it, and build on it; merchants and platforms can adopt it. What ARC constrains is narrower and specific: the governance of the protocol itself should not be owned by, or subordinate to, any single for-profit operator.
+This section concerns stewardship of the ARC specification and research project, not protocol Event semantics or a mandatory deployment topology.
 
-The reasoning is straightforward:
+Companies, merchants, and platforms may experiment with or build against the current ARC drafts; no adoption is established. Future specification stewardship remains an open project question rather than a base-protocol topology rule.
 
-If agent-to-agent commerce becomes a significant layer of the economy, the governance of that layer has enormous power. It determines who can participate, whose disputes are resolved fairly, whose standing is protected, and whose standing is harmed.
-
-That power should not be captured by a single operator whose interests can override the participants'. It should rest with accountable, transparent, and replaceable stewardship — community or public-interest structures where possible — that any participant can inspect and, if it fails, route around.
-
-This is an aspirational position based on observed platform failures, not a guarantee against capture, bureaucracy, donor influence, or operational failure. Open stewardship does not solve governance; it keeps the failure modes visible and the stewards replaceable.
-
-ARC proposes this separation — commercial participation welcome, protocol governance uncaptured — not because it is easy, but because closed platform governance creates risks worth challenging.
+No project-stewardship model is specified or validated. Stewardship and deployment governance remain separate questions.
 
 ### 8.1 The Sustainability Problem
 
@@ -320,13 +310,13 @@ Possible approaches to study include:
 
 These are open design questions, not a protocol treasury or mandatory compensation system.
 
-ARC should not assume unpaid moderation can scale under adversarial pressure.
+This research does not assume unpaid moderation will scale under adversarial pressure.
 
 ---
 
 ## 9. Current Status
 
-ARC governance is currently a design proposal, not an operating system.
+This Commerce/community governance model is currently a research proposal, not an operating system or base-protocol topology.
 
 No governance community currently exists. No moderators have been appointed. No dispute resolution process is active.
 

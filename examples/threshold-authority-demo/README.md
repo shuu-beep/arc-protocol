@@ -1,16 +1,14 @@
 # Threshold / joint-authority probe
 
-A small, deliberately dirty probe that isolates one question `key-custody.md` §8
+A small illustrative fixture for one question in `key-custody.md` §8:
 names but leaves open:
 
 > Can **M-of-N joint authority** (a 2-of-3 board, a co-signed spend, an N-party
 > committee) be represented with the existing five types — and if so, *where does
 > the quorum rule live?*
 
-Stdlib only, single process, mock signatures, no network, no storage. It reuses
-the five canonical event types — `KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`,
-`ADJUDICATE` — and the `scope` / `refs` / `nullifies` fields, and adds **no sixth
-type, no stored authority object, no "multisig" primitive.**
+Stdlib only, single process, mock signatures, no network, no storage. It encodes
+one 2-of-3 evidence-counting policy using the current Event types and fields.
 
 ```
 python3 probe.py
@@ -32,9 +30,10 @@ A 2-of-3 treasury board.
    reference the candidate.
 4. The **principal** later tries to withdraw member-2's approval (`AUTHORIZE
    consent.withdraw` carrying `nullifies` — the existing field). It is recorded
-   but **not honored**: a fold honors a `nullifies` only from the target's
-   author or its rotation lineage ([event-registry.md](../../docs/event-registry.md)
-   §4.6).
+   but **not honored**. This fixture accepts a withdrawal only when its signer
+   label exactly matches the target's signer label. It does not model or validate
+   rotation lineage; the broader author/lineage rule is described in
+   [event-registry.md](../../docs/event-registry.md) §4.6.
 5. **Member-2** then withdraws their **own** approval — the §4.6 self-withdrawal
    shape — and that one moves the fold.
 
@@ -66,37 +65,38 @@ Against the **same full current log**, current honoring diverges:
 
 ## What it exposes
 
-- **Can M-of-N be represented in the five types?** Yes — joint set as `scope`,
-  approvals as `ATTEST`, revocation as `nullifies`. No sixth type.
+- **Can this fixture encode one M-of-N evidence policy with the five types?** Yes —
+  joint set as `scope`, approvals as `ATTEST`, revocation as `nullifies`. This
+  does not settle canonical joint-authority semantics or all threshold schemes.
 - **Where does the quorum *rule* live?** Not in any event. The threshold *number*
   is recorded; "did it reach quorum?" is a **fold**, and the counting rule
   (distinct? members-only? non-members?) is a **fold policy**.
-- **Who may withdraw is not policy.** The fold honors a `nullifies` only from
-  the target's author or its rotation lineage ([event-registry.md](../../docs/event-registry.md)
-  §4.6). The principal's cross-party attempt is recorded evidence, not effect.
-  Only an honored `ADJUDICATE` can explicitly void another party's event.
-- **So joint authority is observer-relative on two axes:**
+- **This fixture checks exact signer-label equality for withdrawal.** The
+  principal's cross-party attempt is recorded evidence, not effect. The registry
+  describes author or documented rotation lineage
+  ([event-registry.md](../../docs/event-registry.md) §4.6), but this fixture has no
+  rotation records or lineage traversal. Only an honored `ADJUDICATE` can
+  explicitly void another party's event.
+- **The fixture outputs depend on two configured policy axes:**
   - *revocation reading* (the finding-G axis): the earlier subset establishes
     `authorized_at_reliance=True`; against the same full current log, preserve
     yields `candidate_honored_now=True` while cascade yields `False`;
   - *counting policy* (new): a party holding **one** member key plus a **stray**
-    key can satisfy the candidate gate against any counterparty whose fold uses
-    the lenient rule. The threshold is itself an attack surface — not because a
-    type is missing, but because the rule is policy.
+    key can satisfy the candidate gate under the lenient rule. This demonstrates
+    that the counting rule is a named application-policy input.
 - **Quorum does not widen scope.** Candidate B is unauthorized at 3-of-3 because
   it exceeds the mandate ceiling. Scope and quorum are separate gates, both folds.
 
-## Honest limits
+## Limits
 
 This is a **probe, not doctrine.** It does not define a multisig spec, does not
 pick the "right" counting or revocation reading, does not solve federation, and
-adds no stored authority object. It also does not decide whether a quorum
+adds no stored authority object. It does not model or validate key-rotation
+lineage. It also does not decide whether a quorum
 approval is *evidence* or *consent*: approvals are modeled as `ATTEST
 quorum.approve` — deliberately not `consent.*`, which the corpus reserves for
 `AUTHORIZE` ([event-registry.md](../../docs/event-registry.md) §6) — and whether
 a member's approval should ultimately be an authority-bearing `AUTHORIZE` is
 the probe's declared open question, recorded in
-[event-registry.md](../../docs/event-registry.md) §10. The result is the same shape as findings B/C/D/G:
-the hard case stays inside the five types, and what leaks out is a **fold-policy
-choice, not a missing primitive** — here, a second observer-relative boundary that
-lands on the count itself.
+[event-registry.md](../../docs/event-registry.md) §10. The fixture demonstrates
+one encoding and does not settle joint-authority semantics.

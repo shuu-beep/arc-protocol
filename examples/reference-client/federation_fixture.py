@@ -1,73 +1,66 @@
 #!/usr/bin/env python3
 """
-ARC federation fixture — what it means to partially trust another community.
+ARC federation fixture — importing another community's ruling.
 
 What this is
 ------------
-The cold-start fixture showed legitimacy as a relation between an observer's
-fold policy and the log. This fixture takes the next step the repo has so far
-deferred: ONE log, TWO community authorities, and observers who must decide
-what another community's adjudication is worth. The first executable slice of
-federation — deliberately small.
+This fixture uses one log, two community authorities, and observers with different
+policies for importing another community's adjudication.
 
 The claim under test:
 
-    a bridge between communities needs no new primitive. Recognition is a
+    this bridge encoding uses existing fields. Recognition is a
     scoped AUTHORIZE; severance is `nullifies`; whether an imported ruling
     binds, advises, or weighs nothing is the observer's fold reading; and
     where two honored authorities conflict with no precedence rule, the
-    honest projection is the disagreement itself — CONTESTED, not a verdict.
+    causality-only fixture policy returns CONTESTED, not a verdict.
 
-The scenario (15 events, none hand-written):
+The hand-authored scenario contains 15 mock-signed Events:
 
     vendor trades in two communities. A cross-community sale lands in a
-    dispute in harbor's market; community-harbor rules SUSPENSION (its strict
+    dispute in harbor's market; community-harbor records suspension (its strict
     rule: late delivery is non-fulfillment). The vendor appeals at home;
-    community-orchard rules DISMISSAL (its rule: delivered late is still
+    community-orchard records dismissal (its rule: delivered late is still
     delivered). Before any of this, orchard had recognized harbor's commerce
     rulings — an AUTHORIZE `fed.recognition`, the bridge. After the conflict,
     orchard severs it (`fed.severance` + `nullifies`).
 
-Five observers fold the SAME log at three moments:
+Five observers fold the same log at three moments:
 
     obs-harbor             honors harbor only. Would follow a bridge — harbor
                            never issued one. Bridges are directional.
     obs-orchard-closed     honors orchard only; bridge read as nothing —
                            imported rulings weigh 0 (the stray-key treatment).
-    obs-orchard-advisory   bridge read as ADVISORY — imported rulings are
+    obs-orchard-advisory   bridge read as advisory — imported rulings are
                            visible flags that move no standing.
-    obs-orchard-authority  bridge read as AUTHORITY, with a precedence rule:
+    obs-orchard-authority  bridge read as authority, with a precedence rule:
                            on conflict, the local ruling supersedes.
-    obs-orchard-flat       bridge read as AUTHORITY, NO precedence rule —
+    obs-orchard-flat       bridge read as authority, with no precedence rule —
                            when honored authorities conflict, both stay live.
 
 Three moments: after harbor's ruling / after orchard's contrary ruling /
 after the severance. The severance is read two ways (the finding-G divergence
 arriving on the federation side):
 
-    time_scoped   rulings imported while the bridge was live STAY imported;
+    time_scoped   rulings imported while the bridge was live remain imported;
                   severance bounds only future imports
     cascade       a severed bridge is read as if it never was — every ruling
                   it carried drops out of the past as well
 
-What this fixture refuses to do (deliberately):
-  * no trust scalar — a bridge reading is categorical (authority / advisory /
-    ignore), never a 0.7. A numeric community-trust weight would be the
-    composite score ARC refuses, one level up;
-  * no super-adjudicator and no protocol-level conflict resolution — ARC has
-    no authority of last resort, so CONTESTED is an honest terminal output,
-    not an error state;
+Fixture limits:
+  * no numeric bridge weight — a reading is categorical (authority / advisory /
+    ignore). It does not test numeric weighting;
+  * no super-adjudicator is configured here. CONTESTED is this fixture policy's
+    terminal output, not a base ARC prohibition on final-authority topologies;
   * no new event type and no federation primitive. The bridge is an AUTHORIZE
     with predicate `fed.recognition` and a `scope`; the severance is an
-    AUTHORIZE with `nullifies`. If this had not sufficed, THAT would have
-    been the finding;
+    AUTHORIZE with `nullifies`;
   * signing is the mock hash scheme of the other fixtures — custody is not
-    the question here, and real signatures would prove nothing about it.
+    the question here. The replay check does not establish custody.
 
-Known unknown, stated up front: WHY orchard recognized harbor — the adoption
-and incentive question — is not in the log and no fold below can read it. The
-probe shows what a bridge IS; what makes one worth issuing stays the open
-problem it has been (threat-model §18.1). A fixture and a probe, not doctrine.
+Orchard's reason for recognizing harbor is absent from this fixture log and is
+not supplied to these folds. The probe tests one bridge encoding, not the policy
+for issuing one (threat-model §18.1). It is not a federation specification.
 
 Run:  python3 federation_fixture.py
 """
@@ -127,17 +120,16 @@ MOMENTS = (
 
 READINGS = ("time_scoped", "cascade")
 
-# What only the generator knows. No fold below receives any of it.
-GROUND_TRUTH = (
-    "the goods were delivered, two days late; the courier's note never entered "
+# Private fixture stipulations. No fold below receives these values.
+FIXTURE_STIPULATIONS = (
+    "the fixture stipulates delivery two days late; the courier's note never entered "
     "the log. harbor's strict market rule reads late as non-fulfillment; "
-    "orchard's rule accepts late delivery. Both rulings are sincere "
-    "applications of each community's own rule to the same facts.",
-    "no fold below keys on the delivery fact — every fold keys on which "
-    "authority it honors. An observer can knowingly import a ruling that is "
-    "procedurally legitimate and factually wrong; the log cannot tell it which.",
-    "why orchard recognized harbor in the first place is not recorded and is "
-    "not representable as a fold input — the adoption question, unchanged.",
+    "orchard's rule accepts late delivery. Each ruling is authored as applying "
+    "its community's rule to that stipulation.",
+    "no fold below receives the delivery stipulation — every fold keys on which "
+    "authority it honors. The log does not establish the real-world delivery outcome.",
+    "why orchard recognized harbor is not recorded in this fixture and is not "
+    "supplied to these folds.",
 )
 
 
@@ -168,7 +160,10 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies."""
+    """Deterministic fixture hash, not a signature or proof of key possession.
+
+    A production profile must declare its signature suite.
+    """
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
 
@@ -184,13 +179,13 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: signature check + signer anchored by a prior KEY.
-    Both communities' rulings verify identically — the log holds no fact that
-    ranks one authority above the other."""
+    """Fixture replay check: deterministic mock signature and prior KEY
+    registration only. It does not establish authority, interpretation, or
+    complete conformance."""
     registered: set[str] = set()
     for ev in events:
         if ev.signature != stub_sign(ev.signer, ev.signing_bytes()):
-            raise ValueError(f"bad signature on {ev.id}")
+            raise ValueError(f"bad mock signature on {ev.id}")
         is_root = ev.type == "KEY" and ev.predicate == "id.key_register"
         if not is_root and ev.signer not in registered:
             raise ValueError(f"signer {ev.signer} not anchored by a KEY register ({ev.id})")
@@ -205,7 +200,7 @@ def verify_log(events: list[Event]) -> None:
 # ---------------------------------------------------------------------------
 
 def _bridges(events: list[Event], observer: dict, asof: str, drop: tuple = ()) -> list[dict]:
-    """Recognition grants issued by an authority THIS observer honors, with
+    """Recognition grants issued by an authority this observer honors, with
     their severance (if any). A bridge issued by an authority the observer
     does not honor is invisible here — a bridge routes authority the observer
     already grants; it cannot mint any."""
@@ -225,7 +220,7 @@ def _bridges(events: list[Event], observer: dict, asof: str, drop: tuple = ()) -
 def _import_live(bridge: dict, ruling: Event, reading: str) -> bool:
     """Was this ruling carried by this bridge, under this severance reading?
         time_scoped  imported iff the ruling landed while the bridge was live;
-                     severance bounds FUTURE imports only
+                     severance bounds future imports only
         cascade      a severed bridge is read as if it never was — everything
                      it carried drops out of the past as well"""
     if bridge["event"].timestamp > ruling.timestamp:
@@ -241,10 +236,10 @@ def project_federation(events: list[Event], observer: dict, asof: str,
                        reading: str = "time_scoped", _drop: tuple = ()) -> dict:
     """One observer's reading of the vendor's standing at one moment.
 
-    Every ADJUDICATE about the subject is classified for THIS observer:
+    Every ADJUDICATE about the subject is classified for this observer:
         local      signed by an authority the observer honors directly
-        imported   carried by a live honored bridge, read as AUTHORITY
-        advisory   carried by a live honored bridge, read as ADVISORY —
+        imported   carried by a live honored bridge, read as authority
+        advisory   carried by a live honored bridge, read as advisory —
                    visible, weightless on standing
         foreign    no honored path — weight 0, rendered but never folded
 
@@ -282,7 +277,7 @@ def project_federation(events: list[Event], observer: dict, asof: str,
     binding = [v for v in verdicts if v["status"] in ("local", "imported")]
     labels = sorted({v["label"] for v in binding})
     if not binding:
-        standing, category = "in good standing", "good"
+        standing, category = "NO_BINDING_RULING", "none"
         if any(v["status"] == "advisory" for v in verdicts):
             detail = "no binding ruling — standing rests on history alone"
         elif any(v["status"] == "foreign" for v in verdicts):
@@ -314,7 +309,7 @@ def project_federation(events: list[Event], observer: dict, asof: str,
             standing, category = "CONTESTED", "contested"
             detail = ("two honored authorities ruled in opposite directions and "
                       "this fold has no precedence rule — both rulings stay "
-                      "live; the honest projection is the set, not a pick")
+                      "live; this policy returns the set, not a pick")
 
     advisory = [v for v in verdicts if v["status"] == "advisory"]
     if advisory:
@@ -358,7 +353,7 @@ def _cell_signature(cell: dict) -> str:
 
 def moved_cells(events: list[Event], reading: str = "time_scoped") -> list[dict]:
     """Standings that moved between consecutive moments, under one reading.
-    The asymmetry to notice: under time_scoped the severance moves NOTHING —
+    Under time_scoped the severance changes no earlier imported ruling —
     it only bounds future imports; under cascade the current projection excludes
     earlier imports that arrived through the severed bridge."""
     out = []
@@ -377,7 +372,7 @@ def moved_cells(events: list[Event], reading: str = "time_scoped") -> list[dict]
 
 
 # ---------------------------------------------------------------------------
-# Participants — each holds one key and emits its OWN events into the ledger.
+# Participants — each holds one key and emits its own events into the ledger.
 # ---------------------------------------------------------------------------
 
 class Party:
@@ -437,7 +432,7 @@ def generate_log() -> list[Event]:
                  payload={"result": "positive", "context": "commerce", "trade": 1})
 
     print("\n2. The bridge — orchard recognizes harbor's commerce rulings")
-    say("community-orchard", "recognition is a scoped AUTHORIZE; nothing new")
+    say("community-orchard", "recording recognition as a scoped AUTHORIZE")
     bridge = orchard.emit("AUTHORIZE", "fed.recognition", refs=("k:harbor",),
                           scope={"domain": "commerce"},
                           payload={"note": "harbor's commerce rulings are "
@@ -457,7 +452,7 @@ def generate_log() -> list[Event]:
 
     print("\n--- moment 1 (14:00): after harbor's ruling ---")
 
-    print("\n4. The vendor appeals at home; orchard rules the OTHER way")
+    print("\n4. The vendor appeals at home; orchard records a different ruling")
     appeal = vendor.emit("CHALLENGE", "dispute.appeal", refs=("k:vendor",),
                          payload={"reason": "delivered_late_but_delivered",
                                   "context": "commerce"})
@@ -470,15 +465,15 @@ def generate_log() -> list[Event]:
     print("\n--- moment 2 (16:00): after orchard's contrary ruling ---")
 
     print("\n5. The severance — orchard withdraws its recognition of harbor")
-    say("community-orchard", "the conflict exposed incompatible market rules")
+    say("community-orchard", "the two rulings apply incompatible market rules")
     orchard.emit("AUTHORIZE", "fed.severance", nullifies=(bridge.id,),
                  payload={"reason": "incompatible_rulings_on_shared_commerce"})
 
     print("\n--- moment 3 (18:00): after the bridge is severed ---")
 
     verify_log(led.events)
-    print(f"\nGenerated log: {len(led.events)} signed events, none hand-written. "
-          "verify_log passes — both communities' rulings verify identically.")
+    print(f"\nGenerated log: {len(led.events)} hand-authored, mock-signed fixture Events. "
+          "The deterministic replay check accepts both communities' records.")
     return led.events
 
 
@@ -504,7 +499,7 @@ def main() -> None:
 
     for label, asof in MOMENTS:
         _print_matrix(events, label, asof, "time_scoped")
-    print("\n--- moment 3 again, under the CASCADE severance reading ---")
+    print("\n--- moment 3 again, under the cascade severance reading ---")
     _print_matrix(events, MOMENTS[2][0], MOMENTS[2][1], "cascade")
 
     for reading in READINGS:
@@ -517,35 +512,32 @@ def main() -> None:
                   f"{m['before']}  ->  {m['after']}")
         if reading == "time_scoped" and not any(
                 m["to_moment"] == MOMENTS[2][0] for m in moves):
-            print("    (note: the severance moved NOTHING under time_scoped — "
-                  "it bounds future imports; it does not sort the past)")
+            print("    (note: the severance changed no cell under time_scoped; "
+                  "earlier imports remain included)")
 
-    print("\n--- the omniscient view — available to NO observer ---")
-    for t in GROUND_TRUTH:
+    print("\n--- generator-only fixture stipulations (observer folds do not receive these) ---")
+    for t in FIXTURE_STIPULATIONS:
         print(f"    * {t}")
 
     print("""
-The findings, offered as probe results, not doctrine:
-  * the bridge needed nothing new: recognition is a scoped AUTHORIZE,
-    severance is `nullifies`, and preserve-vs-cascade arrived for free — with
-    the same divergence as every revocation before it. Severing a bridge
-    bounds FUTURE imports; it does not sort the past. Time-scoped keeps the
-    contested cell after the severance; cascade clears it only by excluding the
-    previously imported rulings from this projection — the original ADJUDICATE
-    events remain intact. Resolution by amnesia, not resolution.
+Fixture results:
+  * this bridge encoding uses a scoped AUTHORIZE for recognition and `nullifies`
+    for severance. Severing a bridge
+    bounds future imports while earlier imports remain included. Time-scoped keeps the
+    contested cell after the severance; cascade clears it by excluding previously
+    imported rulings from the current projection. The original ADJUDICATE events
+    remain in the Event set.
   * imported status is not a property of the ruling. The same ADJUDICATE is
     binding to one fold, advisory to a second, weightless to a third. The
-    three-layer split again: the ruling is a log fact; importing it is a fold
-    choice; only what to do about it is an authority's decision.
+    ruling is a recorded claim; importing it is a fold choice in this fixture.
   * override is not an event — it is a precedence choice inside a fold. And
-    where a fold honors two authorities with no precedence rule, CONTESTED is
-    the honest terminal output: the only thing that would dissolve it is an
-    authority of last resort, the corner ARC declines.
-  * a bridge is directional and cannot mint trust. Orchard's recognition of
-    harbor moves nothing for an observer who does not already honor orchard —
-    a bridge routes authority the observer already grants; it creates none.
-  * why orchard recognized harbor is not in the log and cannot fold — the
-    adoption boundary, exactly where the methodology limit said it would be.""")
+    where a fold honors two authorities with no precedence rule, this fixture
+    returns CONTESTED. A deployment may configure precedence or final authority.
+  * the encoded bridge is directional and does not create authority for an
+    observer that does not honor its issuer. Orchard's recognition of
+    harbor changes no result for an observer who does not already honor orchard.
+    Under this fold, the bridge routes only authority already granted to its issuer.
+  * why orchard recognized harbor is not recorded and is not an input to these folds.""")
 
 
 if __name__ == "__main__":

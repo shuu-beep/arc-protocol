@@ -7,7 +7,7 @@
     "name": "Local Food Discovery Backend Mock",
     "query": "vegetable bibimbap delivery under KRW 15000",
     "ranking_policy_label_initially_shown": "recommended_match",
-    "ranking_policy_inspected_later": "objective_fit_plus_sponsored_weighting_mock",
+    "ranking_policy_inspected_later": "declared_price_then_eta_plus_sponsored_weighting_mock",
     "queried_at": "2026-06-04T12:00:00+09:00 [MOCK]",
     "inspected_at": "2026-06-04T12:01:30+09:00 [MOCK]",
     "signature": "mock_signature_discovery_backend"
@@ -44,8 +44,8 @@
       "sponsored placement weight",
       "backend preference adjustment"
     ],
-    "merchant_b_better_objective_fit": true,
-    "objective_fit_basis": [
+    "merchant_b_first_under_declared_policy": true,
+    "declared_policy_basis": [
       "same requested item",
       "lower mock total price",
       "shorter mock delivery estimate",
@@ -67,10 +67,10 @@
         "display_label": "Alternative option"
       }
     ],
-    "apparent_reasoning": "The first view appears to present an ordinary neutral recommendation.",
+    "recorded_presentation": "The first recorded presentation omits the sponsored weighting context.",
     "timestamp": "2026-06-04T12:00:20+09:00 [MOCK]"
   },
-  "objective_comparison": {
+  "declared_policy_comparison": {
     "merchant_a": {
       "total_krw": 13800,
       "estimated_delivery_minutes": 32,
@@ -81,8 +81,8 @@
       "estimated_delivery_minutes": 24,
       "mock_reliability_context": "more_consistent_completed_mock_events"
     },
-    "merchant_b_better_objective_fit": true,
-    "interpretation_limit": "This mock comparison covers listed request factors only; it does not establish a universal ranking rule."
+    "merchant_b_first_under_declared_policy": true,
+    "interpretation_limit": "This comparison applies only the fixture's named price-then-ETA policy to the listed fields."
   },
   "sponsorship_metadata": {
     "sponsored_influence_present": true,
@@ -101,7 +101,7 @@
     "initial_explanation": "Recommended based on available nearby options.",
     "missing_material_context_at_initial_display": [
       "Merchant Agent A received mock sponsored ranking weight.",
-      "Merchant Agent B scored better on the listed objective request factors."
+      "Merchant Agent B ranks first under the fixture's declared price-then-ETA policy."
     ],
     "recommendation_review_status": "requires_reissued_explanation_with_ranking_influence_disclosed",
     "timestamp": "2026-06-04T12:00:25+09:00 [MOCK]"
@@ -111,8 +111,8 @@
     "disclosure_problem": "Sponsored or backend weighting affected the first-ranked result without sufficiently clear pre-approval presentation.",
     "required_clarification": [
       "Show that Merchant Agent A received sponsored or preferred ranking influence.",
-      "Show the objective comparison with Merchant Agent B.",
-      "Allow the human to review or select an option after the influence is visible."
+      "Show the declared-policy comparison with Merchant Agent B.",
+      "The configured application policy pauses approval until the influence is included in the disclosure record."
     ],
     "timestamp": "2026-06-04T12:01:35+09:00 [MOCK]"
   },
@@ -141,13 +141,13 @@
     {
       "from": "ranking_influence_inspected",
       "to": "approval_paused",
-      "reason": "Approval requires clearer disclosure of the mock ranking influence and objective comparison.",
+      "reason": "The configured fixture policy pauses approval pending a disclosure record that includes ranking influence and the declared-policy comparison.",
       "timestamp": "2026-06-04T12:01:40+09:00 [MOCK]"
     }
   ],
   "final_state": {
     "state": "approval_paused_pending_clearer_disclosure_mock",
-    "merchant_b_better_objective_fit": true,
+    "merchant_b_first_under_declared_policy": true,
     "merchant_a_ranked_first": true,
     "sponsored_influence_present": true,
     "disclosure_incomplete_or_insufficient": true,
@@ -159,8 +159,8 @@
   },
   "open_questions": [
     "What form of sponsorship disclosure is clear enough before a human approves a recommended offer?",
-    "Should a consumer agent present an objective-fit alternative whenever sponsored weight changes first place?",
+    "Should this Commerce application present the declared-policy alternative whenever sponsored weight changes first place?",
     "How should backend preference weights be made inspectable without implying that every ranking difference is improper?",
-    "When disclosure was initially insufficient, must the recommendation be regenerated before approval can resume?"
+    "Under what declared application policy should approval resume after an incomplete disclosure record?"
   ]
 }

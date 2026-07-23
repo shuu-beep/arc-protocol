@@ -1,28 +1,28 @@
-# ARC Protocol: Protocol Mechanics
+# ARC Protocol: Commerce Reference Application Profile
 
 > **Status:** Exploratory draft
-> **Purpose:** Transaction lifecycle, message flow, state transitions, and failure modes
+> **Purpose:** Named Commerce lifecycle Projection, message flow, state transitions, and failure modes
 > For architecture overview, see [architecture.md](./architecture.md).
 
 ---
 
 ## 1. Scope
 
-This document is not a finalized protocol rulebook. It describes early mechanics for human-approved agent commerce and identifies the transaction boundaries that an implementation would need to test.
+This document is not a finalized protocol rulebook. It describes one named Commerce application profile and identifies the transaction boundaries that an implementation would need to test.
 
-**Commerce-scope note.** The mechanics below are worked through commerce — the offer/approval/dispute lifecycle — because that is ARC's first implementation, not because the protocol is commerce-specific. Underneath, an offer is an `ATTEST`, an approval an `AUTHORIZE`, a dispute a `CHALLENGE`, and a ruling an `ADJUDICATE`; those canonical primitives (`docs/event-registry.md`) are general, and the same lifecycle applies to any human-approved delegation. Read the transaction language as the first concrete instance of a general authority, approval, and audit flow, not as the protocol's boundary ([README §7](../README.md#7-first-implementation-commerce)).
+**Commerce-scope note.** The mechanics below are worked through Commerce — the offer/approval/dispute lifecycle — because that is ARC's flagship application and first implementation profile, not because the protocol is Commerce-specific. Underneath, an offer is an `ATTEST`, an approval an `AUTHORIZE`, a dispute a `CHALLENGE`, and a ruling an `ADJUDICATE`; those five canonical Event types ([event-registry.md](./event-registry.md)) are general, while this lifecycle is only a named Commerce Projection. Other domains need not adopt it. Read the transaction language as the first concrete instance of a general authority, approval, and audit flow, not as the protocol's boundary ([README §7](../README.md#7-flagship-application-commerce)).
 
 ARC remains exploratory. The purpose of this draft is to make questions about messages, states, timeouts, and failures concrete enough for review without claiming that one schema or transport is complete.
 
 ## 2. Design Constraints
 
-- **Human approval before meaningful payment.** An agent may prepare an action, but meaningful economic action should remain subject to explicit human confirmation.
-- **Typed structured messages.** Negotiation should operate on inspectable message types rather than unrecorded conversational assumptions.
-- **Signed offers and approvals where manipulation resistance matters.** Signatures may help establish which party presented or approved a material term.
-- **Timeout-aware negotiation.** Requests, offers, and approval windows may expire and should be handled explicitly.
-- **Failure-first design.** Missing responses, stale offers, failed payments, delivery problems, and disputes are normal protocol concerns, not edge cases to ignore.
+- **Current Coverage before meaningful payment.** An agent may prepare an action, but this profile proceeds only when the exact act has human-authored coverage from an act-specific authorization or a valid scoped mandate. Fresh confirmation remains its default payment policy.
+- **Typed structured messages.** This profile operates on inspectable message types rather than unrecorded conversational assumptions.
+- **Signed offers and approvals where manipulation resistance matters.** Under the profile-selected suite, signatures may help establish which party signed particular bytes; they do not alone establish authority or outcome truth.
+- **Timeout-aware negotiation.** This profile handles expiration of requests, offers, and approval windows explicitly.
+- **Failure-first design.** Missing responses, stale offers, failed payments, delivery problems, and disputes are normal Commerce application concerns, not edge cases to ignore.
 - **Storage-neutral.** ARC prescribes no storage backend; it requires signed events and recomputable projections, not a specific database or ledger ([README §9](../README.md#9-protocol-boundaries), [architecture.md §1.1](./architecture.md)). Ordinary databases are sufficient for many deployments; a shared cryptographic checkpoint is an optional implementation choice, never a requirement.
-- **Community-visible dispute records where appropriate.** Verified dispute outcomes may inform trust while privacy and jurisdictional constraints remain under review.
+- **Observer-relative dispute evidence where appropriate.** External records whose declared source and profile checks pass, plus adjudication claims, may inform a named Projection while privacy, evidence availability, and jurisdictional constraints remain under review.
 
 ## 3. Core Actors
 
@@ -32,11 +32,11 @@ ARC remains exploratory. The purpose of this draft is to make questions about me
 | Merchant Agent | Returns price, availability, conditions, and fulfillment updates for a merchant. |
 | Logistics Agent | Returns delivery or pickup options where logistics are needed. |
 | Human Approver | Reviews material terms and confirms or rejects the proposed transaction. |
-| Payment Provider | Processes payment only after the required approval step. |
-| Reputation Layer | Records relevant verified outcomes and reputation events. |
+| Payment Provider | Processes payment only after this profile establishes Current Coverage. |
+| Reputation Layer | Uses Canon Events carrying evidence as inputs to a named reputation Projection. |
 | Community Governance Layer | Reviews disputes, reports, and community-level trust decisions where applicable. |
 
-## 4. Canonical Transaction Lifecycle
+## 4. Commerce Reference Lifecycle Projection
 
 ```mermaid
 stateDiagram-v2
@@ -54,22 +54,22 @@ stateDiagram-v2
     pending_approval --> rejected: human rejects
     pending_approval --> expired: approval window lapses
     approved --> payment_pending: payment initiated
-    payment_pending --> payment_confirmed: provider confirms
+    payment_pending --> payment_confirmed: provider result claim recorded
     payment_pending --> payment_failed: provider fails
     payment_confirmed --> fulfillment_pending: merchant/logistics begins
-    fulfillment_pending --> fulfilled: completed
+    fulfillment_pending --> fulfilled: fulfillment claim recorded
     fulfillment_pending --> cancelled: cancelled before completion
     fulfillment_pending --> disputed: complaint filed
-    fulfilled --> reputation_pending: rating/reputation event prepared
-    reputation_pending --> completed: reputation event recorded
+    fulfilled --> reputation_pending: standing input prepared
+    reputation_pending --> completed: standing input recorded
     disputed --> resolved_no_fault: dismissed
     disputed --> resolved_partial_refund: partial resolution
     disputed --> resolved_full_refund: full refund
-    disputed --> resolved_confirmed_fraud: fraud confirmed
+    disputed --> resolved_fraud_ruling: fraud ruling recorded
     resolved_no_fault --> reputation_pending
     resolved_partial_refund --> reputation_pending
     resolved_full_refund --> reputation_pending
-    resolved_confirmed_fraud --> governance_action_pending: governance review initiated
+    resolved_fraud_ruling --> governance_action_pending: governance review initiated
     governance_action_pending --> reputation_pending: outcome recorded after appeal window
     completed --> [*]
     rejected --> [*]
@@ -79,7 +79,7 @@ stateDiagram-v2
     cancelled --> [*]
 ```
 
-This lifecycle is a starting model. Particular communities or services may need additional states, especially around partial fulfillment, cancellation rights, refunds, and regulated transactions. These states are a projected view over the transaction's events, not stored objects or event types (see [object-model.md](./object-model.md) §4).
+This named Commerce lifecycle is a starting model. Particular applications or services may need additional states, especially around partial fulfillment, cancellation rights, refunds, and regulated transactions. These states are Projection outputs over the declared Event set under named ordering/as-of policy, not stored objects or event types (see [object-model.md](./object-model.md) §4).
 
 ## 5. Message Lifecycle
 
@@ -114,7 +114,7 @@ The diagram describes one successful-path conversation with an optional dispute 
 
 ## 6. Message Types
 
-The following message types describe intended roles, not a finalized schema. They are transport roles, not stored records. The records that persist are Events ([event-registry.md](./event-registry.md)): `offer_response`, `logistics_response`, `fulfillment_update`, and `reputation_event` are `ATTEST`; `approval_confirmed` is `AUTHORIZE`; `dispute_report` is `CHALLENGE`; `governance_decision` is `ADJUDICATE` (`gov.*`); `payment_confirmed` and `payment_failed` are `ATTEST` (`commerce.payment_result`); requests and `*_intent` / `*_authorized` notices are transport and are not stored.
+The following Commerce-profile message types describe intended roles, not a finalized schema. They are transport roles, not stored records. The records that persist are Events ([event-registry.md](./event-registry.md)): `offer_response`, `logistics_response`, `fulfillment_update`, and `reputation_event` are `ATTEST`; `approval_confirmed` is `AUTHORIZE`; `dispute_report` is `CHALLENGE`; `governance_decision` is `ADJUDICATE` (`gov.*`); `payment_confirmed` and `payment_failed` are `ATTEST` (`commerce.payment_result`); requests and `*_intent` / `*_authorized` notices are transport and are not stored. Each `ATTEST` records a claim; it does not prove the external referent or outcome.
 
 | Type | Purpose | Notes |
 | --- | --- | --- |
@@ -126,19 +126,19 @@ The following message types describe intended roles, not a finalized schema. The
 | `approval_request` | Present a selected option to the human. | Should show material terms and relevant expiry. |
 | `approval_confirmed` | Record human confirmation. | Should identify exactly which non-expired offer was approved. |
 | `approval_rejected` | Record that the human declined. | Ends or revises the proposed flow. |
-| `payment_intent` | Initiate provider payment after approval. | Must not precede required human approval. |
-| `payment_confirmed` | Record provider-confirmed payment. | Authorizes subsequent fulfillment handling. |
-| `payment_failed` | Record failed or declined payment. | Fulfillment should not proceed on an unconfirmed payment. |
-| `fulfillment_authorized` | Notify merchant/logistics that fulfillment may begin after payment confirmation. | Should only be sent after approval and confirmed payment where payment is required. |
+| `payment_intent` | Initiate provider payment after coverage. | Must not precede Current Coverage for the exact act. |
+| `payment_confirmed` | Record a provider's payment claim. | External evidence consumed by the Commerce Projection; it does not grant authority or prove execution. |
+| `payment_failed` | Record a provider's failed-or-declined payment claim. | Fulfillment should not proceed without the payment evidence required by the named profile. |
+| `fulfillment_authorized` | Notify merchant/logistics that the application permits fulfillment to begin. | Should only be sent after Current Coverage and the profile-required payment evidence. |
 | `fulfillment_update` | Report preparation, pickup, delivery, or service state. | May support cancellation or dispute review. |
 | `cancellation_notice` | Notify parties that a transaction or offer is cancelled. | Treatment depends on approval and payment state. |
-| `reputation_event` | Record a relevant transaction outcome or rating. | Verification and privacy rules remain open. |
+| `reputation_event` | Record a claim about a transaction outcome or rating. | Evidence, verification, and privacy rules remain open. |
 | `dispute_report` | File a complaint with relevant evidence. | May attach signed transaction records. |
 | `governance_decision` | Record community review outcome. | Should be subject to local policy and appeal rules. |
 
 ## 7. Structured Intent and Parsing Problem
 
-Natural language requests are convenient for humans but unstable as protocol input. Two agents may parse the same request differently, and the same LLM may produce different structured outputs across runs. ARC should therefore distinguish between the original human expression and the canonical structured intent used for negotiation.
+Natural language requests are convenient for humans but unstable as Commerce application input. Two agents may parse the same request differently, and the same LLM may produce different structured outputs across runs. This profile therefore distinguishes between the original human expression and the canonical structured intent used for negotiation.
 
 ```json
 {
@@ -162,12 +162,12 @@ The canonical intent should be shown to the human when ambiguity matters. Human 
 ## 8. Offer Expiration and Stale Offers
 
 - Every offer should include an `expires_at` value.
-- Expired offers must not be approved.
+- This Commerce Projection refuses an expired offer as a target for new approval.
 - If approval happens after expiry, the consumer agent should request a refreshed offer.
 - Merchants may cancel unavailable offers before approval.
 - Cancellation after approval enters a cancellation or dispute flow depending on payment state and applicable rules.
 
-Expiration protects both people and merchants from approval based on prices, stock, or delivery terms that are no longer available. This draft does not yet define a universal expiration period.
+Expiration protects both people and merchants from approval based on prices, stock, or delivery terms that are no longer available. The signed Event remains evidence; application refusal does not make it byte-invalid. This profile does not define a universal expiration period.
 
 ## 9. Timeout, Retry, and Failure Modes
 
@@ -176,7 +176,7 @@ Expiration protects both people and merchants from approval based on prices, sto
 | Merchant no response | No `offer_response` before timeout | Mark unavailable, try alternatives. |
 | Logistics timeout | No `logistics_response` | Inform user, fall back to pickup or retry. Route to `pending_approval`. |
 | Stale offer | Human approves after `expires_at` | Require refreshed offer. |
-| Duplicate offer | Same merchant sends conflicting offers | Use latest signed offer or ask merchant to clarify. |
+| Duplicate offer | Same merchant sends conflicting offers | Apply the named ordering/as-of policy or ask the merchant to clarify; a signature alone does not establish which offer is latest or current. |
 | Payment failure | Provider declines payment | Stop fulfillment, notify human. |
 | Fulfillment delay | Merchant or logistics misses estimate | Update status, allow cancellation or dispute. |
 | Agent disconnect | Relay/WebRTC failure | Retry through fallback or async inbox. |
@@ -194,31 +194,31 @@ A message that cannot be delivered after retries may enter a dead-letter queue. 
 
 ### Cold Start vs Sybil Resistance
 
-New participants may need a visible path to first transactions, while automatically promoting arbitrary new agents would invite Sybil abuse. The current ARC position is that any cold-start discovery support should be limited to clearly labeled, appropriately verified entrants and remain subject to human choice.
+New participants may need a visible path to first transactions, while automatically promoting arbitrary new agents may increase Sybil risk. This Commerce profile's current policy limits cold-start discovery support to clearly labeled entrants whose declared checks are visible and remain subject to human choice.
 
 ### Automatic Approval vs Governance Burden
 
-Automation can reduce repetitive approval friction, but it can also create unclear responsibility and more disputes when an action goes wrong. The current ARC position is manual human approval for meaningful payments, with any narrow pre-authorization concept remaining exploratory, explicit, and auditable.
+Automation can reduce repetitive approval friction, but it can also create unclear responsibility and more disputes when an action goes wrong. This Commerce profile defaults to fresh human confirmation for meaningful payments while allowing Current Coverage from a valid, explicit, auditable scoped mandate.
 
 ### Low Merchant Cost vs Discovery Sustainability
 
-Small merchants may benefit from lower intermediary overhead, but directories, relays, curation, and moderation still cost time and money. The current ARC position is to examine transparent and non-extractive operation models without claiming that participation or infrastructure will be free.
+Small merchants may benefit from lower intermediary overhead, but directories, relays, curation, and moderation still cost time and money. This Commerce research compares funding and operation models without claiming that participation or infrastructure will be free.
 
 ### Recommendation Logs vs Real Understanding
 
-An agent can log why it selected an offer, but a log is not proof that a human understood every trade-off or that the recommendation was fair. The current ARC position is to make material terms and reasoning inspectable while treating explainability quality as an unresolved design problem.
+An agent can log why it selected an offer, but a log is not proof that a human understood every trade-off or that the recommendation was fair. This Commerce profile aims to expose declared material terms and reasoning on its review surface while treating explainability quality as an unresolved application problem.
 
 ### Open Discovery vs Backend Concentration
 
-Open protocol rules do not prevent popular discovery backends from accumulating influence. The current ARC position is to support replaceable backends, disclosed sponsorship, and visible ranking signals while recognizing that actual concentration risks require continued scrutiny.
+Open protocol rules do not prevent popular discovery backends from accumulating influence. This Commerce discovery policy supports replaceable backends, disclosed sponsorship, and visible ranking signals while recognizing that actual concentration risks require continued scrutiny.
 
 ### Privacy vs Auditability
 
-Dispute review and reputation portability may benefit from durable records, while transaction logs can contain sensitive personal and commercial information. The current ARC position is minimum necessary disclosure with privacy-preserving audit methods still to be explored.
+Dispute review and reputation portability may benefit from durable records, while transaction logs can contain sensitive personal and commercial information. This Commerce profile favors minimum necessary disclosure, with privacy-preserving audit methods still to be explored.
 
 ### Local Governance vs Capture Risk
 
-Local governance can reflect context and enable practical review, but established actors may capture it or exclude newcomers. The current ARC position is to keep appeal, transparency, and anti-capture safeguards as core design questions rather than assume local control is inherently fair.
+Local governance can reflect context and enable practical review, but established actors may capture it or exclude newcomers. This Commerce research keeps appeal, transparency, and anti-capture safeguards as application design questions rather than assuming local control is inherently fair.
 
 ## 12. Known Unknowns
 
@@ -235,4 +235,4 @@ Local governance can reflect context and enable practical review, but establishe
 
 ## 13. Current Status
 
-This document is an exploratory protocol draft. No implementation exists. The next useful contribution is a small local-commerce simulation that tests this lifecycle with mock agents, mock payment, and human approval.
+This document is an exploratory Commerce application profile. Executable mock artifacts exercise this lifecycle in `examples/local-commerce-demo/`, but no production implementation or complete conformance profile exists.

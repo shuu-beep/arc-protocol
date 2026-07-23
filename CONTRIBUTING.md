@@ -1,18 +1,16 @@
 # Contributing to ARC Protocol
 
 > ARC Protocol is an open-source protocol research project.
-> It is currently stewarded by one maintainer, but is intended to remain open, forkable, interoperable, and uncaptured by any single company or operator.
-> Research collaboration, independent implementations, commercial adoption, grants, sponsorship, and community stewardship are welcome, provided they preserve human approval, interoperability, and non-capture.
-
-Thank you for being here.
+> ARC is published under Apache-2.0 and is currently stewarded by one maintainer. Interoperability and future stewardship remain open work.
+> Research collaboration, independent implementation experiments, commercial work, grants, sponsorship, and stewardship proposals are welcome. Proposed changes must identify their semantic layer and any conformance impact.
 
 ---
 
 ## What Kind of Project Is This?
 
-ARC Protocol is currently an **early-stage protocol research project with working executable probes**, not yet a production codebase.
+ARC Protocol is currently an **early-stage protocol research project with an Executable Reference Corpus**, not yet a production codebase or complete conformance suite.
 
-That means contributions right now look less like pull requests and more like:
+Current contributions may include:
 
 - Feedback on the design
 - Criticism of the protocol model and its stated boundaries
@@ -21,7 +19,7 @@ That means contributions right now look less like pull requests and more like:
 - Ideas for the governance model
 - Improvements to the documentation
 
-Code contributions will matter more as the project moves toward MVP. For now, thinking clearly is the most valuable thing anyone can contribute.
+Code, documentation, and research contributions should identify their scope and supporting evidence.
 
 ---
 
@@ -31,7 +29,7 @@ Code contributions will matter more as the project moves toward MVP. For now, th
 
 Found a flaw in the protocol model? A contradiction in the architecture? A governance edge case we haven't considered?
 
-Open an issue. Describe the problem clearly. We take all serious criticism seriously.
+Open an issue and describe the problem clearly.
 
 Good issue titles:
 - "Pre-authorized low-risk actions need clearer safeguards"
@@ -40,12 +38,11 @@ Good issue titles:
 
 Not helpful:
 - "This will never work"
-- "Blockchain is bad"
 - "Just use [existing platform]"
 
 ### 2. Research Contributions
 
-ARC sits at the intersection of several fields. Contributions from adjacent disciplines are genuinely valuable:
+Relevant contributions may draw from several adjacent fields:
 
 - **Threat models** — what attacks does the current design miss?
 - **Protocol comparisons** — how does ARC compare to existing agent communication standards?
@@ -53,20 +50,22 @@ ARC sits at the intersection of several fields. Contributions from adjacent disc
 - **Economic analysis** — does recomputed, unstored reputation hold up under adversarial conditions?
 - **Papers and critiques** — academic or informal writing that engages with the core ideas
 
-If you've thought carefully about agent delegation, decentralized governance, or authority and audit design — that thinking is welcome here.
+Contributions about agent delegation, governance, authority, and audit design should identify the ARC layer they address.
 
 ### 3. Improve the Documentation
 
-The `docs/` folder contains the core design documents. If you see something unclear, incomplete, or wrong — fix it and submit a pull request.
+The `docs/` folder contains normative, explanatory, application, historical, and research material. If you see something unclear, incomplete, or wrong — identify its layer, fix it, and submit a pull request.
 
 Documents that need the most work:
-- `docs/protocol.md` — exploratory protocol mechanics draft
+- `docs/protocol.md` — current protocol mechanics, boundaries, and reference-profile distinctions
 - `docs/identity.md` — exploratory identity, credential, and trust model
-- `docs/reputation.md` — exploratory reputation model
+- `docs/reputation.md` — exploratory Commerce reputation Projection/application model
 
 ### 4. Propose Protocol Changes
 
 If you have a substantive proposal for how the protocol should work — message formats, identity schemes, reputation algorithms, governance structures — write it up and open an issue or PR.
+
+State whether the proposal changes **Canon**, **Conformance**, a named **Projection**, **Application** policy, **Implementation**, or **Research**. A conformance proposal must also identify whether it affects **Core Event Conformance**, **Named Projection Conformance**, or **Named Functional Profile Conformance**; reference-corpus behavior alone is not the standard.
 
 Good proposals include:
 - The problem you're solving
@@ -88,18 +87,16 @@ Go ahead. Document what you built and why. Working code that demonstrates a conc
 
 ### 6. Translate
 
-ARC Protocol is written in English but the problems it addresses are global. If you want to translate the core documents into another language, that is a meaningful contribution.
+ARC Protocol is currently written in English. Translations can make the documents accessible to additional reviewers and implementers.
 
 ---
 
 ## What We're Not Looking For
 
-- Proposals to capture ARC itself into a closed, proprietary, or single-operator system (building on ARC commercially is encouraged; enclosing ARC is not)
-- Blockchain maximalism or Web3 ideology for its own sake
-- Fully autonomous agent systems without human approval
-- Anything that reduces human sovereignty over economic decisions
+- Proposals that let consequential actions bypass Current Coverage traceable to authority granted by the responsible principal or authority holder. Current reference profiles are typically human-rooted.
+- Changes that present one fixture, deployment topology, or application policy as universal Canon without supporting protocol evidence
 
-ARC has a clear set of core principles. Contributions that contradict them will not be merged — but debate about those principles is always welcome in issues.
+Substantive semantic changes must identify their layer and evidence. Debate about those boundaries is welcome in issues.
 
 ---
 
@@ -138,14 +135,14 @@ That's it.
 
 ## Adjacent Ideas
 
-Some future-facing ideas, such as agent-mediated collaboration or information sovereignty, are discussed separately in `docs/adjacent-ideas/`.
+Some future-facing ideas, such as agent-mediated collaboration or user-controlled information filtering, are discussed separately in `docs/adjacent-ideas/`.
 
 These are not core protocol requirements.
 They are speculative extensions and should not be treated as current ARC scope.
 
 Future ARC-adjacent ideas may explore machine-readable collaboration intent and opt-in contributor discovery, where projects and contributors publish compatible intent and agents help humans find matches.
 
-For now, contribution remains entirely human-directed. ARC does not support unsolicited agent outreach.
+For now, contribution remains entirely human-directed. The adjacent collaboration proposal assumes opt-in contact; base ARC does not define an outreach policy.
 
 ---
 
@@ -153,6 +150,4 @@ For now, contribution remains entirely human-directed. ARC does not support unso
 
 This project is stewarded by a single maintainer, with no other contributors yet.
 
-If you're reading this and considering contributing — even just opening an issue with a critique — that matters. The point of open-sourcing a design document is to expose it to people who will find the holes.
-
-Find the holes.
+Issues and critiques should cite the affected file, layer, and claim where possible.

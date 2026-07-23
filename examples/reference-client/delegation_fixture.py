@@ -4,49 +4,43 @@ ARC delegation-graph fixture — multi-level delegation, stdlib only.
 
 What this is
 ------------
-The reference client's seven surfaces fold over the end-to-end-demo's commerce
-log, whose delegation is deliberately single-level. This fixture supplies the
-missing depth: ONE generated log in which authority propagates through a
-multi-level delegation graph, so the tensions the canon leaves open become
-visible objects —
+The reference client's base Commerce log uses single-level delegation. This
+fixture provides a separate generated log for a multi-level delegation graph:
 
     human root
       └─ coordinator agent           (scoped mandate, 50000)
-           ├─ negotiator agent       (narrower mandate, 30000; branch later REVOKED)
-           │    └─ scout             (OVER-delegated: granted 80000 by a holder of 30000)
+           ├─ negotiator agent       (narrower mandate, 30000; later withdrawn)
+           │    └─ scout             (granted 80000 by a holder of 30000)
            └─ fulfiller agent        (50000)
                 └─ courier           (ephemeral: single-use mandate, retired after one act)
-    stray key                        (admissible, but no grant chain to THIS root)
+    stray key                        (no grant chain to the selected root)
 
-No sixth event type, no identity magic, no Sybil fix. Delegation is an ordinary
-`AUTHORIZE consent.mandate`; revocation is the existing `nullifies` field on an
-`AUTHORIZE consent.withdraw`; escalation is a fresh root `AUTHORIZE
-consent.approval`; everything else is ATTEST/KEY. The graph is never stored —
-it is a FOLD over the log, and the fold is parameterized by two choices the
-canon deliberately does not make:
+The fixture encodes delegation with `AUTHORIZE consent.mandate`, withdrawal with
+`AUTHORIZE consent.withdraw` plus `nullifies`, and escalation with a root
+`AUTHORIZE consent.approval`; the remaining records are ATTEST or KEY. The graph
+is a fold over the log parameterized by two fixture choices that Canon does not
+select:
 
-  * local_root — rooted-ness is computed FROM a chosen root key. There is no
-    global registry: fold the same log from a different root and the picture
+  * local_root — rootedness is computed from a chosen root key. This fixture
+    uses no global identity registry: fold the same log from a different root and the picture
     inverts (the stray key becomes the root; everyone else becomes unrooted).
     Local attribution exists without global identity enforcement; an unrooted
     key is rendered at weight 0, not blocked.
   * reading — whether the current projection continues to honor acts that
     completed under the grant before it was withdrawn (the authority-revocation-
-    demo divergence, finding G, now applied to a whole lineage). Both readings
-    consume the SAME full current log:
+    demo divergence applied to a whole lineage). Both readings consume the same
+    full current log:
       - preserve  continue to honor historically authorized completed acts;
       - cascade   do not honor acts that depend on the withdrawn grant.
 
-The two readings AGREE about the descendant act emitted after the withdrawal;
-they disagree only about current honoring of the past — including the absurd
-edge the cascade produces: routinely retiring a spent single-use courier makes its already-
-completed delivery not honored by that projection. One act remains honored even
-under cascade: the escalated 40000 payment, because its basis is a direct root
-approval, not the withdrawn chain.
+The two readings agree about the descendant act emitted after withdrawal and
+differ on current honoring of pre-withdrawal acts. Under cascade, the completed
+courier delivery is not honored by the current projection. The escalated 40000
+payment remains honored because its basis is a direct root approval rather than
+the withdrawn chain.
 
-Deliberately dirty and small: mock signatures, single process, scripted flow,
-generated (not hand-written) events. A fixture for the viewer; a probe when run
-directly. Not a delegation spec and not doctrine.
+This is a single-process scripted fixture with deterministic mock signatures,
+not a delegation specification.
 
 Run:  python3 delegation_fixture.py
 """
@@ -101,7 +95,7 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies."""
+    """MOCK. This teaching fixture uses a deterministic hash for reproducible replay, not production security; ARC has no selected normative signature suite, so implementations and named profiles select and declare their suite."""
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
 
@@ -117,9 +111,8 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: signature check + signer anchored by a prior KEY.
-    Note what this does NOT check: rooted-ness. The stray key verifies fine —
-    anchoring is a log fact, attribution is a fold result. The two are distinct."""
+    """Fixture replay check: deterministic mock signature and prior KEY
+    registration only. Rootedness and authority are separate fixture folds."""
     registered: set[str] = set()
     for ev in events:
         if ev.signature != stub_sign(ev.signer, ev.signing_bytes()):
@@ -138,10 +131,10 @@ def verify_log(events: list[Event]) -> None:
 
 def project_delegation_graph(events: list[Event], *, local_root: str = LOCAL_ROOT,
                              reading: str = "preserve") -> dict:
-    """Fold the log into a delegation graph as seen FROM `local_root`.
+    """Fold the log into a delegation graph as seen from `local_root`.
 
     Per node: status (root/active/revoked/severed/spent/unrooted), the claimed
-    ceiling on its own grant vs the EFFECTIVE ceiling (the intersection — min —
+    ceiling on its own grant vs the effective ceiling (the intersection — min —
     of every ceiling on its chain), and whether each act is honored now.
 
     An act is honored now iff (a) it carries an explicit root approval in refs —
@@ -151,8 +144,9 @@ def project_delegation_graph(events: list[Event], *, local_root: str = LOCAL_ROO
       preserve — a later withdrawal does not remove support from a completed act;
       cascade  — the current projection does not honor acts that depend on a
                  withdrawn grant, including descendant grants.
-    For the pre-withdrawal acts that differ, `authorized_at_act=True` is an
-    invariant historical fact; only current honoring changes by policy.
+    For the pre-withdrawal rows that differ, this fixture assigns
+    `authorized_at_act=True`; it does not independently derive complete act-time
+    authority. Current honoring then changes by policy.
     Nothing here is stored; the graph is recomputed from the log on demand."""
     assert reading in READINGS, f"unknown reading {reading!r}"
     by_id = {e.id: e for e in events}
@@ -260,7 +254,7 @@ def project_delegation_graph(events: list[Event], *, local_root: str = LOCAL_ROO
 
 
 def divergent_acts(events: list[Event], *, local_root: str = LOCAL_ROOT) -> list[dict]:
-    """Acts whose current honoring FLIPS between the two readings — the projection
+    """Acts whose current honoring differs between the two readings — the projection
     divergence, computed here (not in the viewer's JavaScript)."""
     def flatten(n: dict, out: dict) -> dict:
         for a in n["acts"]:
@@ -288,7 +282,7 @@ def divergent_acts(events: list[Event], *, local_root: str = LOCAL_ROOT) -> list
 
 
 # ---------------------------------------------------------------------------
-# Participants — each holds one key and emits its OWN events into the ledger.
+# Participants — each holds one key and emits its own events into the ledger.
 # ---------------------------------------------------------------------------
 
 class Party:
@@ -337,7 +331,7 @@ def generate_log() -> list[Event]:
     for p in (root, coord, nego, fulfil):
         p.emit("KEY", "id.key_register", payload={"key": p.key})
 
-    print("\n2. Authority propagates — scoped mandates, narrowing downward")
+    print("\n2. Scoped mandate chain — ceilings narrow down the fixture graph")
     root.emit("AUTHORIZE", "consent.mandate", refs=("k:coord",),
               scope={"context": "market", "max_total_krw": 50000})
     m_nego = coord.emit("AUTHORIZE", "consent.mandate", refs=("k:nego",),
@@ -349,12 +343,12 @@ def generate_log() -> list[Event]:
     nego.emit("ATTEST", "commerce.offer", refs=(m_nego.id,),
               payload={"item": "bulk_produce", "amount_krw": 24000, "context": "market"})
 
-    print("\n4. Over-delegation — the negotiator grants its scout MORE than it holds")
+    print("\n4. Over-delegation — the negotiator grants its scout a higher stated ceiling")
     scout = Party(led, "scout", "k:scout")
     scout.emit("KEY", "id.key_register", payload={"key": scout.key})
     m_scout = nego.emit("AUTHORIZE", "consent.mandate", refs=("k:scout",),
                         scope={"context": "market", "max_total_krw": 80000})
-    say("canon", "the over-wide grant is ADMISSIBLE — the fold, not the log, clamps it")
+    say("fixture", "the replay check accepts the grant; this fold clamps its effective ceiling")
     scout.emit("ATTEST", "commerce.offer", refs=(m_scout.id,),
                payload={"item": "rare_lot", "amount_krw": 50000, "context": "market"})
 
@@ -375,7 +369,7 @@ def generate_log() -> list[Event]:
     fulfil.emit("AUTHORIZE", "consent.withdraw", refs=("k:courier",),
                 nullifies=(m_courier.id,), payload={"reason": "single_use_spent"})
 
-    print("\n7. A stray key — verifies fine, but no grant chain to this client's root")
+    print("\n7. A stray key — passes the mock replay check, but has no grant chain to this client's root")
     stray = Party(led, "stray", "k:stray")
     stray.emit("KEY", "id.key_register", payload={"key": stray.key})
     stray.emit("ATTEST", "rep.outcome", refs=("k:nego",),
@@ -389,8 +383,9 @@ def generate_log() -> list[Event]:
                payload={"item": "leftover_lot", "amount_krw": 10000, "context": "market"})
 
     verify_log(led.events)
-    print(f"\nGenerated log: {len(led.events)} signed events, none hand-written. "
-          "verify_log passes (the stray key included — anchoring is not attribution).")
+    print(f"\nGenerated log: {len(led.events)} mock-signed fixture Events. "
+          "The replay check passes with the stray key included; key registration "
+          "does not establish attribution to this fixture root.")
     return led.events
 
 
@@ -418,7 +413,7 @@ def _walk(n: dict, depth: int = 0) -> None:
 def main() -> None:
     events = generate_log()
 
-    print("\n--- the SAME FULL CURRENT LOG, folded under two honoring policies ---")
+    print("\n--- the full current log, folded under two honoring policies ---")
     for reading in READINGS:
         p = project_delegation_graph(events, reading=reading)
         print(f"\n  reading = {reading}")
@@ -427,21 +422,21 @@ def main() -> None:
             _walk(u, depth=1)
 
     flips = divergent_acts(events)
-    print(f"\n--- projection divergence: {len(flips)} act(s) flip between the readings ---")
+    print(f"\n--- projection divergence: {len(flips)} act(s) differ between the readings ---")
     for f in flips:
         a, b = f["preserve"], f["cascade"]
         amt = f" {a['amount']} KRW" if a["amount"] is not None else ""
         print(f"    {NAMES.get(a['signer'], a['signer'])} · {a['predicate']}{amt}  [{f['id']}]")
-        print(f"      authorized_at_act={f['authorized_at_act']}  (historical fact)")
+        print(f"      authorized_at_act={f['authorized_at_act']}  (fixture assumption)")
         print(f"      preserve: {'HONORED' if a['honored_now'] else 'NOT HONORED'} — {a['basis']}")
         print(f"      cascade:  {'HONORED' if b['honored_now'] else 'NOT HONORED'} — {b['basis']}")
 
-    print("\n--- attribution is local: fold the SAME log from a different root ---")
+    print("\n--- fold the same log from a different selected root ---")
     inv = project_delegation_graph(events, local_root="k:stray")
     print(f"    from k:stray — rooted: ['k:stray']; unrooted: {len(inv['unrooted'])} keys "
           "(everyone else).")
-    print("    Rooted-ness is the observer's fold parameter, not a global fact. No global")
-    print("    identity registry exists; an unrooted key is weight 0 here, not blocked.")
+    print("    Rooted-ness is this projection's fold parameter. This fixture uses no")
+    print("    global identity registry; an unrooted key is weight 0 here, not blocked.")
 
 
 if __name__ == "__main__":

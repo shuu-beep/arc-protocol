@@ -15,7 +15,7 @@ Stage 0 means the initial documentation baseline exists. It does not mean ARC ha
 
 Completed baseline documents:
 - [x] README — philosophy, architecture overview, and early protocol concepts
-- [x] `docs/philosophy.md` — attention economy critique, centralized agent bias, design axioms
+- [x] `docs/philosophy.md` — historical Commerce attention-economy concern, agent-bias risk, and application policies
 - [x] `docs/architecture.md` — system diagram, agent roles, message types, discovery layer, MVP scope
 - [x] `docs/protocol.md` — exploratory protocol mechanics, lifecycle, messages, and failure modes
 - [x] `docs/local-commerce-simulation.md` — mock simulation scope and failure runs
@@ -26,9 +26,9 @@ Completed baseline documents:
 - [x] `docs/bootstrap-and-incentives.md` — cold-start, platform-value, and sustainability limitations
 - [x] `docs/liability-boundaries.md` — payment, legal, and responsibility boundaries
 - [x] `docs/authority-and-conflict.md` — authority-of-last-resort boundaries (human vs commons), conflict resolution
-- [x] `docs/object-model.md` — Relationship / Event / Projection layers and the no-stored-profile constraint
-- [x] `docs/event-registry.md` — the closed canonical event set (KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE)
-- [x] `docs/delegation-and-spending-mandates.md` — how human approval and delegation coexist using only the Canon (AUTHORIZE + scope, revoked via nullifies)
+- [x] `docs/object-model.md` — Relationship / Event / Projection layers and non-authoritative derived-state/cache discipline
+- [x] `docs/event-registry.md` — the current canonical Event vocabulary (KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE)
+- [x] `docs/delegation-and-spending-mandates.md` — how principal-rooted authority and delegation coexist using only the current Canon; current reference profiles are typically human-rooted (AUTHORIZE + scope, revoked via nullifies)
 - [x] `docs/landscape-and-positioning.md` — where ARC sits among agent and commerce systems, and what it is not
 - [x] `docs/trust-model-tradeoffs.md` — the trust trade-offs consolidated into spatial and temporal axes
 - [x] `docs/future-protocol-spec.md` — missing pieces before ARC can become a complete specification
@@ -45,48 +45,62 @@ Completed baseline documents:
 Between the documentation baseline (Stage 0) and a running MVP (Stage 1) sits a
 layer the baseline list does not capture: a body of small, dependency-light
 executable probes that *exercise* the documented model rather than merely
-describe it. This is why the README calls ARC an executable reference
-implementation of its protocol model. It is not the Stage 1 MVP — there is no
+describe it. The README therefore calls this an Executable Reference Corpus,
+not a production or reference implementation. It is not the Stage 1 MVP — there is no
 persistent server, no database, no real agents transacting, no product.
 
 What exists:
 - [x] Canonical event/projection probes — the five event types fold a hand-built
-  log; no scenario has forced a sixth (`examples/canon-fold-demo`), and a
-  TypeScript discriminated union makes the compiler reject a sixth type, a
-  non-`ADJUDICATE` verdict, an over-scope hot key, and a honored post-revoke act
-  (`examples/canon-ts`)
-- [x] End-to-end flow on real Ed25519 — four parties each sign their own events;
-  standing moves only by `ADJUDICATE`, never by mutating stored state, with an
-  optional real-reasoner consumer verified once on `claude-opus-4-8`
+  log; current scenarios use only those five (which is not a sufficiency proof)
+  (`examples/canon-fold-demo`). A local TypeScript discriminated union and literal
+  types exercise selected compile-time shape errors and exhaustive handlers; they
+  do not provide runtime or protocol-conformance enforcement (`examples/canon-ts`)
+- [x] End-to-end scripted flow — four parties each emit their own mock-signed events;
+  the fixture derives standing through `ADJUDICATE` Events rather than mutating stored state, with an
+  optional external-reasoner consumer path
   (`examples/end-to-end-demo`)
 - [x] Browser reference client — the log rendered as the surfaces a human sees,
-  with a mandate-routed write path and bands probing cold-start legitimacy, key
+  with a mandate-routed write path and bands probing cold-start policy, key
   compromise, federation, and the custody seam (`examples/reference-client`)
-- [x] Commerce failure catalog — an eight-run [A]–[H] catalog where byte-valid
-  events are shown to be not thereby legitimate (`examples/local-commerce-demo`)
-- [x] Custody, revocation, and fidelity experiments — including the
-  interpretation, temporal, world, and presentation fidelity walls
+- [x] Commerce failure catalog — an eight-run [A]–[H] catalog where records passing
+  the fixture's local checks do not thereby establish outcome or application legitimacy
+  (`examples/local-commerce-demo`)
+- [x] Custody, revocation, and fidelity experiments — including
+  interpretation, temporal, world, and presentation checks
 - [x] Adoption / refusal experiments — the refusal-recording fold, which
-  contradicts or names as gaps candidate adoption mechanisms and never validates
-  them (`examples/refusal-recording-demo`)
+  classifies synthetic refusal records and reports gaps without establishing adoption
+  (`examples/refusal-recording-demo`)
 
 What this stage does **not** establish:
 - These probes exercise the model; they do not validate the protocol, prove
   adoption, or constitute a specification.
-- A probe passing means the documented model is internally coherent under that
-  scenario, not that ARC works in the world.
+- A probe passing means it produced the expected output under that scenario, not that ARC works in the world.
 - The normative wire format and conformance suite remain future work
   (`docs/future-protocol-spec.md`).
 
 ---
 
-## Stage 1 — Local MVP
+## Protocol Specification and Conformance Track
+
+**Status: Open, and separate from the Commerce implementation stages below**
+
+External review of the current documents and executable corpus does not establish interoperability readiness. That requires, at minimum:
+
+- [ ] Core Event Conformance, Named Projection Conformance, and Named Functional Profile Conformance requirements
+- [ ] a declared wire and security profile for each interoperability claim
+- [ ] quorum semantics, whose current status is `OPEN — MUST NOT BE IMPLIED BY CURRENT DOCUMENTATION`
+- [ ] a deterministic mandate-evaluation profile — `REQUIRED BEFORE INTEROPERABILITY CLAIM`
+- [ ] atomic cumulative mandate consumption — `REQUIRED BEFORE INTEROPERABILITY CLAIM`
+
+---
+
+## Commerce Flagship Implementation Track — Stage 1: Local MVP
 
 **Status: Not started**
 
-Goal: demonstrate that multiple agents can simulate a complete commerce transaction, end to end, with a human approval step.
+Goal: simulate a complete multi-agent commerce transaction, end to end, with a Current Coverage step.
 
-This is not a product. It is a working proof of concept.
+This is a planned implementation experiment, not a product.
 
 **Why local food delivery as an initial test domain?**
 
@@ -98,7 +112,7 @@ Food delivery combines time sensitivity, location dependency, and changing order
 - [ ] Natural language request parsing
 - [ ] Structured query generation
 - [ ] Offer comparison logic
-- [ ] Recommendation output with auditable reasoning log
+- [ ] Recommendation output with an inspectable reasoning record
 - [ ] Explicit separation between original intent, inferred preferences, and user-confirmed constraints
 
 **1.2 Merchant Agent (Simulated)**
@@ -121,8 +135,8 @@ Food delivery combines time sensitivity, location dependency, and changing order
 
 **1.5 Transaction Log**
 - [ ] Record of each transaction
-- [ ] Offer details, approval timestamp, outcome
-- [ ] Basic reputation event generation
+- [ ] Offer details, approval timestamp, outcome claim
+- [ ] Basic application reputation-input generation
 - [ ] Invalid-transition notes for stale offers, payment failure, and unsafe retries
 
 **1.6 Failure Artifacts**
@@ -146,23 +160,23 @@ A user can:
 4. See a comparison with auditable reasoning
 5. Approve one option
 6. See a mock transaction logged
-7. See a limited reputation event recorded
+7. See a limited application reputation input recorded
 8. See failure runs that expose unresolved questions rather than hide them
 
-No real money. No real delivery. No real identity verification. That is fine for Stage 1.
+Stage 1 excludes real money, real delivery, and real identity verification.
 
 ---
 
-## Stage 2 — Identity and Reputation
+## Commerce Flagship Implementation Track — Stage 2: Identity and Reputation
 
 **Status: Not started**
 
-Stage 2 implements the foundational identity and reputation concepts described in `docs/identity.md`, `docs/reputation.md`, and future specification work. Per the object model, the stored unit is the Event; identity status and reputation scores below are projections folded from those events on demand, not stored fields (see `docs/object-model.md`, `docs/event-registry.md`).
+Stage 2 explores identity and reputation concepts described in `docs/identity.md`, `docs/reputation.md`, and future specification work. This track plans to record Events; identity and reputation views will be named Projections rather than authoritative stored status (see `docs/object-model.md`, `docs/event-registry.md`).
 
 ### Milestones
 
 **2.1 Agent Identity**
-- [ ] Ed25519 key pair generation per agent
+- [ ] Ed25519 key pair generation per agent for this implementation profile
 - [ ] Signed offers and approval records
 - [ ] Identity provider integration (Google / Apple / basic)
 - [ ] Agent profile with public key and community affiliation
@@ -170,14 +184,14 @@ Stage 2 implements the foundational identity and reputation concepts described i
 - [ ] Compromised-key handling and key rotation notes
 
 **2.2 Reputation System**
-- [ ] Verified transaction-based reputation events
+- [ ] Canon Events carrying transaction-related reputation inputs under the named Commerce profile
 - [ ] Multi-metric reputation scoring (completion rate, refund rate, on-time rate)
 - [ ] Reputation display in approval UI
 - [ ] Reputation decay for inactive agents
 - [ ] Context labels that reduce the risk of reputation becoming a universal social score
 
 **2.3 Anti-Gaming Basics**
-- [ ] One reputation event per transaction per party
+- [ ] At most one application reputation input per transaction per party under the named policy
 - [ ] New agent probation period
 - [ ] Rate limits on reputation score changes
 - [ ] Collusion and circular-transaction review triggers
@@ -185,7 +199,7 @@ Stage 2 implements the foundational identity and reputation concepts described i
 
 ---
 
-## Stage 3 — Community Governance
+## Commerce Flagship Implementation Track — Stage 3: Community Governance
 
 **Status: Not started**
 
@@ -219,7 +233,7 @@ Stage 2 implements the foundational identity and reputation concepts described i
 
 ---
 
-## Stage 4 — Payment Integration
+## Commerce Flagship Implementation Track — Stage 4: Payment Integration
 
 **Status: Not started**
 
@@ -228,7 +242,7 @@ Stage 2 implements the foundational identity and reputation concepts described i
 - [ ] Stripe integration (international)
 - [ ] Toss integration (Korea)
 - [ ] Google Pay / Apple Pay support
-- [ ] Payment execution blocked until human approval confirmed
+- [ ] Payment execution blocked unless the act has Current Coverage; fresh confirmation remains this Commerce track's default
 - [ ] User-configured approval thresholds
 - [ ] Approval audit log
 - [ ] Refund flow support
@@ -237,7 +251,7 @@ Stage 2 implements the foundational identity and reputation concepts described i
 
 ---
 
-## Stage 5 — Local Commerce Pilot
+## Commerce Flagship Implementation Track — Stage 5: Local Commerce Pilot
 
 **Status: Not started**
 
@@ -259,57 +273,50 @@ Stage 5 would need to test this in practice. A small pilot may be relevant to vo
 
 - [ ] Onboard 3–5 local merchants
 - [ ] Run limited mock or real-world trials only where legally and operationally appropriate
-- [ ] Collect and analyze reputation data
+- [ ] Collect and analyze application-level reputation inputs and named Projection outputs
 - [ ] Document what broke, what worked, what was missing
 - [ ] Record why any merchants, logistics providers, or users declined to participate (using the refusal-recording schema in [adoption-and-defection §6](adoption-and-defection.md))
 
 ---
 
-## Stage 6 — Open Agent Commerce Network
+## Commerce Flagship Implementation Track — Stage 6: Multi-Community Commerce Interoperability
 
 **Status: Not started**
 
 ### Milestones
 
-- [ ] Cross-community agent identity verification
+- [ ] Cross-community key and credential checks
 - [ ] Interoperability protocol between community governance instances
 - [ ] Federated reputation portability
 - [ ] Multi-community dispute escalation path
-- [ ] Protocol versioning and compatibility specification
-- [ ] Conformance tests for independent implementations
+- [ ] Protocol versioning and compatibility specification, owned by the parallel protocol/conformance track
+- [ ] Independent-implementation conformance tests for the named Commerce profile, dependent on that track
 
 ---
 
 ## What Is Not On This Roadmap
 
-**Full decentralization.**
-ARC does not aim for a fully decentralized system at any stage. A hybrid model with community-operated servers is more realistic and more maintainable.
+**A mandatory deployment topology.**
+The base protocol does not require centralized, federated, fully decentralized, or hybrid operation. The Commerce track may explore community-operated and hybrid deployments as profile choices.
 
 **AI autonomy.**
-Human approval remains a hard requirement at every stage. Removing it is not a future feature; it is a philosophical rejection.
-
-**A required ARC token.**
-ARC does not require a token economy. Sustainability questions may be studied without turning the protocol into a speculative asset system.
+Consequential acts must have Current Coverage traceable to authority granted by the responsible principal or authority holder. Current Commerce profiles are typically human-rooted. Coverage may be act-specific or mandate-scoped; removing the authority boundary is not a future feature.
 
 **Replacing payment providers.**
 ARC does not currently try to replace existing payment infrastructure. Payment-provider dependency is a trade-off to document, not a problem solved by this roadmap.
 
-**Monetization of the protocol itself.**
-ARC is open-source infrastructure.
-
-Commercial adoption, funding, and implementation are compatible with ARC; enclosing the protocol itself under a single operator is not.
+**Protocol licensing and implementation funding.**
+ARC's published source is licensed under Apache-2.0. Commercial implementations and closed deployments are compatible with the protocol; any conformance claim must identify the declared profile and version it applies.
 
 **Global scale.**
-ARC does not aim to replace existing commerce infrastructure at scale. Local, limited, verifiable demonstration of the concept is sufficient.
+The Commerce track currently targets bounded local demonstrations; it makes no global-adoption or infrastructure-replacement commitment.
 
 ---
 
 ## A Note on This Roadmap
 
-Most of this roadmap will probably never be completed by its current maintainer alone, and it is not meant to be — ARC is intended to be built by independent implementers.
+Later stages may require contributors or independent implementations beyond the current maintainer.
 
-That is fine.
+Stage 0 documents and executable probes can remain useful even if later tracks are not completed.
 
-Stage 0 — the initial design, architecture proposal, governance model, and limitation documents — is itself a contribution. If this project does nothing but articulate clearly what an open, human-approved authority, approval, and audit layer for agents should look like, and someone else builds it better, that is a good outcome.
-
-The roadmap exists to show that the thinking extends beyond the proposal itself. Not to promise delivery.
+These items are planning directions, not delivery promises.

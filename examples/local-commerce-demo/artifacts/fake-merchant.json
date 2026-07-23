@@ -1,6 +1,6 @@
 {
   "transaction_id": "mock_tx_local_food_fake_merchant_001",
-  "scenario": "fake_merchant_new_agent_unresponsive_after_mock_payment",
+  "scenario": "new_merchant_without_declared_external_anchor_then_unresponsive_after_mock_payment",
   "mock_data_notice": "This is a simulation artifact only. All identities, timestamps, signatures, payments, events, and reviews are mock data.",
   "merchant_profile": {
     "merchant": "Merchant Agent A",
@@ -12,8 +12,8 @@
   },
   "identity_status": {
     "level": "basic",
-    "visible_description": "Basic mock attribution only; no stronger identity verification is represented.",
-    "verified_claims": [],
+    "visible_description": "Basic mock attribution only; no non-self id.anchor record is represented in this artifact.",
+    "declared_profile_checks_passed": [],
     "unresolved_question": "What evidence should a newly created merchant show before a human considers an unusually attractive offer?",
     "timestamp": "2026-06-01T12:01:00+09:00 [MOCK]"
   },
@@ -99,7 +99,7 @@
     "subject": "Merchant Agent A",
     "context": "local_food_fulfillment_mock",
     "event_type": "non_fulfillment_after_confirmed_mock_payment_reported",
-    "verification_status": "provisional_pending_governance_review",
+    "review_status": "provisional_pending_governance_review",
     "recorded_at": "2026-06-01T12:21:00+09:00 [MOCK]",
     "evidence_sources": [
       "payment_mock",
@@ -124,6 +124,6 @@
   "final_state": {
     "state": "governance_action_pending_after_mock_non_fulfillment",
     "timestamp": "2026-06-01T12:22:05+09:00 [MOCK]",
-    "interpretation_limit": "This artifact exposes a mock failure and unresolved review burden. It does not show that ARC prevented fraud or reached a fair outcome."
+    "interpretation_limit": "This artifact exposes a mock failure and unresolved review burden. It does not establish fraud prevention or outcome quality."
   }
 }

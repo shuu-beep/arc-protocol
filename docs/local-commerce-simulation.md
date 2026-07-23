@@ -14,7 +14,7 @@
 
 ## 1. Why Simulation Is Needed
 
-ARC describes human-approved agent commerce, but written principles do not show whether the proposed interactions remain understandable when ordinary failures and deliberate manipulation occur.
+This Commerce simulation examines a human-rooted ARC application profile, but written principles alone do not show whether its proposed interactions remain understandable under ordinary failure and deliberate manipulation.
 
 A small simulation is useful because it can force the current protocol draft to confront concrete questions:
 
@@ -66,7 +66,7 @@ The simulation may reveal a promising question or an obvious failure. It cannot 
 | Actor | Mock Role | What the Simulation Should Record |
 | --- | --- | --- |
 | Human User | States an intent, reviews material terms, approves or rejects the proposed order, and may file a complaint. | Original intent, corrected intent if any, approval or rejection, dispute submission. |
-| Consumer Agent | Parses intent, requests and compares offers, presents recommendations, and requests approval. | Canonical intent, queried merchants, selection criteria, recommendation explanation, warnings shown. |
+| Consumer Agent | Parses intent, requests and compares offers, presents recommendations, and requests approval. | Normalized intent, queried merchants, selection criteria, recommendation explanation, warnings shown. |
 | Merchant Agents | Return item availability, price, conditions, identity status, and fulfillment updates. Some may behave dishonestly or coordinate. | Offer terms, expiry, attributable identity, revisions, fulfillment claims, suspicious relationships. |
 | Logistics Agent | Returns delivery or pickup terms and may fail or time out. | Delivery fee, estimate, expiry, timeout, fallback path. |
 | Payment Provider Mock | Confirms or declines a payment request after human approval. | Approved terms reference, initiation time, success or failure response. |
@@ -81,7 +81,7 @@ The baseline case provides a control flow against which failures can be compared
 
 | Step | Event | Expected Record |
 | --- | --- | --- |
-| 1 | Human asks for a local order under a stated budget and delivery window. | Original text and displayed canonical intent. |
+| 1 | Human asks for a local order under a stated budget and delivery window. | Original text and displayed normalized intent. |
 | 2 | Consumer agent requests offers from several merchant agents. | `offer_request` records and response deadline. |
 | 3 | Merchant agents return current offers with material terms and expiry. | Attributable `offer_response` records. |
 | 4 | Consumer agent requests a delivery option. | `logistics_request` and `logistics_response`. |
@@ -89,9 +89,9 @@ The baseline case provides a control flow against which failures can be compared
 | 6 | Human reviews terms and approves before expiry. | `approval_confirmed` referencing the selected offer. |
 | 7 | Payment provider mock confirms payment. | `payment_confirmed` tied to approval. |
 | 8 | Merchant and logistics mocks report completion. | Fulfillment updates and completion event. |
-| 9 | Reputation layer records a limited verified-completion event. | `reputation_event` with context and evidence source. |
+| 9 | Reputation layer records a bounded completion claim whose record passes the declared mock checks. | `reputation_event` with context and evidence source. |
 
-Even in this baseline, the simulation should ask whether the human had enough information to approve and whether the reputation event records only what was actually observed.
+Even in this baseline, the simulation should ask whether the human had enough information to approve and whether the application standing input exceeds what the fixture records support.
 
 ## 6. Failure Scenarios
 
@@ -99,11 +99,11 @@ Each scenario should be run separately before combining failures. A failed scena
 
 | Scenario | Setup | Failure to Expose | Evidence to Capture | Open Question |
 | --- | --- | --- | --- | --- |
-| Fake merchant | A newly listed merchant offers unusually attractive terms and later fails fulfillment or disappears after mock payment. | Identity status or warning signals may be inadequate at approval time. | Offer identity label, warnings shown, payment and fulfillment events, dispute record. | What minimum visible evidence should affect approval without blocking legitimate new merchants? |
+| New merchant without a declared external anchor | A newly listed merchant offers unusually attractive terms and later fails fulfillment or becomes unresponsive after a mock payment claim. | The profile's identity and warning inputs may be inadequate at approval time. | Offer identity label, disclosure record, payment and fulfillment claims, dispute record. | What declared evidence should this Commerce profile use without treating every newcomer as dishonest? |
 | Colluding merchants | Several merchants return coordinated offers or circular positive histories that make one option appear safer. | Apparent competition or reputation may be manufactured. | Offer timing, shared attributes, recommendation ranking, transaction graph notes. | When is a suspicious pattern enough for review, but not enough for automatic penalty? |
 | Stale offer approval | Human approves an offer after `expires_at`, or a merchant changes terms during review. | An expired or materially changed offer may reach payment. | Original offer, expiry, approval timestamp, refresh prompt, payment suppression. | Does the state model prevent approval of terms the human no longer has? |
 | Logistics timeout | Delivery response does not arrive before the timeout. | The recommendation may quietly change from delivery to pickup or become unusable. | Timeout record, fallback shown to the human, revised terms, approval decision. | Is pickup fallback understandable and voluntary rather than silently substituted? |
-| Payment failure | Payment mock rejects a properly approved request. | Fulfillment may begin despite lack of confirmed payment, or the failure may be hidden. | Approval, payment failure, any fulfillment message, user notice. | Which messages must be blocked or revoked after payment failure? |
+| Payment failure | Payment mock rejects a properly approved request. | Fulfillment may begin despite the mock provider's failure result, or the result may be hidden. | Approval, payment failure, any fulfillment message, user notice. | Which messages must be blocked or revoked after payment failure? |
 | False dispute | A party files a complaint inconsistent with attributable transaction records. | Review time and reputation may be consumed by strategic claims. | Complaint, transaction evidence, response record, provisional reviewer outcome. | How can false claims be examined without discouraging legitimate disputes? |
 | Approval fatigue | The human receives repeated or confusing approval requests with small changes in terms. | Meaningful consent may degrade into routine confirmation. | Request count, changed terms, displayed differences, rejected or accidental approvals. | What should force a clearer re-review rather than another confirmation tap? |
 | Discovery bias | A discovery source ranks a sponsored or preferred merchant without adequate disclosure. | The recommendation may appear neutral while being influenced by hidden incentives. | Source results, sponsorship metadata, recommendation criteria, alternative source comparison. | What disclosure is sufficient for a human to recognize ranking influence? |
@@ -149,7 +149,7 @@ Each run should create inspectable mock artifacts rather than a broad success cl
 | Output | Minimum Content | Why It Matters |
 | --- | --- | --- |
 | Transaction logs | Intent, offers, expiries, selected terms, approval, payment response, and fulfillment state. | Exposes invalid transitions and missing context. |
-| Reputation events | Context, claimed signal, evidence source, verification status, and later correction where applicable. | Tests whether trust records remain limited and reviewable. |
+| Application standing inputs | Context, claimed signal, evidence source, record-check status, and later correction where applicable. | Tests whether derived standing remains bounded by declared inputs. |
 | Dispute records | Complaint, submitted evidence, reviewer response, outcome state, appeal state, and unresolved issues. | Reveals review burden and evidentiary gaps. |
 | Recommendation logs | Candidate offers, comparison factors, ranking source, sponsorship disclosure, and displayed warnings. | Makes bias and manipulation easier to inspect. |
 | Failure notes | Scenario, observed break, expected safeguard, missing rule, and next document or implementation question. | Keeps the simulation oriented toward learning from failure. |
@@ -161,7 +161,7 @@ Outputs may be small JSON fixtures or markdown records in a later mock-flow phas
 | Tension | Why It Matters in the Simulation |
 | --- | --- |
 | Human review vs approval fatigue | More prompts may reduce hidden action while making attention less meaningful. |
-| New merchant access vs fake merchant protection | Strong warnings and filters may reduce fraud while preventing legitimate cold-start participation. |
+| New merchant access vs fraud-screening policy | Strong warnings and filters may reduce some exposure while preventing legitimate cold-start participation. |
 | Contextual reputation vs portable reputation | Local trust can be hard to transfer, while portable trust can be laundered or misapplied. |
 | Discovery openness vs ranking manipulation | Multiple discovery sources can reduce dependence while increasing audit complexity. |
 | Evidence retention vs privacy | Detailed logs support disputes but may expose sensitive transaction behavior. |
@@ -174,6 +174,6 @@ These tensions should remain visible in the outputs. The simulation should not r
 
 This document specifies a mock local-commerce simulation only.
 
-No simulation has been implemented. No transactions, payments, identity checks, reputation judgments, or governance decisions are real. ARC has not demonstrated that this lifecycle is safe, fair, workable, or sustainable.
+The executable corpus now includes the baseline and failure catalogue in `examples/local-commerce-demo/`.
 
-The next useful step after review of this specification would be a tiny mock reference flow that records a baseline transaction and a small number of failure runs using the state and evidence boundaries described here.
+All transactions, payments, identity checks, reputation judgments, and governance decisions remain mock. No production or real-world safety claim is established; ARC has not demonstrated that this lifecycle is safe, fair, workable, or sustainable.

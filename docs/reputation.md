@@ -1,8 +1,8 @@
-# ARC Protocol: Reputation
+# ARC Protocol: Commerce Reputation Application and Named Projection Research
 
 > **Status:** Exploratory draft
 >
-> **Purpose:** Reputation signals, decay, recovery, portability, and manipulation resistance
+> **Purpose:** Illustrative Commerce reputation signals, named Projection policy, decay, recovery, portability, and manipulation resistance
 >
 > For transaction lifecycle and message flow, see [protocol.md](./protocol.md).
 >
@@ -14,9 +14,9 @@
 
 ## 1. Scope
 
-This document is not a finalized reputation algorithm.
+This document is not a finalized reputation algorithm or a mandatory global Projection.
 
-ARC does not treat reputation as an objective measurement of human value, merchant worth, or universal trust. Reputation in ARC is an imperfect coordination signal used to help agents and humans evaluate risk under uncertainty.
+This Commerce application research does not treat reputation as an objective measurement of human value, merchant worth, or universal trust. Its reputation output is an imperfect coordination signal used to help agents and humans evaluate risk under uncertainty.
 
 The purpose of this document is to describe:
 
@@ -27,7 +27,7 @@ The purpose of this document is to describe:
 - why portability is useful but dangerous
 - which tensions remain unresolved
 
-ARC assumes that all reputation systems are gameable. The design goal is not perfect trust. The goal is to make trust signals more verifiable, contextual, reviewable, and resistant to obvious manipulation.
+This research treats manipulation as a design risk. It explores evidence-linked, contextual, and reviewable application signals without claiming perfect trust or manipulation resistance.
 
 ---
 
@@ -42,29 +42,29 @@ In agent-mediated commerce, a consumer agent may compare offers using structured
 - delivery reliability
 - refund behavior
 - dispute history
-- verified completion history
+- evidence-linked completion history
 - response reliability
 - community standing
 - identity status
 
-Reputation exists to help the human and the consumer agent answer a practical question:
+In this Commerce profile, a named reputation Projection helps the human and consumer agent answer a narrower question:
 
 ```txt
-Is this agent safe enough to consider for this transaction,
-under this context, with this level of risk?
+Does this Projection cross the application's declared review threshold
+for this transaction and context?
 ```
 
 Reputation should reduce uncertainty. It should not replace human judgment, local governance, or explicit approval.
 
 ---
 
-## 3. Core Principles
+## 3. Commerce Reputation-Projection Research Principles
 
 ### 3.1 Reputation Is Contextual
 
 ARC should avoid a single universal reputation score.
 
-A merchant may be reliable for food delivery but not relevant for home repair. A logistics agent may perform well in one city but poorly in another. A dispute reviewer may be trusted in one professional domain but not another.
+A merchant may have favorable evidence for food delivery but no relevant evidence for home repair. A logistics agent may have different outcome claims in different cities. A dispute reviewer may hold declared authority in one professional domain but not another.
 
 Reputation should be interpreted by context:
 
@@ -79,7 +79,7 @@ Reputation should be interpreted by context:
 
 A global score may be convenient, but it can hide important differences between trust domains.
 
-### 3.2 Reputation Is Probabilistic
+### 3.2 Reputation Does Not Prove Future Behavior
 
 Reputation is not proof of future behavior.
 
@@ -87,34 +87,34 @@ A high-reputation agent can still fail, be compromised, change ownership, or beh
 
 ARC should present reputation as a risk signal, not as a guarantee.
 
-### 3.3 Reputation Should Be Based on Verified Interaction
+### 3.3 Reputation Should Be Based on Evidence-Linked Interaction Claims
 
-ARC prefers reputation derived from verifiable transaction events rather than unverified reviews.
+This Commerce profile prefers reputation derived from evidence-linked transaction claims and external records whose declared checks pass rather than unchecked reviews. Those checks do not prove the external interaction or outcome.
 
-Useful events may include:
+Useful Event claims may include:
 
-- completed transactions
-- signed offer fulfillment
-- verified delivery completion
-- refund outcomes
-- dispute outcomes
+- transaction-completion claims
+- signed fulfillment claims tied to offers
+- delivery-completion records that pass the profile's declared checks
+- refund-result claims
+- dispute rulings
 - cancellation patterns
 - response reliability
 - governance decisions
 
-Unverified comments may still be useful, but they should be clearly separated from verified reputation events.
+Unchecked comments may still be useful, but they should be clearly separated from records that pass the named profile's declared checks.
 
-### 3.4 Reputation Should Not Become a Social Credit System
+### 3.4 Avoiding a Universal Person-Level Score
 
-ARC reputation should not become a universal identity score for people.
+This Commerce reputation profile should not become a universal identity score for people.
 
-Reputation should be limited to agent behavior within specific commerce contexts. This boundary should be a protocol-level design constraint, not just a community preference. It should not become a general judgment of a human owner's social, political, or personal worth.
+This application policy limits its reputation output to agent behavior within specific Commerce contexts. It is not a base-protocol rule, and it should not become a general judgment of a human owner's social, political, or personal worth.
 
 ---
 
-## 4. Reputation Event Model
+## 4. Reputation-Evidence Record Model
 
-A reputation event is a structured record connected to a transaction, dispute, or governance outcome.
+This application model uses a Canon Event carrying a structured claim connected to a transaction, dispute, or governance ruling.
 
 Example:
 
@@ -123,7 +123,7 @@ Example:
   "event_id": "rep_001",
   "agent_id": "merchant_abc_001",
   "transaction_id": "tx_001",
-  "event_type": "verified_completion",
+  "claim_type": "completion_claim",
   "context": {
     "category": "food_order",
     "community": "seoul-local-commerce",
@@ -138,14 +138,16 @@ Example:
   },
   "created_at": "2026-01-01T13:00:00Z",
   "source": "consumer_agent_xyz",
-  "verification": {
-    "transaction_verified": true,
+  "record_check": {
+    "declared_checks_passed": true,
     "reviewer_signature": "ed25519:consumer_xyz:..."
   }
 }
 ```
 
-This schema is illustrative, not final. In object-model terms this record is an `ATTEST` with predicate `rep.outcome`; the reputation summary a user sees is a projection — a fold over such events scoped to context — never a stored score (see [object-model.md](./object-model.md), [event-registry.md](./event-registry.md)).
+This schema is illustrative, not final. `completion_claim` and `declared_checks_passed` are application labels, not proof of completion or outcome truth. In object-model terms this record is an `ATTEST` with predicate `rep.outcome`; the reputation summary a user sees is a named Projection — a fold over claims and evidence scoped to context — never a stored score (see [object-model.md](./object-model.md), [event-registry.md](./event-registry.md)).
+
+Any claim about a reputation output must identify the Projection name and version, Event-set scope, any completeness contract being claimed, policy parameters, and ordering/as-of assumptions. Behavior outside those declared inputs is unsupported.
 
 ---
 
@@ -155,25 +157,25 @@ This schema is illustrative, not final. In object-model terms this record is an 
 
 | Signal | Meaning |
 | --- | --- |
-| `verified_completion` | A transaction completed as agreed |
-| `on_time_fulfillment` | Delivery or service completed within stated estimate |
-| `accurate_description` | Offer terms matched what was delivered |
-| `low_dispute_rate` | Few disputes relative to transaction volume |
-| `cooperative_resolution` | Agent cooperated during refund or dispute process |
-| `long_term_consistency` | Reliability persisted over time |
-| `community_endorsement` | Local community verified or endorsed the agent |
+| `verified_completion` | Application label: a completion claim whose record passed declared checks; not proof that the transaction completed as agreed |
+| `on_time_fulfillment` | Available evidence reports completion within the stated estimate |
+| `accurate_description` | Available evidence reports that delivered results matched offer terms |
+| `low_dispute_rate` | Few disclosed dispute records relative to declared transaction volume |
+| `cooperative_resolution` | Available records report cooperation during refund or dispute process |
+| `long_term_consistency` | Available outcome claims span the profile's declared time window |
+| `community_endorsement` | A local community recorded an endorsement claim |
 
 ### 5.2 Negative Signals
 
 | Signal | Meaning |
 | --- | --- |
-| `failed_fulfillment` | Transaction was not completed |
-| `late_fulfillment` | Fulfillment repeatedly missed stated estimates |
-| `misrepresentation` | Offer terms differed materially from actual delivery |
-| `refund_pattern` | Refund rate is unusually high for the category |
-| `dispute_pattern` | Dispute rate is unusually high |
-| `non_cooperation` | Agent failed to respond during review |
-| `governance_penalty` | Community issued warning, suspension, or ban |
+| `failed_fulfillment` | Available evidence contains a non-completion claim |
+| `late_fulfillment` | Available evidence reports repeated misses of stated estimates |
+| `misrepresentation` | Available evidence claims a material difference between offer terms and delivery |
+| `refund_pattern` | Disclosed refund-result claims are unusually frequent under the profile's category baseline |
+| `dispute_pattern` | Disclosed dispute records are unusually frequent under the profile's baseline |
+| `non_cooperation` | Available records report no response during the declared review window |
+| `governance_penalty` | A community warning, suspension, or ban ruling is recorded |
 | `suspicious_velocity` | Reputation rose too quickly relative to history |
 | `collusion_suspicion` | Interaction pattern resembles coordinated manipulation |
 
@@ -181,31 +183,31 @@ Negative signals should not automatically prove wrongdoing. They should support 
 
 ---
 
-## 6. Reputation Velocity
+## 6. Commerce Projection Policy: Reputation Velocity
 
 Reputation should not increase without limits.
 
-A common attack pattern is to create many low-value transactions, fake reviews, or circular interactions to rapidly manufacture trust. ARC should therefore consider reputation velocity limits.
+A common attack pattern is to create many low-value transactions, fake reviews, or circular interactions to rapidly manufacture trust. This Commerce Projection research therefore considers reputation velocity limits.
 
 Possible safeguards:
 
 - cap how quickly reputation can improve
-- weight older verified history differently from sudden new activity
+- weight older evidence-linked history differently from sudden new activity
 - treat sudden reputation spikes as review signals
 - apply stronger scrutiny to new agents with unusually fast growth
 - separate transaction count from trust quality
 
-Velocity limits are anti-fraud safeguards, not economic controls. They should not be used to punish legitimate growth.
+Velocity limits can also suppress legitimate growth, so a Commerce profile that uses them needs to state the threshold, review path, and affected decision.
 
 ---
 
-## 7. Decay and Trust Aging
+## 7. Commerce Projection Policy: Decay and Trust Aging
 
 Reputation can become stale.
 
 An agent with excellent history from three years ago may no longer be reliable. Ownership may change. Staff may change. Automation may change. A previously active agent may become dormant and later return under different conditions.
 
-ARC should explore reputation decay.
+This Commerce Projection research explores reputation decay.
 
 Decay may apply to:
 
@@ -214,24 +216,24 @@ Decay may apply to:
 - outdated community endorsements
 - expired credentials
 - ownership changes
-- long periods without verified fulfillment
+- long periods without evidence-linked fulfillment claims
 
 Decay should not erase history. It should reduce the weight of old signals when evaluating current reliability.
 
 Example directional model:
 
 ```txt
-Recent verified reliability -> higher current relevance
+Recent records passing declared checks -> higher current relevance
 Long-term consistency -> durable background trust
 Old inactive history -> lower current weight
 Recent disputes -> high current relevance
 ```
 
-ARC should avoid defining a universal decay formula at this stage. Different communities and commerce categories may require different time windows.
+No universal decay formula is defined. Named Commerce profiles and communities may select different time windows.
 
 ---
 
-## 8. Recovery After Failure
+## 8. Commerce Projection Policy: Recovery After Failure
 
 A reputation system should allow recovery.
 
@@ -246,7 +248,7 @@ Not every failure is fraud. Agents may fail because of:
 - account compromise
 - temporary staffing problems
 
-ARC should distinguish between accidental failure, negligent behavior, and systematic abuse.
+This Commerce Projection research distinguishes between accidental failure, negligent behavior, and systematic abuse.
 
 Possible recovery signals:
 
@@ -260,7 +262,7 @@ Possible recovery signals:
 
 Recovery should be possible after ordinary failure.
 
-Permanent exclusion should be reserved for serious, repeated, or verified malicious behavior.
+Permanent exclusion should be reserved for serious, repeated, or adjudicated abuse claims under the named application policy.
 
 ---
 
@@ -268,13 +270,13 @@ Permanent exclusion should be reserved for serious, repeated, or verified malici
 
 Agents may be compromised.
 
-If an agent key, account, or infrastructure is compromised, reputation handling becomes difficult. The community must determine whether bad events belong to the legitimate operator, the attacker, or both.
+If an agent key, account, or infrastructure is compromised, reputation handling becomes difficult. A named governance process may decide how its Projection treats disclosed compromise evidence; ARC does not establish whether particular acts belong to an operator, attacker, or both.
 
 Possible handling:
 
 - mark the affected time window as compromised
 - rotate agent keys
-- preserve prior verified history with a visible warning
+- preserve prior evidence-linked history with a visible warning
 - require community review before restoring full trust
 - temporarily limit high-risk transactions
 - require owner re-verification
@@ -285,11 +287,11 @@ This remains an open design problem.
 
 ---
 
-## 10. Reputation Portability
+## 10. Commerce Reputation Portability Research
 
-Reputation portability is one of ARC's most important and most dangerous ideas.
+Reputation portability is an open Commerce application research question.
 
-Portability can help prevent platform lock-in. A merchant should not lose all trust history simply because they move from one ARC-compatible discovery backend to another.
+A compatible named Commerce profile may allow a merchant to export evidence for evaluation by another backend. This may reduce switching cost, but it does not require the receiving policy to preserve a prior signal or trust history.
 
 However, reputation portability creates risks:
 
@@ -300,17 +302,17 @@ However, reputation portability creates risks:
 - over-reliance on global scores
 - reduced local accountability
 
-ARC should treat portable reputation as contextual evidence, not automatic authority.
+This research treats portable reputation as contextual evidence, not automatic authority.
 
 A receiving community may choose to:
 
 - accept external reputation fully
 - partially weight external reputation
 - require local probation
-- require additional verification
-- reject reputation from untrusted sources
+- require additional declared source or profile checks
+- reject reputation from sources outside the receiving profile's accepted set
 
-Portability should support interoperability without forcing communities to trust every external record equally.
+Portability remains unresolved application research. It does not establish interoperability, and a receiving profile may weight external records differently by source and declared checks.
 
 ---
 
@@ -318,7 +320,7 @@ Portability should support interoperability without forcing communities to trust
 
 Not all disputes should affect reputation equally.
 
-A single minor late delivery should not have the same weight as verified fraud. A false dispute should not damage a merchant indefinitely. A pattern of similar complaints should matter more than one isolated report.
+A single minor late-delivery claim should not have the same weight as an adjudicated fraud claim. A false dispute should not damage a merchant indefinitely. A pattern of similar complaints should matter more than one isolated report.
 
 Factors that may affect dispute weight:
 
@@ -336,13 +338,13 @@ Possible outcome categories:
 
 | Outcome | Reputation Effect |
 | --- | --- |
-| `dismissed_false_report` | May affect reporter reputation |
+| `adjudicated_abusive_reporting_pattern` | Repeated or knowingly abusive reporting, when established under the named governance policy, may contribute evidence to a reporter-related reputation Projection |
 | `resolved_no_fault` | Minimal or no penalty |
 | `resolved_minor_issue` | Small contextual note |
 | `resolved_partial_refund` | Moderate signal depending on pattern |
 | `resolved_full_refund` | Stronger signal depending on evidence |
-| `confirmed_fraud` | Severe penalty or suspension |
-| `systematic_abuse` | Ban or cross-community flag |
+| `fraud_ruling` | Adjudicated fraud ruling; profile-defined penalty or suspension |
+| `systematic_abuse_ruling` | Adjudicated abuse ruling; profile-defined ban or cross-community flag |
 
 Dispute weighting should remain reviewable and appealable.
 
@@ -350,7 +352,7 @@ Dispute weighting should remain reviewable and appealable.
 
 ## 12. Collusion and Manipulation Heuristics
 
-ARC should assume that reputation will be attacked.
+Commerce reputation profiles should assess manipulation risk; the frequency and effectiveness of attacks are not established here.
 
 Possible attack patterns:
 
@@ -381,19 +383,19 @@ False positives are expected. Human and community judgment remains necessary.
 
 ---
 
-## 13. Discoverability vs Entrenchment
+## 13. Commerce Discovery Policy: Discoverability vs Entrenchment
 
 Reputation affects discovery.
 
-If discovery systems rely too heavily on historical reputation, established merchants may dominate visibility forever. New verified entrants may struggle to receive any first transaction. This can turn reputation into a moat rather than a trust signal.
+If discovery systems rely too heavily on historical reputation, established merchants may dominate visibility forever. New entrants that pass the profile's declared checks may struggle to receive any first transaction. This can turn reputation into a moat rather than a trust signal.
 
 If discovery systems promote newcomers too aggressively, Sybil attackers can exploit cold-start exposure.
 
-ARC should treat this as a permanent tension.
+This Commerce application research treats this as a continuing tension.
 
 Possible mitigations:
 
-- clearly labeled verified new entrant slots
+- clearly labeled new-entrant slots with declared checks
 - user-selectable discovery views
 - visible distinction between historical trust and recent reliability
 - category-specific probation
@@ -401,17 +403,15 @@ Possible mitigations:
 - diversity indicators in discovery results
 - ability to switch discovery backends
 
-The goal is not to punish successful agents.
-
-The goal is to avoid silently converting reputation into permanent market control.
+These options change newcomer exposure and incumbent ranking. A Commerce profile that adopts one should expose the resulting ranking policy.
 
 ---
 
-## 14. Privacy and Reputation
+## 14. Commerce Reputation Privacy Research
 
 Reputation requires records. Commerce privacy requires restraint.
 
-ARC should avoid exposing unnecessary personal or commercial data in reputation events.
+This Commerce profile should avoid exposing unnecessary personal or commercial data in Canon Events carrying reputation evidence.
 
 Possible principles:
 
@@ -429,24 +429,24 @@ This risk should remain visible in future design work.
 
 ---
 
-## 15. Reputation Display
+## 15. Commerce Reputation Display
 
-Humans should not be shown reputation as a magical number.
+An interface should not present an unexplained summary score as a protocol judgment.
 
-A useful ARC-compatible interface should explain why an agent appears trustworthy or risky.
+A useful interface implementing this named Commerce Projection should show the evidence and policy that produced its signal.
 
 Example display:
 
 ```txt
 Merchant: Bean & Bread
 
-Trust context:
-- Verified local business
-- 214 verified completed food orders
-- 96% recent on-time fulfillment
+Projection context:
+- Business credential check recorded under profile `commerce-local/v1`
+- 214 completion claims passed that profile's record checks
+- 96% of recent fulfillment claims report on-time completion
 - 2 disputes in last 90 days
-- No confirmed fraud
-- New owner verified 6 months ago
+- No fraud ruling in the disclosed Event set
+- Owner-link evidence recorded 6 months ago under the named identity profile
 - Sponsored placement: No
 ```
 
@@ -456,19 +456,19 @@ This is more informative than:
 Trust score: 4.8
 ```
 
-ARC may still compute summary scores as projections, but user-facing reputation should preserve context where possible. The summary is a fold over outcome events, not a stored score (see [object-model.md](./object-model.md) §4).
+All verification labels in the example denote declared application checks, not proof of real-world outcomes. A named Commerce Projection may compute summary scores, but user-facing reputation should preserve context where possible. The summary is a fold over claims and evidence, not a stored score (see [object-model.md](./object-model.md) §4).
 
 ---
 
-## 16. Relationship to Governance
+## 16. Commerce Reputation Relationship to Governance
 
 Reputation and governance are separate but connected.
 
-Reputation records observed behavior.
+Canon Events carry claims and evidence about behavior; a named reputation Projection interprets them.
 
 Governance reviews contested behavior.
 
-A reputation event may trigger governance review. A governance decision may create a reputation event.
+A standing input may trigger governance review. A governance decision may emit an applicable Canon Event whose payload supplies further reputation evidence.
 
 Examples:
 
@@ -487,7 +487,7 @@ Governance should not manipulate reputation without reviewable records.
 
 ### Local Trust vs Global Portability
 
-Local communities understand context, but isolated reputation can create lock-in. Portable reputation helps interoperability, but may import weak or manipulated trust.
+Local communities understand context, but isolated reputation can create lock-in. Portable reputation may improve application portability, but may import weak or manipulated trust; interoperability remains unestablished.
 
 ### Privacy vs Auditability
 
@@ -503,11 +503,11 @@ New participants need a path to discovery. Attackers exploit automatic exposure.
 
 ### Simplicity vs Accuracy
 
-Simple scores are easy to display. Contextual trust is more accurate but harder to explain.
+Simple scores are easy to display. Contextual signals can express more inputs but are harder to explain; this document does not establish that either is more accurate.
 
 ### Human Review vs Governance Burden
 
-Human review reduces automation abuse. Too much review can overwhelm communities.
+Human review may catch some automated manipulation, while also increasing community workload. Its effectiveness is not established here.
 
 ### Recent Reliability vs Long-Term Consistency
 
@@ -517,7 +517,7 @@ Recent behavior may reflect current quality. Long-term behavior may reflect deep
 
 ## 18. Known Unknowns
 
-- final reputation event schema
+- final reputation-evidence payload schema
 - whether summary scores should exist at all
 - default decay windows
 - category-specific weighting
@@ -527,19 +527,15 @@ Recent behavior may reflect current quality. Long-term behavior may reflect deep
 - compromise recovery standards
 - detection thresholds for collusion
 - how to fund reputation review infrastructure
-- how to prevent reputation systems from becoming social credit systems
+- how to avoid universal person-level scoring
 - how to show reputation clearly without oversimplifying it
 
 ---
 
 ## 19. Current Status
 
-This document is an exploratory reputation model.
+This document is exploratory Commerce reputation and named-Projection research.
 
-No implementation exists.
+Executable Commerce fixtures record mock Canon Events carrying reputation evidence across selected success and failure paths, but no production reputation implementation or complete conformance profile exists.
 
-The next useful contribution is a small simulation that records mock reputation events across successful transactions, failed fulfillment, disputes, recovery, and suspicious collusion patterns.
-
-The purpose of that simulation should not be to prove that ARC reputation works.
-
-The purpose should be to expose where the model breaks.
+These fixtures exercise authored cases; they do not validate a production reputation Projection.

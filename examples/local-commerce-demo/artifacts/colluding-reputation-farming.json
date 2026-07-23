@@ -5,8 +5,8 @@
   "purpose": "Expose the risk that multiple agents may coordinate to manufacture reputation through circular low-value transactions or fake buyer-merchant activity.",
   "threat_summary": {
     "risk": "A reputation layer can be manipulated before users or governance reviewers notice.",
-    "why_this_matters": "ARC relies on reputation as a trust signal. If colluding agents can manufacture apparent reliability, human approval may be based on corrupted evidence.",
-    "not_a_claim": "This artifact does not solve collusion detection. It records suspicious evidence and unresolved review questions."
+    "why_this_matters": "This Commerce fixture uses a reputation Projection as one application-policy signal. Coordinated records can therefore distort that signal without proving independent activity.",
+    "not_a_claim": "This artifact does not solve collusion detection. It records named review signals and unresolved questions."
   },
   "actors": {
     "merchant_agent_a": {
@@ -33,7 +33,7 @@
     ],
     "comparison_merchant_b": {
       "agent_id": "mock_merchant_agent_b",
-      "identity_status": "mock_verified_local_business",
+      "identity_status": "mock_named_community_credential",
       "completed_mock_transactions": 214
     }
   },
@@ -102,13 +102,13 @@
       "recent_completion_rate": 1.0,
       "visible_warning": "New merchant with rapid recent activity."
     },
-    "problem": "A naive reputation display may make Merchant Agent A appear safer than the evidence supports.",
-    "interpretation_limit": "Completed mock events are attributable, but attribution does not prove transaction independence or genuine trust."
+    "problem": "A naive reputation display may rank Merchant Agent A more highly than the evidence supports.",
+    "interpretation_limit": "Completed mock events are attributable, but attribution does not establish transaction independence."
   },
   "recommendation_risk": {
     "consumer_agent_request": "Find a reliable nearby meal under KRW 15000.",
-    "unsafe_possible_recommendation": "Merchant Agent A appears highly rated and cheaper than established alternatives.",
-    "risk": "The consumer agent may treat manufactured reputation as trust unless collusion signals are visible and weighted cautiously."
+    "possible_recommendation": "Merchant Agent A appears highly rated and cheaper than established alternatives.",
+    "risk": "The consumer agent may rely on the positive-count signal without accounting for coordinated records."
   },
   "review_triggers": [
     {
@@ -132,7 +132,7 @@
       "note": "Buyer agents were created in a tight time window."
     }
   ],
-  "governance_review_status": {
+  "application_review_status": {
     "state": "review_triggered_not_confirmed_fraud",
     "evidence_available": [
       "transaction timing",
@@ -145,7 +145,7 @@
     "provisional_action_limit": "Do not automatically ban Merchant Agent A without further evidence and response opportunity.",
     "open_questions": [
       "What pattern threshold is strong enough to reduce reputation confidence?",
-      "When does low-value repetition become manipulation rather than legitimate early activity?",
+      "When does low-value repetition indicate manipulation rather than ordinary early activity?",
       "How should new merchants build reputation without being treated as suspicious by default?",
       "What evidence could distinguish collusion from a real local promotion or test campaign?",
       "Should suspicious buyer agents also receive reputation or reporting limits?"
@@ -155,8 +155,8 @@
     "state": "reputation_confidence_reduced_pending_review_mock",
     "confirmed_fraud": false,
     "automatic_penalty_applied": false,
-    "human_or_governance_review_required": true,
+    "fixture_review_requested": true,
     "timestamp": "2026-06-05T10:15:00+09:00 [MOCK]",
-    "interpretation_limit": "This artifact exposes a reputation farming risk. It does not prove that ARC can reliably detect collusion or avoid false positives."
+    "interpretation_limit": "This artifact exposes a reputation-farming scenario. It does not establish reliable collusion detection or false-positive handling."
   }
 }

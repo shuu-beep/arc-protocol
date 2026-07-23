@@ -1,5 +1,5 @@
 {
-  "_note": "REAL refusal records of ARC, collected under docs/first-refusal-protocol.md. Empty is the honest current state: ARC's contact with reality is zero until the first record lands (protocol §9). Reserved for refusals OF ARC only — Phase 0 calibration records (refusals of adjacent protocols) never enter this file (protocol Appendix A). Reasons are stored verbatim, in the participant's own words; paraphrase is already inference (protocol §3.4).",
+  "_note": "Public refusal records of ARC collected under docs/first-refusal-protocol.md. No records are currently present. Reserved for refusals of ARC only; Phase 0 calibration records about adjacent protocols do not enter this file. Reasons are stored verbatim because paraphrase would add an interpretation.",
   "_consent_gate": "This file is a public artifact. A record with visibility=private must be de-identified or explicitly consented BEFORE being committed here (protocol §6). Committing first and redacting later cannot un-publish the repository.",
   "_schema": {
     "id": "R1, R2, ... (real records are marked '*' in the fold's report)",

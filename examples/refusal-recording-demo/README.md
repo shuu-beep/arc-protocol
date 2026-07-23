@@ -1,11 +1,10 @@
 # Refusal-Recording Demo
 
-> **Adoption does not fold. Refusals can.**
+> This probe records and groups refusal records; it does not model or validate adoption.
 
-A small, runnable probe that makes the [adoption track](../../docs/adoption-and-defection.md)
-load-bearing instead of only argued. It folds a set of synthetic *refusal
-records* into a falsification surface, and it draws — precisely — the line
-between what ARC can compute about a refusal and what it cannot.
+A small runnable fixture that groups synthetic *refusal records* using the
+categories in the [adoption research](../../docs/adoption-and-defection.md). It
+reports record counts and category matches without inferring motives or adoption.
 
 ```
 python3 refusal_fold.py
@@ -15,21 +14,18 @@ Stdlib only. No network, no services, no real participant data.
 
 ## The boundary this probe exists to show
 
-The adoption frontier does not fold. ARC cannot prove why a party will
-honor, join, or adopt the protocol; that incentive is off-ledger
-([threat-model.md §18.1](../../docs/threat-model.md)). This probe does not
-attempt it. It demonstrates the *other* half of the boundary: a refusal is
-not an incentive to be modeled — it is a **record of what an actor said**,
-and a record folds.
+ARC records do not establish why a party will honor, join, or adopt a protocol
+([threat-model.md §18.1](../../docs/threat-model.md)). This fixture treats a
+refusal only as a record of what an actor said and groups its declared fields.
 
-| ARC **can** compute from refusal records | ARC **cannot** compute |
+| This fixture **computes** from refusal records | This fixture **does not compute** |
 | --- | --- |
 | counts by actor, exit, named mechanism | whether a stated reason is *true* |
 | per candidate, evidence *named* by the refuser vs *cell-coincident* (reason unread) | whether the actor would really change behaviour later |
-| `mechanism = none` cases (no mechanism would have moved them) | whether adoption will or will not happen |
+| records labeled `mechanism = none` | whether adoption will or will not happen |
 | where a WAIT depends on a still-missing side (mutual-WAIT deadlock) | whether a mechanism is valid *in general* |
-| whether any §4 lever can break a mutual-WAIT from one side (does a *solo* lever even reach it) | whether a solo lever, where one reaches, is large enough to seed adoption |
-| which exits no candidate mechanism even claims to address | whether a refusal was strategic, lazy, hostile, or honest |
+| whether any §4 candidate is labeled counterparty-independent and mapped to a mutual-WAIT cell | whether such a candidate would change adoption behavior |
+| which exits no candidate mechanism even claims to address | whether the stated reason matches private motivation |
 
 A candidate mechanism is **never validated** here. The strongest a refusal
 can say *for* a mechanism is "named as decisive" — and that party still
@@ -41,9 +37,7 @@ declined, so the lead is unproven. The fold can only weaken, never confirm.
 - **It does not predict adoption.** No output is a forecast.
 - **It does not prove a refusal reason is true.** Every reason is treated as
   testimony, never as established fact.
-- It only shows that **refusal records fold into falsification surfaces** —
-  and that this is useful, because a recorded "no" can *weaken ARC's own
-  candidate mechanisms*, which an imagined "yes" never can.
+- It reports a grouped summary over the supplied refusal records and candidate labels.
 
 ## The record
 
@@ -65,9 +59,8 @@ are not claims about any real actor.
 
 Real refusals of ARC — collected under the
 [first-refusal protocol](../../docs/first-refusal-protocol.md) — live in the
-sibling [`fixtures_real.json`](fixtures_real.json), currently **empty**: ARC's
-contact with reality is still zero, and the empty file is the honest record of
-that. The same fold consumes both files; real records are marked `*`
+sibling [`fixtures_real.json`](fixtures_real.json), which is currently empty.
+The same fold consumes both files; real records are marked `*`
 throughout the report and carry a provenance envelope
 (`source`, `date`, `visibility`, `stimulus` — protocol §5).
 
@@ -76,9 +69,7 @@ section `[0]` keeps them apart:
 
 - **schema-break** — a value outside the schema's vocabulary (a fifth exit, a
   dual actor, an unlisted mechanism). Excluded from the folds, because its
-  cells are undefined — but reported as the headline, never discarded: per
-  protocol §2, a real refusal the schema cannot hold **falsifies the schema,
-  not the refusal**, and is the most valuable possible result.
+  cells are undefined, but the mismatch is reported separately rather than discarded.
 - **recording gap** — a missing reason or provenance field. An interviewer
   error to repair, not a finding; the record still folds.
 
@@ -112,37 +103,33 @@ a mechanism is "named as the gap" — and that party still declined.
 
 ## Does any §4 lever break the WAIT deadlock? (fold [6])
 
-The fold detects a mutual-WAIT deadlock; this section asks whether ARC's
-candidate set can *break* one. A mutual-WAIT is a standoff over **network
-value** — each party waits for the other to move, so the value each wants is
-exactly the value the other is withholding. Lowering cost or sweetening a
-network benefit cannot break it, because at zero counterparties the benefit is
-still zero. Only a **solo** lever — value that accrues to a single adopter
-with no counterparty — can make moving-first rational from one side
+The fold detects reciprocal `WAIT` labels and asks whether any authored
+candidate marked as counterparty-independent reaches either labeled cell. The
+result depends on the candidate coverage and `value_locus` labels supplied here
 ([survey §57](../../docs/coordination-economics-survey.md)).
 
 So each candidate carries a `value_locus`, transcribed (not invented) from its
 own §4 residue or the survey:
 
-- **network** — value needs a counterparty (4.1, 4.3, 4.4, 4.5, 4.6).
-- **mixed** — a solo thread over a network principal. ARC has exactly one:
-  the audit log's *self-delegation audit* — recording and recomputing your own
+- **network** — labeled as requiring a counterparty (4.1, 4.3, 4.4, 4.5, 4.6).
+- **mixed** — a candidate labeled here as having both single-party and network value.
+  In this fixture, the audit log's *self-delegation audit* records and recomputes one party's
   agent's approvals with no one else participating
   ([survey §109](../../docs/coordination-economics-survey.md), [adoption §4.2](../../docs/adoption-and-defection.md)).
 
 The fold then checks, per deadlock, which candidates even *reach* it (claim a
 WAIT cell of a deadlocked actor) and whether any reaching candidate is solo.
-This turns survey §109's prose ("an ARC audit log has *some* solo value … a
-hypothesis, not a path") into a recomputed structural test.
+This is a structural check over the authored labels, not evidence that the
+candidate would change adoption behavior.
 
-**The finding is a property of §4, not of the fixtures.** Across the whole §4
-set, exactly one candidate claims any WAIT cell at all — 4.1 (lower
-integration cost), which is **network**-value. ARC's only solo lever, 4.2,
+**The finding is a property of the candidates and `value_locus` labels encoded
+here.** In that authored set, exactly one candidate claims any WAIT cell — 4.1 (lower
+integration cost), which is labeled **network**-value. The only solo-thread
+candidate in this encoding, 4.2,
 claims `REJECT` cells, **no WAIT cell**. So:
 
-> The deadlock-breaking lever and the deadlock do not meet. §4 answers WAIT
-> with a single network-value cost-reducer, and aims its lone solo lever at
-> REJECT instead. No solo lever reaches the chicken-and-egg.
+In the authored candidate set, no counterparty-independent candidate is labeled
+as addressing `WAIT`; the only candidate that reaches it is labeled `network`.
 
 This neither indicts nor predicts: it does not say adoption fails, only that
 the candidate set as written contains no counterparty-independent lever
@@ -155,13 +142,13 @@ the fold can settle — and its size is unmeasured ([survey §114](../../docs/co
 - Every candidate lands at MIXED or CELL-CONTRADICTED — **none reaches
   validated.** The strongest reading for any candidate is "named, still declined".
 - The **company / DEFECT** record — the "embrace the open spec, then withdraw
-  federation once the users are ours" case — falls in a cell **no candidate
-  mechanism even claims to address.** ARC's §4 set is silent on it.
-- A **mutual-WAIT deadlock `{merchant, user}`** is detected: each waits on the
-  other, and each is individually rational to wait.
-- **No §4 lever breaks that deadlock from one side.** Only 4.1 (network) reaches
-  it; ARC's one solo lever (4.2) claims REJECT, not WAIT — the lever and the
-  deadlock do not meet.
+  federation once the users are ours" case — falls in a cell **no candidate in
+  the supplied map claims to address.**
+- A **mutual-WAIT pair `{merchant, user}`** is detected under the fixtures' stated
+  dependencies; the fold does not establish either actor's rationality.
+- Under the candidates and `value_locus` labels coded here, no solo-classified
+  candidate reaches that pair. Only 4.1 (network) reaches it; 4.2 claims REJECT,
+  not WAIT.
 
 ## A note on the exit vocabulary
 
@@ -170,29 +157,21 @@ embrace-and-defederate pattern from
 [coordination-economics-survey.md §5](../../docs/coordination-economics-survey.md)
 (XMPP, RSS) need a fifth exit, e.g. `CAPTURE`?
 
-**No.** The only thing separating a hypothetical `CAPTURE` from `DEFECT` /
-`FORK` is the actor's *strategic intent* to lock users in — and intent is
-exactly the off-ledger thing §18.1 forbids ARC from reading. Adding a
-`CAPTURE` exit would smuggle an unobservable motive into the vocabulary,
-breaking the schema's "record what they say, do not infer" rule. The pattern
-decomposes cleanly without it:
+This fixture keeps the four existing exit labels. A separate `CAPTURE` label
+would encode an inferred strategic motive that these records do not establish;
+the authored examples are therefore mapped as follows:
 
 - genuinely adopt, then withdraw interoperation to retain the captured base →
   **DEFECT** (stop honouring once it pays; the "pay" is the retained base);
 - adopt the forms but never the substance (a compliance veneer) → **FORK**
   (a captured variant; already [adoption-and-defection §3.2](../../docs/adoption-and-defection.md)).
 
-What is real and observable is not a new *move* but a blast-radius property:
-a DEFECT or FORK by an actor holding the network also forecloses others'
-exit. The fold surfaces this empirically — the company DEFECT shows up as an
-*unaddressed cell*, not as a new category. Resisting the fifth exit is the
-anti-motive discipline doing its job.
+The company `DEFECT` example appears as an unaddressed cell under the supplied
+candidate map. The fixture does not infer the actor's motive or introduce a new exit.
 
 ## Red-team notes (known limitations)
 
-This probe was deliberately attacked after it was built. The findings are
-kept here rather than smoothed away, because the most useful are *principled*
-limits, not bugs.
+Known limits of the authored categories and fold are listed below.
 
 - **The fold matches by cell, but relevance lives in the reason.** A candidate
   is tied to a refusal by its `(actor, exit)` cell, so a `mechanism = none`
@@ -203,9 +182,9 @@ limits, not bugs.
   relevance is exactly the inference [§6](../../docs/adoption-and-defection.md)
   forbids ("a reason paraphrased into our own category is a claim in
   disguise"). The fold is therefore only as precise as §4's claims, which are
-  written by `(actor, exit)`, not by reason. The honest response is to label
+  written by `(actor, exit)`, not by reason. The report therefore labels
   the two evidence qualities (NAMED vs CELL-COINCIDENT, "reason unread") and
-  leave reason-relevance to a human reading the records — not to hide the
+  leaves reason-relevance to a human reading the records — not to hide the
   coarseness behind a confident verdict.
 
 - **These are weights and directions, not verdicts.** A single `none` refusal
@@ -219,10 +198,10 @@ limits, not bugs.
   the survey (see the comments in `refusal_fold.py`), but it is still a
   *reading*. If someone argued 4.2's transaction audit had standalone value, or
   that 4.1 at literally-zero cost is its own reward, the labels would shift and
-  fold [6] would read differently. The honest claim is narrow: under §4 *as
+  fold [6] would read differently. The result is limited to §4 *as
   written*, the only WAIT-claiming candidate is network and the only solo
   thread is aimed at REJECT. The fold makes that structure visible; it does not
-  prove the structure is the only defensible one.
+  establish that this is the only possible classification.
 
 - **The §4 candidate set has blind spots, and the fold surfaces them.** Two
   refusal reasons — "governance is unpaid" and the company DEFECT that adopts

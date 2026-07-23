@@ -1,74 +1,59 @@
 #!/usr/bin/env python3
 """
-ARC view fidelity probe — WYSINWYS: What You See Is Not What You Sign.
+ARC view-fidelity fixture — signed bytes and displayed view may differ.
 
 Single file, stdlib only, single process.
 
 What this isolates
 ------------------
-A signer is NOT malicious, the key is sound, and the signed canonical bytes B are
-NOT tampered with. And yet, if the view-generator / summarizer / UI renderer between
-the bytes and the eyes is lossy or adversarial, the view the signer SAW and the bytes
-the signer SIGNED diverge.
+A fixture action's canonical bytes B are not changed. The fixture supplies renderer
+outputs that reproduce, rewrite, or omit selected payload fields. The mock signature
+check covers B, not the off-log renderer output.
 
-  > A signature seals the signed bytes. It does not seal the displayed view.
-  > Same bytes, different view. deterministic != faithful.
-
-This is NOT a restatement of finding M. M is about the signer reading a mandate it
-fully SAW and interpreting it unfaithfully — the failure is in interpretation. Here
-the signer reads the mandate faithfully; the failure is one step EARLIER, in the
-presentation/render layer: the view that reached the signer is not a faithful
-rendering of B. M's signer is omniscient about B and varies in reading; this signer
-is BLIND to B and sees only render(B).
+Finding M varies a signer's interpretation of a recorded mandate. This fixture
+instead varies an authored renderer output for the same payload.
 
 Its relation to finding L
 -------------------------
-L (approval_seam_fixture) said the escalation return path is a second custody surface
-and that the inbox owes the human a "sign what you saw" property — one projection used
-for both human-review and signer-bytes; show less and you build a confused deputy. But
-L's mitigation ASSUMES the projection/renderer is faithful. Bytes are not human-
-cognizable (JSON, hashes, addresses), so SOME renderer is unavoidable, and L silently
-trusted it. This probe pricks exactly that trust dependency: the renderer L relied on
-is itself an unobservable, off-log party whose fidelity ARC cannot witness. So this is
-the residue UNDER L's mitigation, not a restatement of it.
+Finding L binds an approval to reviewable proposal fields. This fixture tests a
+separate presentation assumption: a deterministic renderer can still omit a field.
 
 The one thing the log can check, and the one it cannot
 ------------------------------------------------------
-ARC can bind a `view_hash` into the signed payload and let anyone recompute it from a
-PINNED deterministic renderer. That folds: a careless attacker who shows a doctored
-view but commits a hash that the pinned renderer would not produce is CAUGHT. But the
-hash proves only CORRESPONDENCE to the pinned renderer's output — never the FIDELITY of
-that renderer. A renderer that reproducibly OMITS a critical field is deterministic, its
-output hashes consistently, the commitment is honest — and the view is still unfaithful.
-deterministic != faithful. The pinned renderer's fidelity is a trust root the hash
-cannot reach, and a human's actual perception is below even that.
+This fixture profile places a `view_hash` in the signed payload. Given the same action
+bytes and declared renderer, its comparison can recompute the output hash and report a
+mismatch. Hash equality proves only equality to that renderer output — not which output
+was displayed or perceived.
+A renderer that reproducibly omits a critical field is deterministic, its output hashes
+consistently, and the commitment matches while the view remains lossy.
+The fixture therefore treats a matching hash as limited evidence about one declared
+renderer function and its inputs.
 
 The six readouts
 ----------------
-  1. boundary            — the log proves B and id=hash(B); it does NOT carry the view.
-  2. faithful control    — a faithful renderer shows the critical fields; sign-what-you-
-                           saw holds, but ONLY under the faithful-renderer assumption.
-  3. WYSINWYS attack     — the same signed action, an adversarial renderer rewrites the
-                           payee; the signer sees a benign view and signs malicious B. verify ok.
-  4. mitigation (half)   — view_hash commitment catches the CARELESS mismatch
-                           (claimed_view_hash != recomputed_view_hash => CAUGHT).
-  5. residue             — a careful deterministic renderer omits the field reproducibly;
-                           claimed == recomputed, verify passes, view still unfaithful.
-  6. mitigation price    — rendered_view ATTEST / signed preview / renderer attestation
-                           are more records; they relocate trust into the renderer / a
-                           runtime attestor and never prove human perception. (Mirrors
-                           M's attested-signer, O's head-oracle, the world-axis oracle.)
+  1. boundary            — the Event set contains B and a deterministic id check;
+                           it does not carry a renderer output.
+  2. matching control    — a renderer includes the fixture's comparison fields.
+  3. view/bytes mismatch — the same mock-signed action, an adversarial renderer rewrites the
+                           payee; the mock replay check still covers unchanged B.
+  4. mitigation (half)   — view_hash comparison reports the mismatch
+                           (claimed_view_hash != recomputed_view_hash).
+  5. omitted field       — a deterministic renderer omits the field reproducibly;
+                           claimed == recomputed and the replay check passes.
+  6. additional claim    — a rendered_view ATTEST records a claimed output hash; it
+                           does not establish actual display or perception.
 
-Deliberately dirty and small. Explicitly:
+Fixture limits:
   * stdlib only, single process, no network, no transport, no storage;
   * signatures are MOCK (a hash, not Ed25519) — the point is the gap between bytes and
-    view, not custody. But id and view_hash are REAL content hashes, so the recompute
-    check genuinely bites: a careless view mismatch cannot pass for free;
+    view, not custody. IDs and view_hash use SHA-256 content hashes, so the recompute
+    check detects the authored mismatch under the same renderer and inputs;
   * the canonical types are reused as-is — no new type, no "view object", no view score.
     A rendered_view attestation is an ordinary ATTEST predicate, not a new primitive;
-  * what each signer actually SAW (the view) and whether it was FAITHFUL live in an
-    omniscient strip no observer and no fold can read — exactly the gap the probe is about;
-  * this is a probe, not a protocol spec and not doctrine.
+  * a generator-only mapping records which authored renderer output was associated
+    with each action; observer folds do not receive it;
+  * `view_hash` is a field used by this fixture profile, not a base-protocol requirement;
+  * this is a probe, not a protocol specification.
 
 Run:  python3 probe.py
 """
@@ -82,9 +67,8 @@ from typing import Any, Callable
 
 CANONICAL_TYPES = {"KEY", "ATTEST", "AUTHORIZE", "CHALLENGE", "ADJUDICATE"}
 
-# The fields a human MUST see to make an informed approval. The fold never reads this
-# (it does not know which fields are semantically critical) — faithfulness is a human
-# judgment, computed only in the omniscient strip.
+# Fields selected by this fixture for its renderer-output comparison. They are not
+# base-protocol requirements and the fold does not read them.
 CRITICAL_FIELDS = ("payee", "amount_krw")
 
 
@@ -116,11 +100,10 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies.
+    """Deterministic fixture hash, not a signature or proof of key possession.
 
-    The signature is a function of (signer, bytes). It is honest over WHATEVER bytes B
-    were signed — and says nothing at all about the view the signer looked at. The whole
-    finding lives in that silence: the signature seals B, never render(B).
+    It covers the signer label and bytes B so mutation is detectable; it says
+    nothing about the displayed view.
     """
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
@@ -138,10 +121,10 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: id integrity + signature + signer anchored by a KEY.
+    """Fixture replay check: id, deterministic mock signature, key registration.
 
-    Note what verify_log CANNOT see: the view. Every event below verifies — the
-    signature is honest over the canonical bytes B regardless of what was displayed.
+    It cannot establish the displayed view, human perception, completeness, or
+    production signature conformance.
     """
     registered: set[str] = set()
     for ev in events:
@@ -149,7 +132,7 @@ def verify_log(events: list[Event]) -> None:
         if ev.id != content_id(body):
             raise ValueError(f"id does not match content on {ev.id} (post-signature mutation)")
         if ev.signature != stub_sign(ev.signer, body):
-            raise ValueError(f"bad signature on {ev.id}")
+            raise ValueError(f"bad mock signature on {ev.id}")
         is_root = ev.type == "KEY" and ev.predicate == "id.key_register"
         if not is_root and ev.signer not in registered:
             raise ValueError(f"signer {ev.signer} not anchored by a KEY register ({ev.id})")
@@ -158,9 +141,8 @@ def verify_log(events: list[Event]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Renderers. Each turns canonical bytes B into a human-readable view V. They are
-# pure functions that run OFF-LOG, in the signer's local environment. ARC never
-# sees them — it sees only the bytes B that come out the other side.
+# Renderers. Each turns canonical bytes B into an authored text output V. They are
+# pure functions that run off-log; the Event set contains B, not V.
 # ---------------------------------------------------------------------------
 
 def _payload_of(action: Event) -> dict:
@@ -168,7 +150,7 @@ def _payload_of(action: Event) -> dict:
 
 
 def faithful_render(action: Event) -> str:
-    """Shows every critical field with its true value. The renderer L assumes."""
+    """Include every field selected for this fixture's comparison."""
     p = _payload_of(action)
     return (f"APPROVE PAYMENT\n"
             f"  pay: {p['amount_krw']} KRW\n"
@@ -177,7 +159,7 @@ def faithful_render(action: Event) -> str:
 
 
 def adversarial_render(action: Event) -> str:
-    """Same bytes B, but rewrites the payee to a benign-looking name. Lies."""
+    """Render the same action with a rewritten, benign-looking payee label."""
     p = _payload_of(action)
     return (f"APPROVE PAYMENT\n"
             f"  pay: {p['amount_krw']} KRW\n"
@@ -187,8 +169,7 @@ def adversarial_render(action: Event) -> str:
 
 def careful_omit_render(action: Event) -> str:
     """Deterministic and reproducible — and reproducibly DROPS the payee line.
-    Hashes consistently; an honest view_hash commitment over it will match on
-    recompute. Still unfaithful: the human never sees where the money goes."""
+    Its output hashes consistently and a matching commitment passes recompute."""
     p = _payload_of(action)
     return (f"APPROVE PAYMENT\n"
             f"  pay: {p['amount_krw']} KRW\n"
@@ -196,21 +177,22 @@ def careful_omit_render(action: Event) -> str:
 
 
 def view_hash(view: str) -> str:
-    """REAL content hash of the rendered view — this is what folds."""
+    """Fixture-profile content hash of one renderer output."""
     return "vh:" + hashlib.sha256(view.encode()).hexdigest()[:12]
 
 
 def recompute_view_hash(action: Event, pinned_renderer: Callable[[Event], str]) -> str:
-    """Anyone can recompute the view from the PINNED renderer and the on-log bytes.
-    This is the foldable check — and its exact limit: it certifies correspondence to
-    the pinned renderer's output, never the fidelity of the pinned renderer."""
+    """Recompute using the supplied action bytes and declared renderer.
+
+    Hash equality proves equality to that output only; it does not establish which
+    view was displayed, perceived, or semantically faithful.
+    """
     return view_hash(pinned_renderer(action))
 
 
 # ---------------------------------------------------------------------------
-# Omniscient faithfulness — readable by NO observer and NO fold. The fold does not
-# know which fields are critical or what their true values are; faithfulness is a
-# human-semantic judgment. Here only so the closing strip can show the gap.
+# Generator-only comparison. Observer folds do not receive which renderer output
+# was associated with an action or the result of this fixture-specific field check.
 # ---------------------------------------------------------------------------
 
 def is_faithful(view: str, action: Event) -> bool:
@@ -219,23 +201,24 @@ def is_faithful(view: str, action: Event) -> bool:
 
 
 def resolve_view_from_log(events: list[Event], action_id: str) -> dict:
-    """What view did the signer see? Look only at the log. A rendered_view ATTEST, if
-    present, carries a CLAIMED hash — itself only as good as its signer, and silent on
-    whether that view was faithful or actually perceived. Absent one: UNKNOWN."""
+    """Read a claimed renderer-output hash from the log, if present.
+
+    The claim does not establish actual display, perception, or semantic fidelity.
+    """
     attest = next((e for e in events
                    if e.type == "ATTEST" and e.predicate == "view.rendered"
                    and e.payload.get("action") == action_id), None)
     if attest is None:
         return {"verdict": "UNKNOWN",
-                "reason": "no event carries the rendered view; the log holds bytes, not what was shown"}
+                "reason": "no event carries a renderer-output claim for this action"}
     return {"verdict": "CLAIMED", "view_hash": attest.payload.get("view_hash"), "by": attest.signer,
-            "reason": f"{attest.signer} attests a view hash — a claim about what was shown, "
-                      f"not proof it was faithful or perceived"}
+            "reason": f"{attest.signer} attests a renderer-output hash; this does not "
+                      f"establish actual display or perception"}
 
 
 # ---------------------------------------------------------------------------
-# Participants and ledger. The ledger carries signed canonical bytes. What each
-# signer actually SAW is tracked separately, omniscient — no fold reads it.
+# Participants and ledger. The ledger carries mock-signed canonical bytes. The
+# generator separately tracks an authored renderer-output mapping; no fold reads it.
 # ---------------------------------------------------------------------------
 
 class Party:
@@ -252,7 +235,7 @@ class Party:
 class Ledger:
     def __init__(self) -> None:
         self.events: list[Event] = []
-        self.saw: dict[str, tuple[str, bool]] = {}   # action id -> (view shown, was_faithful) OMNISCIENT
+        self.saw: dict[str, tuple[str, bool]] = {}   # generator-only output mapping
 
     def append(self, ev: Event) -> None:
         self.events.append(ev)
@@ -266,7 +249,7 @@ def say(who: str, msg: str) -> None:
 
 
 def show_view(label: str, view: str) -> None:
-    print(f"    {label} the signer saw:")
+    print(f"    {label} authored output:")
     for line in view.splitlines():
         print(f"        | {line}")
 
@@ -278,7 +261,7 @@ def show_view(label: str, view: str) -> None:
 def run() -> None:
     led = Ledger()
     principal = Party(led, "principal", "k:principal")   # grants the mandate
-    signer    = Party(led, "signer",    "k:signer")      # honest, sound key; signs what it approves
+    signer    = Party(led, "signer",    "k:signer")      # fixture signer label
     renderer  = Party(led, "renderer",  "k:renderer")    # the view-generator, used in the mitigation
 
     print("\n0. Identity + mandate")
@@ -288,8 +271,8 @@ def run() -> None:
                              refs=("k:signer",),
                              scope={"category": "market", "max_total_krw": 100000})
 
-    # The canonical bytes B everyone below will sign or render: a payment whose true
-    # payee is the attacker. B itself is never tampered with; only the VIEW varies.
+    # The canonical bytes B contain a payment payload naming wallet:attacker. B is
+    # unchanged while the authored renderer output varies.
     def action_payload(view_hash_value: str | None = None) -> dict:
         p = {"payee": "wallet:attacker", "amount_krw": 50000, "item": "electronics"}
         if view_hash_value is not None:
@@ -297,7 +280,7 @@ def run() -> None:
         return p
 
     # -- Readout 1: boundary ---------------------------------------------------
-    print("\n1. Readout 1 — THE BOUNDARY (the log proves bytes, not the view)")
+    print("\n1. Readout 1 — RECORD BYTES / RENDERER OUTPUT")
     b1 = signer.emit("AUTHORIZE", "consent.execute", "2026-06-14T11:00:00Z",
                      refs=(mandate.id,), payload=action_payload())
     print("    verify_log: ", end=""); verify_log(led.events); print("passes.")
@@ -305,37 +288,36 @@ def run() -> None:
     r = resolve_view_from_log(led.events, b1.id)
     print(f"    resolve-view-from-log: {r['verdict']}  ({r['reason']})")
 
-    # -- Readout 2: faithful render control ------------------------------------
-    print("\n2. Readout 2 — FAITHFUL RENDER (control; sign-what-you-saw holds — by assumption)")
+    # -- Readout 2: matching renderer-output control ---------------------------
+    print("\n2. Readout 2 — MATCHING RENDERER OUTPUT (fixture control)")
     v_faithful = faithful_render(b1)
     led.record_view(b1.id, v_faithful, b1)
-    show_view("(faithful renderer)", v_faithful)
-    print(f"    faithful? {is_faithful(v_faithful, b1)} — the critical fields (payee, amount) are shown.")
-    print("    Under a FAITHFUL renderer the signer can decide informedly. The property holds")
-    print("    only because the renderer was faithful — an assumption, not something the log checks.")
+    show_view("(matching renderer)", v_faithful)
+    print(f"    comparison fields present? {is_faithful(v_faithful, b1)} — payee and amount match B.")
+    print("    This is a generator-only comparison, not evidence of actual display or review.")
 
-    # -- Readout 3: WYSINWYS attack --------------------------------------------
-    print("\n3. Readout 3 — WYSINWYS ATTACK (same signed action, different view)")
+    # -- Readout 3: view/bytes mismatch -----------------------------------------
+    print("\n3. Readout 3 — VIEW / BYTES MISMATCH")
     b3 = signer.emit("AUTHORIZE", "consent.execute", "2026-06-14T12:00:00Z",
                      refs=(mandate.id,), payload=action_payload())
     v_adv = adversarial_render(b3)
     led.record_view(b3.id, v_adv, b3)
     show_view("(adversarial renderer)", v_adv)
-    say("signer", "the screen says Merchant-A — looks fine, I approve")
-    print(f"    The same signed action (same payload shape, true payee = wallet:attacker)")
+    say("fixture", "the authored renderer output names Merchant-A")
+    print(f"    The same mock-signed action (payload payee = wallet:attacker)")
     print(f"    rendered differently — the renderer rewrote the payee. The signer signs B;")
     print(f"    verify_log: ", end="")
     verify_log(led.events); print("passes.")
-    print(f"    faithful? {is_faithful(v_adv, b3)}. The signer is honest, the key is sound, B is")
-    print(f"    untampered — and the money still goes to the attacker. NOT finding M: the signer")
-    print(f"    did not misread B, it was shown a different thing. The fault is the render layer.")
+    print(f"    matches fixture critical fields? {is_faithful(v_adv, b3)}. B is untampered,")
+    print("    and its payload still names wallet:attacker; this fixture executes no payment.")
+    print("    The Event set does not establish which renderer output was displayed.")
 
-    # -- Readout 4: mitigation half-success (careless caught) ------------------
-    print("\n4. Readout 4 — view_hash MITIGATION (careless mismatch is CAUGHT)")
+    # -- Readout 4: committed/declared-renderer mismatch -----------------------
+    print("\n4. Readout 4 — view_hash comparison reports a mismatch")
     pinned = faithful_render   # the system pins a renderer and commits its output hash
-    print("    The signer commits a view_hash into the signed payload; anyone recomputes it")
-    print("    from the PINNED renderer. A careless attacker shows the doctored view but")
-    print("    commits the hash of THAT view:")
+    print("    This fixture profile commits a view_hash into the payload. A reader with the same")
+    print("    action bytes and declared renderer can recompute it. This case commits the")
+    print("    hash of the alternate authored output:")
     claimed = view_hash(v_adv)                       # hash of the adversarial view it showed
     b4 = signer.emit("AUTHORIZE", "consent.execute", "2026-06-14T13:00:00Z",
                      refs=(mandate.id,), payload=action_payload(claimed))
@@ -343,56 +325,50 @@ def run() -> None:
     print(f"    claimed_view_hash   = {claimed}")
     print(f"    recomputed (pinned) = {recomputed}")
     caught = claimed != recomputed
-    print(f"    => {'CAUGHT' if caught else 'passes'} — the committed view does not match what the")
-    print(f"       pinned renderer produces from B. The foldable half: a careless view lie bites.")
+    print(f"    => {'MISMATCH' if caught else 'MATCH'} — the committed view does not match what the")
+    print("       declared renderer produces from B. This detects the authored mismatch.")
 
-    # -- Readout 5: the residue (careful, deterministic, still unfaithful) ------
-    print("\n5. Readout 5 — THE RESIDUE (deterministic != faithful)")
+    # -- Readout 5: matching hash with an omitted field ------------------------
+    print("\n5. Readout 5 — MATCHING HASH WITH AN OMITTED FIELD")
     pinned_careful = careful_omit_render   # the PINNED renderer is itself reproducibly lossy
     v_omit = careful_omit_render(b1)
-    honest_commit = view_hash(v_omit)                # an HONEST commitment over the pinned output
+    matching_commit = view_hash(v_omit)              # commitment matching the pinned output
     b5 = signer.emit("AUTHORIZE", "consent.execute", "2026-06-14T14:00:00Z",
-                     refs=(mandate.id,), payload=action_payload(honest_commit))
+                     refs=(mandate.id,), payload=action_payload(matching_commit))
     led.record_view(b5.id, v_omit, b5)
     show_view("(pinned deterministic renderer)", v_omit)
     recomputed5 = recompute_view_hash(b5, pinned_careful)
-    print(f"    claimed_view_hash   = {honest_commit}")
+    print(f"    claimed_view_hash   = {matching_commit}")
     print(f"    recomputed (pinned) = {recomputed5}")
-    print(f"    => {'MATCH' if honest_commit == recomputed5 else 'mismatch'}; verify_log: ", end="")
+    print(f"    => {'MATCH' if matching_commit == recomputed5 else 'mismatch'}; verify_log: ", end="")
     verify_log(led.events); print("passes.")
-    print(f"    faithful? {is_faithful(v_omit, b5)} — the payee line is reproducibly OMITTED.")
-    print("    The hash certifies the view CAME FROM the pinned renderer; it cannot certify the")
-    print("    pinned renderer is FAITHFUL. A deterministic renderer can deterministically mislead.")
-    print("    deterministic != faithful. Same shape as finding M, on the render layer.")
+    print(f"    comparison fields present? {is_faithful(v_omit, b5)} — the payee line is omitted.")
+    print("    The hash matches the declared renderer's output. It does not establish that")
+    print("    this output was displayed, perceived, or semantically faithful.")
 
-    # -- Readout 6: mitigation price -------------------------------------------
-    print("\n6. Readout 6 — MITIGATION PRICE (more records relocate trust; none prove perception)")
+    # -- Readout 6: additional renderer claim ----------------------------------
+    print("\n6. Readout 6 — ADDITIONAL RENDERER CLAIM")
     rv = renderer.emit("ATTEST", "view.rendered", "2026-06-14T14:30:00Z",
                        refs=(b5.id,),
-                       payload={"action": b5.id, "view_hash": honest_commit})
+                       payload={"action": b5.id, "view_hash": matching_commit})
     rr = resolve_view_from_log(led.events, b5.id)
     print(f"    rendered_view ATTEST added [{rv.id}]. resolve-view-from-log now: {rr['verdict']}")
     print(f"      ({rr['reason']})")
-    print("    A rendered_view ATTEST / signed preview / renderer attestation is one more signed")
-    print("    record. It RELOCATES trust into the renderer (or a runtime attestor) — exactly")
-    print("    finding M's attested-signer, finding O's head-oracle, the world-axis trusted-oracle.")
-    print("    None of them proves the human's eyes received a faithful view. The renderer is a")
-    print("    MANDATORY trust dependency: bytes are not human-cognizable, so for any human")
-    print("    approval a renderer is always in the trusted base — and ARC does not govern it.")
+    print("    The rendered_view ATTEST is one more claim under this fixture profile.")
+    print("    It does not establish which output was displayed or perceived.")
 
-    print(f"\nGenerated log: {len(led.events)} signed events. verify_log passes "
-          f"(every signature is honest over its canonical bytes B).")
+    print(f"\nGenerated log: {len(led.events)} mock-signed fixture Events; the listed replay checks pass.")
     verify_log(led.events)
 
-    print("\n--- omniscient view — available to NO observer (folds never read this) ---")
-    print(f"    true bytes B always pay  ->  wallet:attacker (50000 KRW)")
+    print("\n--- generator-only display mapping (observer folds do not receive this) ---")
+    print("    action payload payee  ->  wallet:attacker (50000 KRW; no payment executed)")
     for aid, (view, faithful) in led.saw.items():
         first = view.splitlines()[0]
         shown_payee = "Merchant-A" if "Merchant-A" in view else ("(omitted)" if "to:" not in view else "wallet:attacker")
-        mark = "FAITHFUL" if faithful else "UNFAITHFUL"
-        print(f"    [{aid}] view showed payee={shown_payee:<14} -> {mark}")
-    print("    The log carries the bytes B; it does NOT carry the view. view_hash bounds the")
-    print("    view only to the PINNED renderer's output, never to its fidelity, never to perception.")
+        mark = "FIELDS MATCH" if faithful else "FIELDS DIFFER/OMITTED"
+        print(f"    [{aid}] authored output payee={shown_payee:<14} -> {mark}")
+    print("    The Event set carries B, not an off-log rendering. This fixture compares")
+    print("    view_hash only with the declared renderer output; it does not establish display.")
 
     print_finding()
 
@@ -401,45 +377,21 @@ def print_finding() -> None:
     print("""
 What this probe exposes
 -----------------------
-  * Can ARC prove what view the signer actually saw?
-      No. render(B) runs off-log in the signer's environment; the log holds B and
-      id=hash(B), never the view. A signature seals the signed bytes, not the displayed
-      view. (The render-layer twin of the fidelity wall.)
-  * Why is this not finding M?
-      M's signer SEES B in full and interprets it unfaithfully — the fault is reading.
-      Here the signer reads faithfully but is shown render(B) != B — the fault is one
-      step earlier, in presentation. Same bytes, different view.
-  * Why is this the residue under finding L?
-      L's "sign what you saw" mitigation (one projection for review and signing) assumes
-      a faithful renderer. Bytes are not human-cognizable, so a renderer is unavoidable
-      and L silently trusted it. This probe pricks that trust dependency.
-  * What CAN ARC check about the view?
-      A view_hash committed into the payload and recomputed from a PINNED deterministic
-      renderer. A careless attacker who shows a doctored view but commits a hash the
-      pinned renderer would not produce is CAUGHT. The render-correspondence layer folds.
-  * What CAN ARC NOT check?
-      The FIDELITY of the pinned renderer. A renderer that reproducibly omits a critical
-      field is deterministic, hashes consistently, and an honest commitment over it
-      matches on recompute — yet the view is unfaithful. deterministic != faithful. And
-      below even that: whether the human's eyes received the view at all.
-  * Do the mitigations close it?
-      No. rendered_view ATTEST / signed preview / renderer attestation are more signed
-      records; they RELOCATE trust into the renderer or a runtime attestor (finding M's
-      attested-signer, finding O's head-oracle, the world-axis trusted-oracle). The
-      renderer is a MANDATORY trust dependency ARC does not govern.
+  * What does the Event set establish about renderer output?
+      It holds B and id=hash(B), not an off-log rendering. A view.rendered ATTEST,
+      when present, is a claim carrying an output hash.
+  * What does this fixture's view_hash comparison check?
+      It compares a committed hash with the output of one declared deterministic
+      renderer over the supplied action bytes.
+  * What does a matching hash not establish?
+      It does not establish which renderer ran, which output was displayed, or what
+      a person perceived. The omitted-payee case matches its declared renderer.
+  * Is this base ARC behavior?
+      No. view_hash and the selected comparison fields belong to this fixture profile;
+      they are not base-protocol requirements.
 
-Conclusion: ARC can PRESERVE a view claim — bind a view_hash into the bytes, recompute
-it from a pinned renderer — but it cannot make the displayed view FAITHFUL, and it
-cannot reach the human's perception. The signature seals the signed bytes, never the
-displayed view. The render-correspondence layer folds; the renderer's fidelity and the
-human's perception do not.
-
-Standing (not promoted to a finding letter): this looks like a sharpening of findings L
-and M with one narrow new wrinkle — the renderer as a mandatory, off-log, deterministic-
-yet-unfaithful trust dependency at the presentation layer (a candidate "P", to be judged
-after review, not asserted here). No new event type; a rendered_view attestation is an
-ordinary ATTEST predicate. The gap is a fold-policy residue between the signed bytes and
-the displayed view. This is a probe, not a protocol spec and not doctrine.
+No new event type is introduced; a rendered_view attestation is an ordinary ATTEST
+predicate in this fixture. This is a probe, not a protocol specification.
 """)
 
 

@@ -1,24 +1,21 @@
-// ARC canon — TypeScript hardening probe (type-level only; NO runtime).
+// ARC Canon — local TypeScript type-shape probe (type-level only; NO runtime).
 //
-// The Python demo in ../canon-fold-demo tests SEMANTIC sufficiency: across ten
-// scenarios, can five event types express identity, reputation, governance,
-// disputes, approval, commerce, and delegation? (Answer so far: yes.)
+// The Python demo in ../canon-fold-demo tests bounded scenario coverage: its
+// eleven authored scenarios currently use five event types.
 //
-// This file tests something narrower and stronger: COMPILER-ENFORCED invariants.
-// It locks three of them as type-checker rules rather than conventions we promise
-// to honor:
-//   * closedness (§5–§6) — the five-type canon is a closed discriminated union,
-//     so "no sixth event type" breaks the build the moment a sixth is added;
-//   * governance is ADJUDICATE-only (§7–§8) — a probe finding (finding E, shown
-//     at runtime in ../end-to-end-demo): commons standing moves only by an
-//     ADJUDICATE, so the compiler refuses to let a CHALLENGE or ATTEST occupy a
-//     verdict slot;
+// This file tests something narrower: fixture-local type-shape checks.
+// It encodes three selected constraints in this module:
+//   * local exhaustiveness (§5–§6) — this module uses a closed discriminated
+//     union, so adding a member here requires updating its handlers;
+//   * local verdict-slot shape (§7–§8) — this declared parameter accepts the
+//     module's ADJUDICATE variant and rejects the demonstrated CHALLENGE and
+//     ATTEST values;
 //   * revocation/delegation add no type (§9) — findings A and G: withdrawal,
 //     key revocation, delegation, and capability are expressed through the
 //     `nullifies` FIELD, a predicate, and the reader's fold policy — never a new
-//     canonical type. The forbidden "sixth types" are proven non-members.
-// `npx tsc --noEmit` is the whole test: it must PASS as written, and must FAIL
-// the moment any invariant is violated.
+//     canonical type in this module. The example pseudo-types are non-members.
+// The configured check is `npx tsc --noEmit`. It provides no runtime
+// cryptography, custody, chronology, or repository-wide conformance enforcement.
 //
 // Nothing here executes. There is no signing, no fold, no I/O — only type-level
 // constructs and `declare`d signatures the compiler checks but never runs.
@@ -26,8 +23,8 @@
 // ---------------------------------------------------------------------------
 // 1. The closed canonical type set
 // ---------------------------------------------------------------------------
-// This union IS the canon's entire top-level vocabulary. It is closed: the
-// compiler knows these five and only these five. Application richness lives in
+// This union models the current top-level vocabulary for this fixture. The
+// compiler knows these five members here. Application richness lives in
 // `predicate` and `payload` (open below), never in a new member here.
 
 export type CanonicalType =
@@ -54,10 +51,10 @@ export type Json =
 // extension axis; `nullifies` is the withdrawal FIELD (not a revoke type).
 
 interface EventBase {
-  id: string; // content hash
-  signer: string; // key id, resolvable via a prior KEY event (except a KEY root)
+  id: string; // identifier; this module does not validate content addressing
+  signer: string; // declared key id; this module performs no key resolution
   predicate: string; // namespaced semantic tag — richness grows HERE, not in `type`
-  timestamp: string; // ISO 8601
+  timestamp: string; // timestamp string; this module performs no format check
   refs?: string[]; // prior events / parties / resources this event is about
   nullifies?: string[]; // prior event ids withdrawn going forward (the field, §4.6)
   payload?: { [key: string]: Json };
@@ -77,8 +74,8 @@ export interface Scope {
 // ---------------------------------------------------------------------------
 // 3. Event as a discriminated union (discriminant: `type`)
 // ---------------------------------------------------------------------------
-// Each variant fixes one `type` literal. A variant may add its own fields
-// (AUTHORIZE adds `scope` / `contrary_to`); none may add a new `type`.
+// Each variant fixes one `type` literal in this module. A variant may add its
+// own fields (AUTHORIZE adds `scope` / `contrary_to`).
 
 export interface KeyEvent extends EventBase {
   type: "KEY"; // predicate ∈ { id.key_register, id.key_rotate, id.key_revoke }
@@ -102,8 +99,8 @@ export interface AdjudicateEvent extends EventBase {
   type: "ADJUDICATE"; // warning, suspension, expulsion, reinstatement, ruling
 }
 
-// The closed set. Adding a member here is the ONLY way to add a type — and the
-// exhaustive switch in §5 makes that addition fail to compile until handled.
+// This module's closed set. Adding a member here also requires updating the
+// exhaustive switch in §5 before the module passes its type check.
 export type Event =
   | KeyEvent
   | AttestEvent
@@ -188,13 +185,13 @@ const ruling: AdjudicateEvent = {
   signature: "stub:0006",
 };
 
-// Richness extends by PREDICATE, not by TYPE: an entirely new flow is just a
-// new predicate string on an existing type — `CanonicalType` does not change.
+// This example uses a predicate string not otherwise used in the file while
+// retaining an existing local type member.
 const novelFlow: AttestEvent = {
   type: "ATTEST",
   id: "ev:0007",
   signer: "k:merchant",
-  predicate: "commerce.warranty_claim", // never seen before; compiles freely
+  predicate: "commerce.warranty_claim",
   timestamp: "2026-07-01T00:00:00Z",
   signature: "stub:0007",
 };
@@ -210,12 +207,12 @@ export const examples: Event[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// 5. Exhaustive switch — the closed-set guarantee, enforced by `never`
+// 5. Exhaustive switch — local exhaustiveness checked by `never`
 // ---------------------------------------------------------------------------
-// Every canonical type is handled. In `default`, TypeScript has narrowed `e` to
+// Every member of this module's union is handled. In `default`, TypeScript narrows `e` to
 // `never` precisely because the five cases above are exhaustive. If a sixth type
 // is ever added to `Event`, `e` is no longer `never` here and `assertNever(e)`
-// FAILS to compile — the compiler forces the new type to be handled (or removed).
+// fails to compile until the new type is handled or removed in this module.
 
 function assertNever(x: never): never {
   throw new Error(`non-canonical event type: ${JSON.stringify(x)}`);
@@ -235,19 +232,18 @@ export function describe(e: Event): string {
     case "ADJUDICATE":
       return `ADJUDICATE ${e.predicate}`;
     default:
-      return assertNever(e); // ← closed-set tripwire
+      return assertNever(e); // local exhaustiveness check
   }
 }
 
 // ---------------------------------------------------------------------------
-// 6. The closed-set PROOF (commented out on purpose)
+// 6. Local closed-set examples (commented out on purpose)
 // ---------------------------------------------------------------------------
-// Each block below is the kind of "sixth type" the canon forbids. As written
-// (commented) the file compiles. Uncommenting ANY block must make
-// `npx tsc --noEmit -p tsconfig.json` fail — the compiler, not a convention,
-// is what rejects it.
+// Each block below is a type this fixture's union excludes. As written
+// (commented) the file compiles. Uncommenting either block produces a type error
+// under `npx tsc --noEmit -p tsconfig.json`.
 //
-// (a) A sixth type cannot be constructed as an `Event`:
+// (a) This CAPABILITY literal is not assignable to the local Event union:
 //
 // const capability: Event = {
 //   type: "CAPABILITY", // ❌ error: Type '"CAPABILITY"' is not assignable to
@@ -258,8 +254,7 @@ export function describe(e: Event): string {
 //   signature: "stub:x",
 // };
 //
-// (b) Even if someone DECLARES a new variant and widens the union, the
-//     exhaustive switch refuses to compile until the new case is handled:
+// (b) If a new variant widens the union, the exhaustive switch also needs a case:
 //
 // interface DelegateEvent extends EventBase { type: "DELEGATE"; }
 // type EventPlus = Event | DelegateEvent;
@@ -274,23 +269,17 @@ export function describe(e: Event): string {
 //   }
 // }
 //
-// The lesson: closedness is no longer a promise in prose. Widening the canon
-// breaks the build in at least two places. That is the graduation from
-// philosophical closedness to language-level enforcement.
+// The lesson: widening this module's union requires updating its constructors
+// and exhaustive handlers. This is a fixture-local maintenance check.
 
 // ---------------------------------------------------------------------------
-// 7. Governance is ADJUDICATE-only — enforced by the type system (finding E)
+// 7. ADJUDICATE-only fixture slot (finding E)
 // ---------------------------------------------------------------------------
-// ARC's authority invariant: commons governance standing moves ONLY when an
-// ADJUDICATE is added. A CHALLENGE opens a dispute and an ATTEST records an
-// outcome — neither is a verdict, and neither may change standing. The
-// end-to-end probe (../end-to-end-demo) shows this holding at runtime, where the
-// SAME standing projection is unmoved by a dispute and moves only on a ruling.
-// Here the compiler refuses to let anything but an ADJUDICATE be a verdict.
+// This declared slot models one policy in which the verdict parameter has the
+// ADJUDICATE shape. It rejects this module's CHALLENGE and ATTEST variants. It
+// does not implement a Projection or establish a runtime governance policy.
 
-// The governance-moving event type, extracted from the closed union. It is
-// exactly AdjudicateEvent — by construction, not by promise. Narrow the union
-// to "ADJUDICATE" and nothing else can stand in for a verdict.
+// The local verdict type, extracted from this module's closed union.
 export type GovernanceEvent = Extract<Event, { type: "ADJUDICATE" }>;
 
 // The standings governance can hold. Vocabulary only: this names the possible
@@ -301,7 +290,7 @@ export type Standing =
   | "suspended"
   | "expelled";
 
-// The one slot through which standing may change. `declare` means NO body and
+// A declared slot used to test the parameter shape. `declare` means no body and
 // NO emitted code — this is a type signature, not a fold (folds live in the
 // Python probe). Its only job is to make the compiler check what may be passed:
 // the verdict parameter is a GovernanceEvent, so a non-ADJUDICATE event is
@@ -311,16 +300,15 @@ export declare function applyVerdict(
   verdict: GovernanceEvent,
 ): Standing;
 
-// Static proofs (must compile). These resolve purely at the type level; if the
-// governance-moving type ever drifted from "ADJUDICATE and only ADJUDICATE",
-// the file would fail to compile.
+// Static assertions. These resolve purely at the type level and check the
+// relationships among this module's declared variants.
 type Assert<T extends true> = T;
 type Equals<A, B> =
   (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2)
     ? true
     : false;
 
-// (i) the verdict type is EXACTLY AdjudicateEvent — no wider, no narrower:
+// (i) the local verdict alias equals AdjudicateEvent:
 type _VerdictIsExactlyAdjudicate = Assert<Equals<GovernanceEvent, AdjudicateEvent>>;
 
 // (ii) no non-verdict event qualifies as a GovernanceEvent (KEY/ATTEST/
@@ -330,43 +318,41 @@ type _NonVerdictsAreNotGovernance = Assert<
 >;
 
 // ---------------------------------------------------------------------------
-// 8. The governance PROOF (commented out on purpose)
+// 8. Governance-slot examples (commented out on purpose)
 // ---------------------------------------------------------------------------
-// As written (commented) the file compiles. Uncommenting ANY block must make
-// `npx tsc --noEmit -p tsconfig.json` fail — the compiler, not a convention, is
-// what enforces that only an ADJUDICATE moves governance.
+// As written (commented) the file compiles. Uncommenting the two invalid calls
+// produces type errors because the parameter uses this module's ADJUDICATE shape.
 //
-// (a) A CHALLENGE is not a verdict — it cannot move standing:
+// (a) This CHALLENGE value does not satisfy the declared parameter:
 //
 // applyVerdict("in_good_standing", dispute);
 //   ❌ Argument of type 'ChallengeEvent' is not assignable to parameter of type
 //      'AdjudicateEvent'. Types of property 'type' are incompatible.
 //
-// (b) Neither can an ATTEST outcome:
+// (b) This ATTEST value also does not satisfy the declared parameter:
 //
 // applyVerdict("in_good_standing", offer);
 //   ❌ Argument of type 'AttestEvent' is not assignable to 'AdjudicateEvent'.
 //
-// (c) Only an ADJUDICATE compiles in the verdict slot:
+// (c) This ADJUDICATE value satisfies the declared verdict parameter:
 //
 // const next: Standing = applyVerdict("in_good_standing", ruling); // ✅ ADJUDICATE
 //
-// The lesson, as in §6: the invariant stops being prose. "Governance moves only
-// by ADJUDICATE" becomes something the build refuses to let you violate.
+// The configured slot rejects the demonstrated non-verdict
+// shapes. It does not implement or enforce a runtime governance fold.
 
 // ---------------------------------------------------------------------------
 // 9. Revocation/delegation add no type — field discipline (findings A, G)
 // ---------------------------------------------------------------------------
-// The recurring temptation, every time the canon meets a hard case, is to add a
-// "sixth type" — REVOKE, KEY_REVOKE, DELEGATE, CAPABILITY. The probes found this
-// is never needed: withdrawal is the `nullifies` FIELD on an ordinary event
+// These authored fixtures do not use separate REVOKE, KEY_REVOKE, DELEGATE, or
+// CAPABILITY members. Withdrawal is the `nullifies` field on an ordinary event
 // (event-registry §4.6); a key revocation is a KEY event with predicate
 // `id.key_revoke` carrying `nullifies`; a delegation/mandate is an AUTHORIZE with
 // a wider `scope` (§4 `mandate`); and whether a current reader continues to honor
 // a completed act after revocation is a fold POLICY, not a type (finding G /
 // ../authority-revocation-demo).
-// So these "types" must NOT exist in the alphabet. Each is proven to be a
-// non-member of CanonicalType — extracting it yields the empty type `never`.
+// In this module those example strings are non-members of CanonicalType, so
+// extracting them yields the empty type `never`.
 // (Reuses the §7 `Assert` / `Equals` helpers.)
 
 type _RevokeIsNotAType = Assert<Equals<Extract<CanonicalType, "REVOKE">, never>>;
@@ -374,17 +360,17 @@ type _KeyRevokeIsNotAType = Assert<Equals<Extract<CanonicalType, "KEY_REVOKE">, 
 type _DelegateIsNotAType = Assert<Equals<Extract<CanonicalType, "DELEGATE">, never>>;
 type _CapabilityIsNotAType = Assert<Equals<Extract<CanonicalType, "CAPABILITY">, never>>;
 
-// And collectively: none of the forbidden alphabet intersects the canon.
+// Collective check for the same fixture-local non-members.
 type ForbiddenType = "REVOKE" | "KEY_REVOKE" | "DELEGATE" | "CAPABILITY";
 type _NoForbiddenTypeInCanon = Assert<Equals<Extract<CanonicalType, ForbiddenType>, never>>;
 
-// A commented-out proof (parallel to §6/§8): treating a forbidden pseudo-type as
-// canonical must fail to compile. As shipped it is commented, so the file builds.
+// A commented invalid example (parallel to §6/§8). As shipped it is commented,
+// so the file builds; uncommenting it produces a local type error.
 //
 // const revokeType: CanonicalType = "REVOKE";
 //   ❌ Type '"REVOKE"' is not assignable to type 'CanonicalType'.
 //
-// The withdrawal it gropes for already exists without a new type — a KEY event
+// The corresponding fixture representation uses a KEY event
 // whose predicate is `id.key_revoke` and whose `nullifies` names the register it
 // withdraws:
 //
@@ -398,5 +384,5 @@ type _NoForbiddenTypeInCanon = Assert<Equals<Extract<CanonicalType, ForbiddenTyp
 //   signature: "stub:r1",
 // };
 //
-// The lesson: revocation, delegation, and capability are predicate/field/policy
-// concerns. The canonical type alphabet stays exactly five.
+// In this fixture, the corresponding examples use predicate, field, and policy
+// values while the local type union retains five members.

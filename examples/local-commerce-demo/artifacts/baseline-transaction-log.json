@@ -131,6 +131,6 @@
   "final_state": {
     "state": "fulfilled_mock_pending_separate_reputation_event",
     "timestamp": "2026-06-01T12:27:05+09:00 [MOCK]",
-    "interpretation_limit": "This baseline artifact records one mock happy path and does not demonstrate ARC safety, fairness, or production readiness."
+    "interpretation_limit": "This baseline artifact records one mock happy path and does not validate production behavior or outcome quality."
   }
 }

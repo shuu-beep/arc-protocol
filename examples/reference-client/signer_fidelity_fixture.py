@@ -1,70 +1,36 @@
 #!/usr/bin/env python3
 """
-ARC signer-fidelity fixture — the sign-time wall rests on a trusted reading.
+ARC signer-interpretation fixture — two scope readings over one mandate.
 
 What this is
 ------------
-embodiment_fixture (finding K) moved mandate enforcement from FOLD-time to
-SIGN-time: with no key in the agent, the signer refuses out-of-scope proposals
-before they become events, so "out-of-scope forgeries never reach the log." That
-guarantee has a silent premise — that the signer reads the mandate FAITHFULLY.
-custody.ts §8 already names where the premise lives: "ceiling arithmetic stays in
-the signer's trusted base, with the key, checked at proposal time." The type
-layer cannot hold it; the log cannot witness it. This probe asks what is left
-when that reading DRIFTS.
+embodiment_fixture applies mandate checks in the signer before Event creation.
+This fixture compares two signer interpretation functions over the same mandate,
+proposals, and illustrative Ed25519 key.
 
-The "lie" here is not a forged signature. The crypto is intact: one real Ed25519
-hot key, every act genuinely signed, verify_log passes. The lie is an
-INTERPRETATION — a signer that reads the same mandate more loosely than a faithful
-one would. Not an evil caricature (that was compromise_fixture's thief); an
-ordinary operational drift, the kind that accretes in real systems:
+The strict reading uses an exact category and hard ceiling. The permissive
+reading treats subcategories as matching the category prefix and uses a 1.5x
+ceiling. These are application-policy functions, and both can produce records
+that pass the same illustrative signature check.
 
-  * a "soft" ceiling — the cap read as operational guidance, not a hard stop, so
-    the signer signs a little over "to avoid blocking the operator";
-  * a "prefix" category — "market" read as covering "market.giftcard", because
-    surely a gift card is a market thing.
+The resulting log exposes the proposal outcomes but does not encode which
+interpretation function ran. Named observer folds can also return different scope
+readings for the same records. For the in-scope proposal, both signer functions
+produce the same record bytes because the reading is not a signed field.
 
-Two signers, the SAME hot key, the SAME mandate, the SAME proposals. The faithful
-one refuses what the drift admits. Both produce valid signatures. The probe shows
-the residue in two honest layers:
+Limits:
+  * an additional signer ATTEST would be another record under a named evidence
+    policy; this fixture does not treat it as independent proof of interpretation;
+  * no new event type or primitive. The mandate is the existing
+    AUTHORIZE consent.mandate; acts are ATTEST; the difference is in the
+    signer process's reading of scope, which is not recorded in the log;
+  * no global verifier or meta-authority. Each observer folds locally with its
+    own configured reading; the fixture does not designate one as protocol state
+    or as proof of the signer's implementation.
+  * who actually ran, and what reading it applied, is a private fixture
+    stipulation rendered separately; observer folds do not receive it.
 
-  LAYER 1 — observable, as a HONORING DISAGREEMENT, not invisibly. Where the
-  act's terms are on the log (an over-ceiling amount), any observer's fold can
-  re-read the mandate and decline to honor it: signature valid, fold refuses —
-  finding I/G's three layers. So K's clean log was CONTINGENT: a drifted signer
-  puts the out-of-scope act on the log, and the observer is back to fold-rejecting
-  it. Sign-time enforcement did not REPLACE fold-time interpretation; it added a
-  layer that is trustworthy only if the signer is faithful. And where the term is
-  AMBIGUOUS (the category), observers legitimately disagree — strict declines,
-  lenient honors — with no fact on the log to decide between them.
-
-  LAYER 2 — unobservable: the signer's FIDELITY itself. The reading is applied at
-  sign-time and leaves no trace. A faithful signer and a drifted one that both
-  sign the same in-scope act produce the BYTE-IDENTICAL event — the bytes are a
-  function of key and payload, never of the reading. So a valid signature proves
-  the key signed; it does not prove the mandate was read faithfully. Sign-time
-  enforcement relocated the interpretation into a private trusted base; it did not
-  remove the interpretation residue — it inherited it.
-
-Refusals (as deliberate as the content):
-  * NO attested-signer salvation. The fix that suggests itself — have the signer
-    ATTEST which reading it applied, or prove it in an enclave — imports a trust
-    root ARC does not govern (key-custody §8 enclave attestation; custody.ts §8),
-    and a drifted signer would simply attest the drifted reading as if faithful.
-    The probe leaves the residue standing; it does not close it.
-  * NO new event type or primitive. The mandate is the existing
-    AUTHORIZE consent.mandate; acts are ATTEST; the drift lives ENTIRELY in the
-    signer process's reading of scope — runtime trusted-base behavior, nothing on
-    the log. (The same shape covers a signer that skips approval_seam's binding
-    check, or "operationally allows" a self-mint: more readings, same residue.)
-  * NO global verifier, NO meta-authority. Each observer folds locally with its
-    own reading; none is privileged, none certifies the signer's reading.
-  * who actually ran, and what reading it applied, is GROUND TRUTH the generator
-    holds, rendered as the omniscient view no observer sees.
-
-A probe, not doctrine — the runtime expression of custody.ts §8's deferral, the
-third slice of the embodiment axis (K behind the wall, L the return path, now the
-wall's own footing). Not a custody spec.
+A standalone probe, not a custody specification.
 
 Run:  python3 signer_fidelity_fixture.py
 """
@@ -80,10 +46,9 @@ CANONICAL_TYPES = {"KEY", "ATTEST", "AUTHORIZE", "CHALLENGE", "ADJUDICATE"}
 
 
 # ===========================================================================
-# Real Ed25519 — the RFC 8032 reference, pure stdlib (reused verbatim from the
-# compromise / embodiment / approval-seam fixtures). Determinism matters here: the
-# same key signing the same bytes yields the SAME signature, which is exactly what
-# makes "you cannot tell a faithful signer from a drifted one by the bytes" a fact.
+# Illustrative Ed25519 — the RFC 8032 reference, pure stdlib (reused from the
+# compromise / embodiment / approval-return fixtures). Deterministic signing lets
+# the fixture compare the output bytes produced by its two reading functions.
 # ===========================================================================
 
 _b = 256
@@ -230,7 +195,7 @@ class Event:
 
 @dataclass(frozen=True)
 class Proposal:
-    """What the agent emits. The signer's READING decides whether to sign it; the
+    """What the agent emits. The signer's reading decides whether to sign it; the
     reading never touches the bytes, so two signers that both sign it emit the
     identical event."""
     predicate: str
@@ -240,9 +205,8 @@ class Proposal:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: real Ed25519 + signer anchored by a prior KEY
-    register. Note what this CANNOT check: which reading the signer applied. Every
-    drifted act here verifies — the signature is blind to the interpretation."""
+    """Fixture replay check: Ed25519 signature and prior KEY registration only.
+    It cannot establish signer implementation, mandate reading, or conformance."""
     registered: set[str] = set()
     for ev in events:
         if not ed25519_verify(bytes.fromhex(ev.signature), ev.signing_bytes(),
@@ -257,9 +221,8 @@ def verify_log(events: list[Event]) -> None:
 
 def _mint(secret: bytes, pub_hex: str, ts: str, *, type_: str, predicate: str,
           **kw) -> Event:
-    """Build and sign one event. Takes a key, a timestamp, and a payload — NOT a
-    reading. Two callers with different readings but the same arguments get the
-    same bytes. That is the whole point of LAYER 2."""
+    """Build and sign one Event. The reading function is not an input; callers
+    using the same key, timestamp, and payload produce the same bytes."""
     assert type_ in CANONICAL_TYPES, f"non-canonical type {type_!r}"
     partial = Event(id="", type=type_, signer=pub_hex, predicate=predicate,
                     timestamp=ts, **kw)
@@ -293,9 +256,9 @@ class ColdRootCeremony:
 
 
 # ===========================================================================
-# The two signers. SAME key, SAME mandate. They differ only in `reads()` — the
+# The two signers use the same key and mandate. They differ only in `reads()` — the
 # private interpretation each applies. Neither reading is written anywhere the log
-# or a fold can see; only the SIGN/ROUTE outcome and the resulting bytes are.
+# or a fold can see; only the decision and the resulting bytes are.
 # ===========================================================================
 
 @dataclass
@@ -306,9 +269,8 @@ class Decision:
 
 
 class Signer:
-    """A custody process behind the wall. Holds the hot key + the mandate. Its
-    `category_ok` and `ceiling_ok` ARE its reading of the mandate — the trusted
-    interpretation surface custody.ts §8 left in the signer's trusted base."""
+    """Holds the hot key and mandate. `category_ok` and `ceiling_ok` implement
+    this fixture's signer-side reading of that mandate."""
 
     def __init__(self, name: str, reading: str, *, hot_pub: str, hot_secret: bytes,
                  mandate: Event, category_ok: Callable[[str, str], bool],
@@ -350,7 +312,7 @@ class Signer:
         return ev
 
 
-# Faithful readings: exact category, hard ceiling.
+# Strict reading: exact category, hard ceiling.
 def exact_category(ctx: str, mctx: str) -> bool:
     return ctx == mctx
 
@@ -359,18 +321,17 @@ def hard_ceiling(amount: int, cap: int) -> bool:
     return amount <= cap
 
 
-# Drifted readings: a prefix category and a "soft" ceiling, each a plausible
-# operational reinterpretation — not malice, convenience.
+# Permissive reading: prefix category and 1.5x ceiling.
 def prefix_category(ctx: str, mctx: str) -> bool:
     return ctx == mctx or ctx.startswith(mctx + ".")
 
 
 def soft_ceiling(amount: int, cap: int) -> bool:
-    return amount <= int(cap * 1.5)        # "the cap is guidance; don't block the operator"
+    return amount <= int(cap * 1.5)
 
 
 # ===========================================================================
-# An observer's fold — honoring read off the LOG, with the observer's OWN reading
+# An observer's fold — honoring read from the log with the observer's configured reading
 # of the mandate. It can re-judge what reached the log; it cannot read which
 # reading the signer applied. Note this is the observer interpreting, not the
 # signer's interpretation recovered.
@@ -391,7 +352,7 @@ def project_honoring(events: list[Event], *, root: str, agent: str,
         if ctx is not None and not category_ok(ctx, mctx):
             honored, basis = False, "out of the mandate's domain under this observer's reading"
         elif amount is not None and amount > ceiling:
-            honored, basis = False, "over the mandate ceiling — valid signature, fold declines"
+            honored, basis = False, "over the mandate ceiling — signature check passes; fold declines"
         else:
             honored, basis = True, "within this observer's reading of the mandate"
         rows.append({"id": e.id, "context": ctx, "amount": amount,
@@ -413,23 +374,22 @@ def generate() -> dict:
     root_secret, root_pub = keypair("root")
     agent_secret, agent_pub = keypair("agent")
 
-    print("\n1. CEREMONY — one mandate: 'market' acts up to 30000. One hot key behind")
-    print("   the wall. The mandate's words are fixed; their READING is not.")
+    print("\n1. Fixture setup — one mandate: 'market' acts up to 30000. One hot key is")
+    print("   used by two fixture signer functions with different readings.")
     ceremony = ColdRootCeremony(root_pub=root_pub, root_secret=root_secret, log=log)
     ceremony.register(root_pub, "2026-06-11T09:00:00Z")
     ceremony.register(agent_pub, "2026-06-11T09:01:00Z")
     mandate = ceremony.grant_mandate(agent_pub, context="market", ceiling=30000,
                                      ts="2026-06-11T09:02:00Z")
 
-    # Two signers, SAME key, SAME mandate, different readings. The faithful one
-    # writes to a scratch log (its refusals are counterfactual here); the drifted
-    # one is the signer that actually ran, writing to the real log.
-    faithful = Signer("the faithful signer", "exact category · hard ceiling",
-                      hot_pub=agent_pub, hot_secret=agent_secret, mandate=mandate,
-                      category_ok=exact_category, ceiling_ok=hard_ceiling, log=[])
-    drifted = Signer("the drifted signer", "prefix category · soft ceiling (1.5x)",
-                     hot_pub=agent_pub, hot_secret=agent_secret, mandate=mandate,
-                     category_ok=prefix_category, ceiling_ok=soft_ceiling, log=log)
+    # Two signers, same key and mandate, different readings. The strict signer
+    # writes to a scratch log; the permissive signer writes the displayed log.
+    strict = Signer("the strict signer", "exact category · hard ceiling",
+                    hot_pub=agent_pub, hot_secret=agent_secret, mandate=mandate,
+                    category_ok=exact_category, ceiling_ok=hard_ceiling, log=[])
+    permissive = Signer("the permissive signer", "prefix category · soft ceiling (1.5x)",
+                        hot_pub=agent_pub, hot_secret=agent_secret, mandate=mandate,
+                        category_ok=prefix_category, ceiling_ok=soft_ceiling, log=log)
 
     proposals = [
         ("in-scope payment", Proposal(
@@ -446,33 +406,33 @@ def generate() -> dict:
             timestamp="2026-06-11T10:02:00Z")),
     ]
 
-    print("\n2. THE SAME PROPOSALS, THE TWO READINGS — faithful refuses what the drift")
-    print("   admits. Both readings, when they DO sign, sign with the same key.")
+    print("\n2. The same proposals under strict and permissive readings")
+    print("   functions use the same mandate and illustrative key.")
     rows = []
     for label, p in proposals:
-        df = faithful.handle(p, append=False)            # counterfactual reading
-        dd = drifted.handle(p, append=True)              # the signer that ran
-        rows.append({"label": label, "faithful": df, "drifted": dd,
+        ds = strict.handle(p, append=False)               # comparison reading
+        dp = permissive.handle(p, append=True)            # displayed log
+        rows.append({"label": label, "strict": ds, "permissive": dp,
                      "amount": p.payload.get("amount_krw"),
                      "context": p.payload.get("context")})
-        print(f"   {label:<28} faithful={df.kind.upper():<7} drifted={dd.kind.upper()}")
+        print(f"   {label:<28} strict={ds.kind.upper():<7} permissive={dp.kind.upper()}")
 
-    # LAYER 2, demonstrated: for the in-scope act both readings sign, the bytes are
-    # identical — the signature carries the key, never the reading.
+    # For the in-scope act both readings sign and produce identical bytes.
     p_inscope = proposals[0][1]
-    ev_faithful = faithful._sign(p_inscope, append=False)
-    ev_drifted = next(r["drifted"].event for r in rows if r["label"] == "in-scope payment")
-    identical = (ev_faithful.signature == ev_drifted.signature
-                 and ev_faithful.id == ev_drifted.id)
+    ev_strict = strict._sign(p_inscope, append=False)
+    ev_permissive = next(r["permissive"].event for r in rows
+                         if r["label"] == "in-scope payment")
+    identical = (ev_strict.signature == ev_permissive.signature
+                 and ev_strict.id == ev_permissive.id)
 
     verify_log(log)
     return {"log": log, "root": root_pub, "agent": agent_pub, "rows": rows,
-            "inscope_identical": identical, "inscope_id": ev_drifted.id,
+            "inscope_identical": identical, "inscope_id": ev_permissive.id,
             "mandate_id": mandate.id}
 
 
 # ===========================================================================
-# Observers — two readings of the same drifted log.
+# Observers — two readings of the same displayed log.
 # ===========================================================================
 
 OBSERVERS = [
@@ -487,16 +447,16 @@ def main() -> None:
     ctx = generate()
     log, root, agent = ctx["log"], ctx["root"], ctx["agent"]
 
-    print("\n3. WHAT REACHED THE LOG — every act here is genuinely signed by the agent")
-    print("   key; verify_log passed. The drifted reading is NOT among these bytes.")
+    print("\n3. Records appended to the log — each displayed act passes the illustrative")
+    print("   signature and key-registration checks; the signer reading is not encoded.")
     for e in log:
         if e.signer == agent and e.type == "ATTEST":
             print(f"     [{e.id}]  {e.payload.get('context'):<16} "
                   f"{e.payload.get('amount_krw')} KRW")
 
-    print("\n4. TWO OBSERVERS FOLD THE SAME LOG — each with its OWN reading of the")
-    print("   mandate. This is the observer interpreting, not the signer's reading")
-    print("   recovered (that is gone).")
+    print("\n4. Two observers fold the same log using their configured readings of the")
+    print("   mandate. This is the observer's configured interpretation; the displayed")
+    print("   record does not identify which signer reading ran.")
     projs = {o["name"]: project_honoring(log, root=root, agent=agent,
                                          category_ok=o["category_ok"]) for o in OBSERVERS}
     for o in OBSERVERS:
@@ -506,48 +466,21 @@ def main() -> None:
             print(f"     {verdict:<8} {r['context']:<16} {r['amount']} KRW — {r['basis']}")
 
     print("\n" + "=" * 74)
-    print("THE FINDING — sign-time enforcement rests on the signer's reading")
+    print("Fixture result — signer and observer readings remain separate")
     print("=" * 74)
     print(f"""
-  embodiment_fixture (finding K) promised that out-of-scope acts never reach the
-  log, because the signer refuses them before they become events. That holds only
-  if the signer reads the mandate faithfully. Here the same hot key, behind the
-  same mandate, is read with an ordinary operational drift — a soft ceiling, a
-  prefix category — and the wall moves. Two honest layers:
+  The permissive signer appends the 40000 record, and both observer folds decline
+  to honor it because the recorded amount exceeds the mandate ceiling. For the
+  adjacent category, the strict observer declines while the prefix observer
+  honors. These are named fixture-policy results.
 
-  LAYER 1 — observable, as a honoring disagreement (not invisibly):
-    * the over-ceiling 40000 IS on the log now, genuinely signed. Both observers'
-      folds decline to honor it — signature valid, fold refuses. K's clean log was
-      CONTINGENT on the signer's fidelity; lose it and the out-of-scope act is back
-      in front of every reader's fold, exactly the fold-time work K moved away from.
-      Sign-time enforcement did not replace fold-time interpretation — it added a
-      layer trustworthy only while the signer is faithful.
-    * the adjacent-category 'market.giftcard' splits the observers: the strict one
-      declines, the lenient one honors. The mandate's word is ambiguous and no fact
-      on the log decides — signer legitimacy is observer-relative, the cold-start
-      and federation relativity arriving on the enforcement side.
+  The strict and permissive signer functions produce the same in-scope Event
+  ({ctx['inscope_id']}, identical = {ctx['inscope_identical']}) because the signed
+  fields contain the key and payload, not the interpretation function. The
+  illustrative signature check therefore does not identify which reading ran.
 
-  LAYER 2 — unobservable: the signer's fidelity itself. The in-scope 20000 signed
-  by the faithful reading and by the drifted reading is the byte-identical event
-  ({ctx['inscope_id']}, identical = {ctx['inscope_identical']}): the bytes are a
-  function of the key and the payload, never of the reading. A valid signature
-  proves the key signed; it does NOT prove the mandate was read faithfully. You
-  cannot tell a faithful signer from a drifted one — or from a compromised one —
-  by an event it produced.
-
-  So process separation (K) narrows custody EXPOSURE — fewer places hold the key —
-  but it does not CERTIFY the mandate's interpretation. Sign-time enforcement
-  relocated the reading into the signer's private trusted base; it did not remove
-  the interpretation residue, it inherited it. The tempting fix — make the signer
-  ATTEST or attest-in-hardware which reading it applied — only imports a trust root
-  ARC does not govern (key-custody §8), and a drifted signer would attest its drift
-  as faithful. The residue is left standing, not closed.
-
-  Offered as a probe finding, not doctrine — the third slice of the embodiment
-  axis: K put the key behind the wall, L found the return path was a second
-  custody surface, and this finds the wall itself standing on a reading no
-  observer can audit. The crypto is real so "the signature carries the key, not
-  the reading" is a fact, not a claim; it is not a security product.
+  This fixture does not evaluate process isolation, signer compromise, enclave
+  attestation, or a production signature profile.
 """)
 
 

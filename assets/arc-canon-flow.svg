@@ -1,12 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 300" width="960" height="300" role="img" aria-labelledby="ct cd">
   <title id="ct">The ARC Canon — five signed event types</title>
-  <desc id="cd">KEY, ATTEST, AUTHORIZE, CHALLENGE, ADJUDICATE as a flow with human approval at the center; only signed events are stored, everything else is a projection.</desc>
+  <desc id="cd">KEY, ATTEST, AUTHORIZE, CHALLENGE, and ADJUDICATE as a flow, with AUTHORIZE recording authority; Events are canonical records and application views are derived through named Projections.</desc>
 
   <rect x="0.5" y="0.5" width="959" height="299" rx="18" fill="#F4EFE3" stroke="#E2DBC8"/>
 
   <!-- header -->
   <text x="70" y="50" fill="#5C544A" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="12" letter-spacing="0.26em">THE CANON · FIVE SIGNED EVENT TYPES</text>
-  <text x="890" y="50" text-anchor="end" fill="#948B78" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="11" letter-spacing="0.16em">EVERYTHING ELSE IS A PROJECTION</text>
+  <text x="890" y="50" text-anchor="end" fill="#948B78" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="11" letter-spacing="0.16em">APPLICATION VIEWS USE NAMED PROJECTIONS</text>
 
   <!-- connectors -->
   <g fill="none" stroke="#D8D0BC" stroke-width="1.5">
@@ -21,7 +21,7 @@
   </g>
 
   <!-- AUTHORIZE emphasis -->
-  <text x="480" y="72" text-anchor="middle" fill="#2F6A4A" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="10.5" letter-spacing="0.22em">HUMAN · FINAL SIGNATURE</text>
+  <text x="480" y="72" text-anchor="middle" fill="#2F6A4A" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="10.5" letter-spacing="0.22em">AUTHORITY · SCOPE · GRANT</text>
 
   <!-- node rings -->
   <g fill="#F4EFE3" stroke="#D8CDB0" stroke-width="1.5">
@@ -62,11 +62,11 @@
   <text x="480" y="192" text-anchor="middle" font-family="'Spectral', Georgia, serif" font-weight="600" font-size="21" fill="#2F6A4A">AUTHORIZE</text>
   <g text-anchor="middle" font-family="'IBM Plex Mono', ui-monospace, monospace" font-size="11.5" letter-spacing="0.08em" fill="#5C544A">
     <text x="120" y="214">identity</text><text x="300" y="214">claim</text>
-    <text x="480" y="214" fill="#2F6A4A">approval</text>
+    <text x="480" y="214" fill="#2F6A4A">authority</text>
     <text x="660" y="214">dispute</text><text x="840" y="214">ruling</text>
   </g>
 
   <!-- footer principle -->
   <line x1="70" y1="248" x2="890" y2="248" stroke="#E2DBC8" stroke-width="1"/>
-  <text x="480" y="276" text-anchor="middle" font-family="'Spectral', Georgia, serif" font-style="italic" font-size="15" fill="#5C544A">Only signed events are stored. Trust, reputation, and standing are projections — recomputed on demand, never saved.</text>
+  <text x="480" y="276" text-anchor="middle" font-family="'Spectral', Georgia, serif" font-style="italic" font-size="15" fill="#5C544A">Events are canonical records. Named Projections derive application views from declared inputs.</text>
 </svg>

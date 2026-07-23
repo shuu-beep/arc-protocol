@@ -4,7 +4,7 @@
 >
 > **Purpose:** Clarify what ARC community governance, agent coordination, and mock payment flows do not replace.
 >
-> This document is not legal advice. It identifies boundary questions that future ARC-compatible implementations would need to review with qualified professionals in each jurisdiction.
+> This document is not legal advice. It identifies boundary questions that implementations using the current ARC drafts would need to review with qualified professionals in each jurisdiction; no compatibility certification is implied.
 
 ---
 
@@ -16,13 +16,13 @@ A community decision may help a local reputation system decide whether an agent 
 
 This boundary is essential. Without it, ARC governance could be mistaken for a private court, a payment arbitrator, or a substitute for public legal systems.
 
-The same boundary has an evidentiary form. A signed ARC event can settle who signed it and that its bytes are intact, but not that the runtime executed as claimed or that the real-world outcome matched — those enter only as further attestations, each only as good as its signer (the fidelity gradient in [event-registry.md](./event-registry.md) §2.4). A signed fulfillment claim is evidence that someone asserted a delivery, not proof of a delivery; ARC preserves the claim, it does not verify the world.
+The same boundary has an evidentiary form. Under a declared security profile, a disclosed ARC Event can support checks that a key signed the covered bytes and that those bytes were not altered; it does not establish who controlled the key, covering authority, runtime execution, or real-world outcome (the fidelity gradient in [event-registry.md](./event-registry.md) §2.4). A signed fulfillment claim is evidence that a key asserted a delivery, not proof of delivery.
 
 ## 2. Payment Providers Remain Independent
 
 ARC does not create a payment network at this stage.
 
-Early ARC-compatible implementations should use existing payment providers only after human approval and should respect the provider's own rules for authorization, settlement, refund, chargeback, fraud review, and account suspension.
+Early Commerce-profile implementations should use existing payment providers only when the action has Current Coverage from an act-specific or valid scoped human-authored `AUTHORIZE`, and should respect the provider's own rules for authorization, settlement, refund, chargeback, fraud review, and account suspension.
 
 Possible providers may include Stripe, PayPal, Toss, Naver Pay, Kakao Pay, Apple Pay, Google Pay, bank transfer APIs, or regional payment systems. Each provider has its own legal, technical, and operational constraints.
 
@@ -32,9 +32,9 @@ ARC should not assume that a community governance decision can force a payment p
 
 A community review may ask:
 
-- Did the signed offer match the delivered result?
+- What evidence supports or contradicts the claim that the signed offer matched the delivered result?
 - Was the approval attached to current, visible terms?
-- Did a merchant or logistics agent repeatedly fail fulfillment?
+- What attributable records support claims of repeated fulfillment failure?
 - Was a dispute report supported by attributable records?
 - Should a local reputation note, warning, or suspension be applied?
 
@@ -81,7 +81,7 @@ At minimum, a future implementation would need to clarify:
 - whether the agent provides information, administrative support, recommendation, or regulated service
 - which licensed human or legal entity is responsible
 - what the agent is explicitly not allowed to do
-- how credential status is verified and revoked
+- which credential checks and withdrawal rules the profile applies
 - what records must be retained or deleted
 - how the human user is warned about limits
 
@@ -91,12 +91,12 @@ Payment failure and refund handling are not only protocol state problems.
 
 They may involve provider rules, settlement timing, card-network chargebacks, fraud review, bank transfer irreversibility, regional consumer law, and merchant account policies.
 
-Future ARC protocol work should examine:
+Future Commerce-profile work should examine:
 
 - whether approval can be reused after payment failure
 - whether a payment retry requires renewed approval
 - whether inventory remains reserved after failed payment
-- how provider-confirmed payment is represented
+- how a provider payment-result claim is represented
 - how refund status enters the transaction log
 - how community dispute records interact with provider disputes
 - how to avoid giving humans false confidence that community review guarantees recovery
@@ -118,17 +118,17 @@ A future governance system should treat serious penalties as reviewable, appeala
 
 ## 8. Divergent Projections and Real Harm
 
-Because ARC stores events and computes relationships as on-demand projections, two communities holding different event subsets can produce opposite projections for the same merchant — one reading `suspended`, another `in_good_standing`. This is not a bug; it is the expected result of locality. The cost is documented as a spatial trade-off in [trust-model-tradeoffs.md](./trust-model-tradeoffs.md) §4, and the divergence is exercised directly in [`examples/canon-fold-demo`](../examples/canon-fold-demo/) as the event-set-disagreement scenario.
+Two observers using different Event subsets can produce opposite Projection results for the same merchant — one reading `suspended`, another `in_good_standing`. Each result is bounded by its declared Event set, Projection, policy, and ordering inputs. This input-dependence is documented as a spatial trade-off in [trust-model-tradeoffs.md](./trust-model-tradeoffs.md) §4 and exercised in [`examples/canon-fold-demo`](../examples/canon-fold-demo/) as the event-set-disagreement scenario.
 
-ARC's answer here is consistent with its authority model: a projection is advisory, not authoritative. A human is the final authority over their own action and their own risk ([authority-and-conflict.md](./authority-and-conflict.md) §3). ARC gives no guarantee that a user's community holds a complete event set, and makes no representation about what another community's projection will show — a user reading `in_good_standing` may simply be missing the events another community holds.
+ARC's answer here is consistent with its authority model: a Projection is advisory, not authoritative. Final authority over an action remains with the party that legitimately holds responsibility for that action and its risk; in the current Commerce profiles, that party is typically human. ARC gives no guarantee that a user's community holds a complete event set, and makes no representation about what another community's Projection will show — a user reading `in_good_standing` may simply be missing the events another community holds.
 
-If a user is harmed because their community's event set was incomplete or stale, ARC cannot adjudicate that harm — it has no global view to adjudicate from, by design. The appropriate remedies are the same as in any commerce failure: a payment-provider dispute, consumer protection law, or a local governance process — not the ARC protocol. ARC's role is to make the divergence inspectable (which event set, and which authority, produced which projection), not to resolve it.
+If a user is harmed while their community's Event set was incomplete or stale, base ARC supplies no global adjudicator or complete global view. A declared governance profile may record an `ADJUDICATE`, while payment-provider disputes, consumer-protection processes, and other remedies remain external. Where the relevant inputs are disclosed, ARC records can support inspection of which Event set, authority, and Projection produced a view; ARC does not guarantee that every deployment exposes that information or resolve the harm itself.
 
-This is a known limitation, not a design oversight.
+This is a current protocol boundary.
 
 ## 9. Current Position
 
-ARC should remain honest about this boundary:
+The current boundary is:
 
 ```txt
 Community governance can inform trust.

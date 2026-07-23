@@ -20,9 +20,9 @@ Where uncertainty exists, the glossary should preserve that uncertainty rather t
 
 ## 2. Agent
 
-An entity that participates in ARC-compatible commerce workflows using structured communication.
+An entity that participates in ARC-compatible authority workflows using structured communication and signed evidence.
 
-An agent may represent:
+In the Commerce application, an agent may represent:
 
 - a consumer
 - a merchant
@@ -35,24 +35,22 @@ ARC does not assume that all agents are fully autonomous or AI-driven.
 
 Some agents may be simple automation tools. Others may include LLM-based reasoning or human-operated workflows.
 
-In ARC, an agent is always owned by or accountable to a human or legal entity.
+Where a claimed authority requires a principal, a named profile may require evidence linking an agent key to a human or legal entity. That evidence does not establish generalized trust, universal ownership, or legal accountability.
 
-An agent cannot be more trusted than the human behind it.
+Two observational distinctions cut across the role-based kinds below (consumer, merchant, logistics). They describe what a particular observer can see, not new agent types in the Canon:
 
-Two observational distinctions cut across the role-based kinds below (consumer, merchant, logistics). They describe what ARC can see, not new agent types in the Canon:
-
-- **Principal (root identity) vs the agents acting under it.** The human or legal entity an agent is accountable to is its principal. One principal may run many agents, so many signatures need not mean many independent actors. ARC observes signed events, not principals; it cannot certainly count the principals behind a set of agents unless the shared root is voluntarily disclosed — a limitation explored in [threat-model.md](./threat-model.md) §4.1.1 and [`examples/canon-fold-demo`](../examples/canon-fold-demo/) (scenario 11).
-- **Market-visible vs pure local workflow agent.** An agent becomes visible to ARC only when it signs a commons-visible event. An agent that never signs such an event — a purely local workflow agent — is outside ARC's event horizon. This is an observational boundary, not a guarantee and not a new type: ARC sees activity that crosses into the commons, not agents as such ([threat-model.md](./threat-model.md) §4.1.1).
+- **Principal (root identity) vs the agents acting under it.** The human or legal entity an agent is accountable to is its principal. One principal may run many agents, so many signatures need not mean many independent actors. An observer sees the signed Events available on its declared evidence surface, not principals; it cannot certainly count the principals behind a set of agents unless the shared root is disclosed — a limitation explored in [threat-model.md](./threat-model.md) §4.1.1 and [`examples/canon-fold-demo`](../examples/canon-fold-demo/) (scenario 11).
+- **Observer-visible vs pure local workflow agent.** An agent becomes visible to an observer only when relevant evidence reaches that observer's declared surface. An agent that never produces or exposes such evidence — a purely local workflow agent — is outside that observer's evidence boundary. This is an observer-relative limitation, not a new type: an ARC implementation sees available evidence, not agents as such ([threat-model.md](./threat-model.md) §4.1.1).
 
 ---
 
 ## 3. Human Approval
 
-Explicit human confirmation before a meaningful transaction proceeds.
+Human-authored authority that gives a consequential act Current Coverage when the act occurs.
 
 Human approval is one of ARC's core constraints.
 
-ARC does not treat fully autonomous economic execution as a default assumption.
+Current Coverage may come from an exact act-specific `AUTHORIZE` or a valid scoped mandate. Signature validity does not by itself establish approval; approval does not by itself establish that authority remained in force at the act; and authority does not prove execution or outcome truth. The owning definitions are in [delegation-and-spending-mandates.md](./delegation-and-spending-mandates.md), [event-registry.md](./event-registry.md), and the claim taxonomy in [object-model.md](./object-model.md).
 
 Approval may involve:
 
@@ -73,7 +71,7 @@ These should not silently collapse into a single automated step.
 
 ---
 
-## 4. Consumer Agent
+## 4. Consumer Agent *(Commerce application vocabulary)*
 
 An agent primarily acting on behalf of a user or buyer.
 
@@ -90,7 +88,7 @@ A consumer agent should not silently replace human judgment.
 
 ---
 
-## 5. Merchant Agent
+## 5. Merchant Agent *(Commerce application vocabulary)*
 
 An agent representing a merchant, seller, provider, or service operator.
 
@@ -106,7 +104,7 @@ ARC does not assume that every merchant agent is trustworthy.
 
 ---
 
-## 6. Logistics Agent
+## 6. Logistics Agent *(Commerce application vocabulary)*
 
 An agent coordinating transport, delivery, routing, or fulfillment movement.
 
@@ -128,22 +126,22 @@ Human and community processes used to review disputes, fraud reports, suspension
 
 Governance exists because cryptographic verification alone cannot resolve all commerce disputes.
 
-ARC governance is federated by design and intentionally incomplete.
+Commerce governance research explores federated arrangements, but the base protocol does not require federation. Governance remains intentionally incomplete.
 
 ---
 
 ## 8. Reputation
 
-A contextual trust signal derived from observed or verified behavior.
+A contextual trust signal derived by a named application Projection from claims and evidence available on its declared observer surface.
 
 ARC does not treat reputation as:
 
 - objective truth
 - universal human worth
 - permanent credibility
-- a social credit system
+- a universal person-level score
 
-Reputation is probabilistic, contextual, and attackable.
+Reputation is contextual, Projection-defined, and susceptible to manipulation. It is not necessarily a probability.
 
 ---
 
@@ -161,11 +159,11 @@ Context may include:
 - fulfillment reliability
 - community standards
 
-ARC generally prefers contextual trust over universal scoring.
+Named ARC application profiles may use contextual signals rather than a universal score; base ARC does not select one trust policy.
 
 ---
 
-## 10. Discovery
+## 10. Discovery *(Commerce application vocabulary)*
 
 The process by which agents find merchants, services, logistics providers, or other agents.
 
@@ -178,11 +176,11 @@ Discovery may involve:
 - maps
 - community indexes
 
-ARC treats discovery as politically and economically important infrastructure.
+Discovery is Commerce application infrastructure.
 
 ---
 
-## 11. Discovery Backend
+## 11. Discovery Backend *(Commerce implementation vocabulary)*
 
 A system or service responsible for indexing, ranking, filtering, or exposing discoverable agents.
 
@@ -193,23 +191,21 @@ Examples may include:
 - reputation-weighted indexes
 - category-specific directories
 
-ARC allows multiple discovery backends rather than requiring a single global registry.
+The Commerce application research allows multiple discovery backends rather than requiring a single global registry; this is not a base-protocol requirement.
 
 ---
 
-## 12. Sponsored Discovery
+## 12. Sponsored Discovery *(Commerce application-policy vocabulary)*
 
 Paid visibility inside a discovery system.
 
-ARC does not prohibit sponsored placement.
-
-ARC does require that sponsorship be visible rather than disguised as organic ranking.
+The explored Commerce application policy requires sponsorship to be visible rather than disguised as organic ranking. This is not a base-protocol rule.
 
 ---
 
 ## 13. Verification
 
-The process of establishing confidence that an agent, identity, credential, transaction, or event is authentic.
+The process of checking a claim under a declared verification boundary.
 
 Verification may involve:
 
@@ -220,13 +216,13 @@ Verification may involve:
 - community confirmation
 - credential checks
 
-Verification is not equivalent to moral trustworthiness.
+External Record Verification checks a record's cryptographic, structural, or declared semantic properties; it does not by itself prove authority, execution, external occurrence, or outcome truth. Stronger recomputability claims require their own evidence and disclosure conditions. [object-model.md](./object-model.md) owns the claim taxonomy.
 
 ---
 
-## 14. Verified Transaction
+## 14. Verified Transaction *(Commerce application vocabulary)*
 
-A transaction connected to evidence that the interaction occurred between identified parties.
+A Commerce transaction connected to records that can be checked under a declared verification boundary. The label must not imply that the external interaction or outcome was proved.
 
 Verification may include:
 
@@ -236,11 +232,11 @@ Verification may include:
 - delivery confirmation
 - dispute records
 
-ARC distinguishes between verified events and unverifiable claims.
+Record verification establishes properties of the record, not the truth of its external referent.
 
 ---
 
-## 15. Fulfillment
+## 15. Fulfillment *(Commerce application vocabulary)*
 
 The process of delivering what was promised in an offer.
 
@@ -264,7 +260,7 @@ These are separate lifecycle stages.
 
 ---
 
-## 16. Canonical Intent
+## 16. Canonical Intent *(Application vocabulary)*
 
 A structured representation of a user request after parsing.
 
@@ -293,7 +289,7 @@ Parsing errors, ambiguity, manipulation, and hallucinated structure remain possi
 
 The ability to move data, identity, reputation, or workflow compatibility between systems.
 
-ARC generally prefers portability over lock-in.
+Some ARC application research explores portability as an alternative to lock-in; base ARC does not require it.
 
 However, portability introduces risks:
 
@@ -302,7 +298,7 @@ However, portability introduces risks:
 - incompatible standards
 - governance mismatch
 
-Portability is useful but not automatically safe.
+Portable data does not automatically satisfy a receiving profile's identity, evidence, or manipulation-risk criteria.
 
 ---
 
@@ -316,7 +312,7 @@ ARC does not assume that relay operators are automatically trustworthy or privac
 
 ---
 
-## 19. Probation Period
+## 19. Probation Period *(Application-policy vocabulary)*
 
 A temporary period during which a new or recently restored agent may face additional scrutiny or operational limits.
 
@@ -326,7 +322,7 @@ Probation should not become an invisible barrier to legitimate new entrants.
 
 ---
 
-## 20. Governance Capture
+## 20. Governance Capture *(Governance research vocabulary)*
 
 A condition where governance processes become dominated, manipulated, exhausted, or distorted by a narrow group of participants.
 
@@ -339,11 +335,11 @@ Examples may include:
 - political pressure
 - hidden sponsorship influence
 
-ARC treats governance as attackable infrastructure.
+The Commerce/community governance research treats governance processes as attackable application infrastructure.
 
 ---
 
-## 21. Approval Fatigue
+## 21. Approval Fatigue *(Application UX vocabulary)*
 
 A condition where users repeatedly approve requests without meaningful review because approval interactions become too frequent, repetitive, or cognitively exhausting.
 
@@ -355,7 +351,7 @@ Reducing unnecessary approval pressure is an important design concern.
 
 ## 22. Trust Boundary
 
-A point where ARC must decide what assumptions are safe.
+A boundary where a named profile or implementation changes its declared assumptions.
 
 Examples include:
 
@@ -366,7 +362,7 @@ Examples include:
 - imported reputation
 - sponsored ranking disclosure
 
-Trust boundaries should remain visible rather than hidden behind automation.
+Assumptions relied on by a claim should be disclosed to the relevant observer. ARC cannot guarantee that an opaque deployment exposes every boundary.
 
 ---
 

@@ -2,71 +2,73 @@
 
 > **Status:** Exploratory incentive note
 >
-> **Purpose:** Map why each participant can rationally decline ARC, then separate the coordination mechanisms that *could* change that calculus from any claim that they *will*.
+> **Purpose:** Map why each participant may decline ARC, then separate candidate coordination mechanisms from any claim that they will work.
+>
+> **Scope:** The company, merchant, user, and community roles below are Commerce flagship-application examples. This is adoption research, not protocol or adoption evidence.
 
 ---
 
 ## 1. Why This Document Exists
 
-ARC's executable-probe methodology bottoms out at one question it cannot fold: why a rational counterparty would honor a community's authority rather than ignore, fork, or defect ([threat-model §18.1](threat-model.md)). The canon can *represent* a sanction and *select* who honors it; it cannot model the *incentive* to honor.
+ARC's executable probes do not establish why a counterparty would honor a community's authority rather than ignore, fork, or defect ([threat-model §18.1](threat-model.md)). The Canon can represent sanction and incentive claims; an observer or profile policy determines which authority it honors. Event records do not establish the incentive to honor.
 
-[`bootstrap-and-incentives.md`](bootstrap-and-incentives.md) records this as a set of network-role gaps — what each role still lacks. This document takes the lens the threat model says is the honest one: not "why will ARC be adopted," but **"why might each actor rationally decline."** It works in one direction only:
+[`bootstrap-and-incentives.md`](bootstrap-and-incentives.md) records this as a set of network-role gaps — what each role still lacks. This document uses an inverse analysis: not "why will ARC be adopted," but **"why might each actor decline."**
 
 ```txt
-Inverse first    — why each actor can rationally wait, defect, fork, or reject.
+Inverse framing  — why each actor may wait, defect, fork, or reject.
 Mechanism second — which coordination mechanisms could move that calculus.
 No adoption claims — mechanisms are hypotheses and known-unknowns, not conclusions.
 ```
 
-The order matters. A mechanism listed before the defection it answers reads as a pitch. Listed after, it reads as what it is: an untested guess about a real reason to say no.
+This order keeps each proposed mechanism tied to the adoption response it is intended to address.
 
-## 2. The Four Exits
+## 2. Four Analytic Response Categories
 
-A party that does not adopt ARC is not making one decision. There are four distinct exits, and a mechanism that closes one may leave the others open.
+This note groups non-adoption responses into four categories. The categories are not exhaustive, and a mechanism that addresses one may leave the others open.
 
 ```txt
-WAIT    — adoption is rational only once others move; each group waits for the rest.
-DEFECT  — adopt, then stop honoring the protocol's authority once defecting pays.
-FORK    — take the open spec and run a private or captured variant instead.
-REJECT  — never adopt; the existing arrangement is preferred outright.
+WAIT    — defer adoption until other participant groups move.
+DEFECT  — adopt, then stop honoring the selected authority or policy.
+FORK    — use the open specification under a different implementation or policy.
+REJECT  — decline adoption in favor of the existing arrangement.
 ```
 
-These are not failure states to be argued away. Each is a defensible reading of a real incentive. The point of naming them is that ARC's openness — the property that makes FORK cheap — is the same property it relies on to resist capture. The exits are entangled with the design, not external to it.
+These are analytic categories, not established motives or protocol states. Openness can lower fork cost while also enabling alternative governance; the adoption effect is unmeasured.
 
 ## 3. The Inverse: Why Each Actor Can Decline
 
 ### 3.1 The agent developer
 
-- **WAIT.** Building against a protocol with no users is speculative work; the rational move is to wait for a network that may never form.
-- **REJECT.** A proprietary agent SDK with a captive marketplace offers built-in demand. ARC offers none, and asks for the integration cost anyway.
-- **FORK.** The spec is open. A developer can lift the parts that help (the audit log, the approval seam) and drop the parts that constrain (community governance, portable reputation) without honoring the whole.
+- **WAIT.** A developer may defer integration until a relevant network exists.
+- **REJECT.** A developer may prefer an SDK that already provides application demand rather than bear an unmeasured integration cost.
+- **FORK.** A developer may reuse selected parts of the open specification without adopting an entire application profile.
 
 ### 3.2 The company or platform operator
 
-- **REJECT.** A platform's value is partly its enclosure: opaque ranking, demand aggregation, switching costs that retain merchants. ARC asks an operator to make legible exactly what it currently profits from keeping illegible.
-- **FORK.** An operator can adopt ARC's vocabulary as a compliance veneer — run the event types, skip the human-approval and disclosure discipline — and capture the surface while defeating the intent.
-- **WAIT.** Even a sympathetic operator has no first-mover reason: the audit and portability benefits accrue to the ecosystem, the integration cost lands on whoever moves first.
+- **REJECT.** Some platforms derive value from ranking control, demand aggregation, or switching costs. A named Commerce profile's disclosure or portability requirements may conflict with those incentives.
+- **FORK.** An operator could adopt ARC vocabulary while omitting requirements of a named profile or conformance claim.
+- **WAIT.** Integration costs and ecosystem benefits may fall on different actors, so an operator may defer adoption.
 
 ### 3.3 The merchant
 
-- **WAIT.** A merchant wants consumer demand before exposing structured offers; consumers want useful merchants first. The chicken-and-egg is structural ([bootstrap §2](bootstrap-and-incentives.md)), and waiting is the individually correct move.
+- **WAIT.** A merchant may want consumer demand before exposing structured offers, while consumers may wait for useful merchants ([bootstrap §2](bootstrap-and-incentives.md)).
 - **REJECT.** Structured offers, an agent to maintain, and an unfamiliar dispute path are real costs against an unproven channel that provides no demand, marketing, or support of its own ([roadmap §Stage 5](roadmap.md)).
-- **DEFECT.** A merchant who has earned reputation can later misrepresent offers or lean on undisclosed influence, and the cost of that defection is borne by counterparties, not the merchant.
+- **DEFECT.** A merchant with an established application reputation may later misrepresent offers or use undisclosed influence. Harm may fall first on counterparties; actual cost depends on enforcement and exit options.
 
 ### 3.4 The user
 
-- **REJECT.** A centralized app already provides refunds, chargebacks, support, and a familiar interface. ARC asks the user to trust an approval-and-audit overlay whose protection is hard to feel until something goes wrong.
-- **WAIT.** With no merchants, an ARC agent has nothing to do; the user rationally waits for the network the merchants are waiting to join.
+- **REJECT.** A centralized app may already provide refunds, chargebacks, support, and a familiar interface. The user would need to evaluate whether an approval-and-audit overlay adds value.
+- **WAIT.** With no participating merchants, a user may wait for the application network to develop.
 
 ### 3.5 The community or governance body
 
-- **REJECT.** Governance is unpaid, adversarial labor — fraud reports, appeals, conflict-of-interest checks — that does not disappear because the system is open ([bootstrap §6](bootstrap-and-incentives.md)). A community can decline the work.
-- **DEFECT.** A governance body can drift from neutral arbiter toward an entrenched gatekeeper, honoring the protocol's forms while bending its rulings.
-- **FORK.** A community that dislikes a ruling can withdraw recognition and run its own fork, which severs *future* imports but cannot re-sort the rulings already folded ([threat-model §13](threat-model.md)).
+- **REJECT.** Governance can be unpaid or adversarial work — fraud reports, appeals, and conflict-of-interest checks — that does not disappear because a system is open ([bootstrap §6](bootstrap-and-incentives.md)).
+- **DEFECT.** A governance body may drift from its declared policy while continuing to emit validly formed records.
+- **FORK.** A community can withdraw recognition and run its own policy or implementation. Withdrawal does not alter prior Events; a named Projection and policy determine their later treatment ([threat-model §13](threat-model.md)).
 
 ## 4. Candidate Coordination Mechanisms
 
-Each item below is a coordination mechanism that *could* change one of the calculations in §3. None is asserted to work. Each is paired with what remains unproven, because a mechanism stated without its residue is a claim in disguise. Whether mechanisms of this shape have historically moved adoption — and how often comparable open protocols were instead displaced after adopting — is surveyed in [coordination-economics-survey.md](coordination-economics-survey.md).
+Each item below is a coordination mechanism that *could* change one of the calculations in §3. None is asserted to work. Each is paired with what remains unproven. Preliminary external comparisons appear in [coordination-economics-survey.md](coordination-economics-survey.md).
 
 ### 4.1 Lower integration cost → addresses WAIT, REJECT
 
@@ -75,7 +77,7 @@ Each item below is a coordination mechanism that *could* change one of the calcu
 
 ### 4.2 Approval and audit overlay → addresses REJECT (user, company)
 
-- **Hypothesis:** a portable, recomputable record of who approved what — verifiable after the fact — is worth more to a cautious party than an opaque platform's word.
+- **Hypothesis:** a portable record of who approved what could have value when its disclosed records pass External Record Verification and its result is independently recomputable from an identified evidence set and named Projection/profile.
 - **Unproven:** the value is felt mainly *after* a failure, so it is hard to price in advance. The overlay also relocates trust onto whoever renders the approval to the human (the view-fidelity residue), which it does not eliminate.
 
 ### 4.3 Reputation portability → addresses REJECT, DEFECT (merchant)
@@ -90,25 +92,25 @@ Each item below is a coordination mechanism that *could* change one of the calcu
 
 ### 4.5 Governance transparency → addresses DEFECT (governance), REJECT (user)
 
-- **Hypothesis:** if rulings are recorded and recomputable, a governance body that drifts toward gatekeeping is visible, which raises the cost of defecting from neutrality.
-- **Unproven:** visibility is not enforcement. A recorded biased ruling is still a ruling; the log exposes the drift but does not reverse it, and exposure only bites if some other community is willing to act on it.
+- **Hypothesis:** if rulings are recorded and recomputable by observers who have the declared evidence set, Projection/profile, ordering inputs, and policy parameters, drift toward gatekeeping may become visible on that observer surface, which could raise the cost of defecting from neutrality.
+- **Unproven:** visibility is not enforcement. A recorded ruling remains a record; policy changes may become visible only to observers with the required evidence and recomputation inputs, and visibility does not reverse the ruling.
 
 ### 4.6 Open spec as latent counter-pressure → reframes FORK
 
-- **Hypothesis:** the openness that makes FORK cheap is not a benefit ARC hands adopters but a constraint it operates under — an operator who encloses too far invites a fork, so the bare *possibility* of forking may act as a check on whoever holds the most influence.
-- **Unproven:** the check only bites if a fork is *viable*, and viability needs the very network effects that are missing. A cheap fork against an empty network pressures no one; openness is as easily a route to exit as a deterrent against capture.
+- **Hypothesis:** the possibility of an alternative implementation may create counter-pressure on an operator whose deployment diverges from a community's preferences.
+- **Unproven:** counter-pressure depends on whether an alternative implementation is viable. The current research does not establish that viability or the effect of forkability on operator behavior.
 
 ## 5. What Stays Off-Ledger
 
-The mechanisms in §4 share a boundary. ARC can make a defection *visible* and *recomputable* after the fact; it cannot make non-defection *rational* in advance. That gap is the adoption frontier, and it does not fold.
+The mechanisms in §4 share a boundary. A private or centralized deployment can preserve internal ARC semantics, but disclosed evidence supports only the observer claims it actually exposes: External Record Verification, an Independently Recomputable Result, and a Publicly Recomputable Result are distinct. ARC does not establish adoption or non-defection incentives from Event records.
 
-The cold-start fixture ([`examples/reference-client/coldstart_fixture.py`](../examples/reference-client/)) shows the same wall from one node's view: a newcomer has exactly three exits — *earn* edges slowly, *manufacture* volume with undisclosed agents, or *borrow* an established party's weak tie — and on the log these are indistinguishable. **Cold start cannot be resolved from the log alone.** A mechanism that claims to resolve it from the log alone is the failure mode this protocol warns against ("adoption verified by protocol").
+The cold-start fixture ([`examples/reference-client/coldstart_fixture.py`](../examples/reference-client/)) compares three declared strategies — earning edges over time, manufacturing volume with undisclosed agents, and borrowing an established party's weak tie. Under the fixture's event view, those strategies are not distinguishable by motive or real-world quality. The log alone does not resolve cold-start legitimacy.
 
-What changes the calculus is lived experience, not a document: a community where the audit overlay caught a real fraud, a merchant whose portable reputation actually moved, a user who recovered something a platform would have swallowed. None of that can be asserted here without misrepresenting ARC's current state.
+Empirical evidence would require observed deployments, such as a dispute in which the audit overlay was used or an application reputation record was ported. None of that can be asserted from ARC's current repository state.
 
 ## 6. A Refusal-Recording Schema
 
-The §3 exits are not only an analysis; they are a measurement vocabulary. The cheapest honest experiment available before any network exists is to record refusals in a structured form, so a later pilot inherits data instead of anecdotes.
+The §3 categories can also serve as a measurement vocabulary. One low-cost experiment before a network exists is to record refusals in a structured form so a later pilot has comparable observations.
 
 A minimal record per refusal:
 
@@ -122,18 +124,20 @@ mechanism  — which §4 candidate, if any, the participant says would have
 
 The discipline is in how the fields are filled:
 
-- The schema records what a participant *says*, not what we infer. A reason paraphrased into our own category is already a claim in disguise.
-- `mechanism = none` is the most valuable cell: a refusal that no §4 candidate would have moved is a candidate falsified — which is the inverse doing exactly its job.
+- The schema records what a participant *says*, not what the recorder infers. Analytical paraphrases are stored separately from the source wording.
+- `mechanism = none` is one informative cell: it records that the participant did not identify a §4 candidate that would change the decision.
 - A `WAIT` is not a soft `REJECT`. It records that the calculus could flip once others move, and names *whose* move it waits on — a different datum than a flat no, and the one the bootstrap chicken-and-egg turns on.
-- The instrument must not drift into a persuasion script. Its job is to capture the refusal faithfully, not to convert it; an interviewer who argues the participant out of their reason has corrupted the record, not improved the result.
+- The instrument must not drift into a persuasion script. Its job is to capture the refusal; interviewer persuasion would change the recorded response.
 
-This gives a concrete shape to what [roadmap §Stage 5](roadmap.md) already asks for ("Record why any merchants, logistics providers, or users declined"). It produces no adoption claim. It produces a falsification surface.
+This gives a concrete shape to what [roadmap §Stage 5](roadmap.md) already asks for ("Record why any merchants, logistics providers, or users declined"). It produces no adoption claim; it provides a structured surface for later comparison.
 
-An executable probe ([`examples/refusal-recording-demo`](../examples/refusal-recording-demo/)) folds synthetic records through this schema and makes the boundary literal — **adoption does not fold, but a refusal record does**: candidate mechanisms are contradicted in the cells they claim, or named as a gap, never validated, while the reason's truth and the actor's future stay off-ledger. The same probe also folds the §4 candidates by *where their value accrues* and asks whether any of them can break a detected mutual-WAIT from one side — i.e. whether a counterparty-independent (solo) lever even reaches the deadlock. Under §4 as written it does not: the only WAIT-claiming candidate is network-value (§4.1), and the one solo thread ([survey §109](coordination-economics-survey.md)) is aimed at REJECT (§4.2), not WAIT.
+An executable probe ([`examples/refusal-recording-demo`](../examples/refusal-recording-demo/)) processes synthetic refusal records through this schema. It checks the recording and classification pipeline; it does not validate a participant's reason, establish adoption behavior, or determine future decisions. The probe also compares §4 candidates by where their stated value accrues and identifies that the current candidate set contains no counterparty-independent mechanism aimed at a mutual-`WAIT` case. That is a result of the declared fixture and categories, not empirical adoption evidence.
 
 ## 7. Current Position
 
-ARC's adoption theory is not just incomplete — its honest form is inverted. The defensible work is to enumerate why each actor declines (§3), to hold the countering mechanisms as hypotheses (§4), and to record refusals as data (§6) — not to assert that the mechanisms win.
+No pilot or adoption evidence currently supports a trajectory from private deployment to maintainership, source opening, federation, or non-defection.
+
+The current adoption analysis is inverse: it enumerates why each actor may decline (§3), holds countering mechanisms as hypotheses (§4), and records refusals as data (§6) without asserting that the mechanisms will succeed.
 
 The next useful artifacts are not adoption claims but tests of the inverse:
 
@@ -142,5 +146,3 @@ The next useful artifacts are not adoption claims but tests of the inverse:
 - refusals recorded in the §6 schema from real merchants, users, or communities ([roadmap §Stage 5](roadmap.md)), following the operating procedure in [first-refusal-protocol.md](first-refusal-protocol.md)
 
 These three are the instruments of [pilot-design.md](pilot-design.md), which defines how a limited pilot would test the inverse — learning, not validation.
-
-A recorded "no," with its reason, is worth more to this frontier than an asserted "yes." A protocol cannot learn from the adoption it imagines.

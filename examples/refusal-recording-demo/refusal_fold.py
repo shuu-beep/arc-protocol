@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """ARC probe: the refusal-recording fold.
 
-    Adoption does not fold. Refusals can.
+This probe records and groups refusal records; it does not model adoption.
 
-The adoption frontier itself does not fold. ARC cannot prove why a party
-will honor, join, or adopt the protocol; that incentive is off-ledger
-(threat-model.md §18.1). This probe does not try. It demonstrates the
-*other* half of that boundary: a refusal *record* is structured evidence
-of what an actor said, and structured evidence folds.
+ARC records do not establish why a party will honor, join, or adopt a protocol
+(threat-model.md §18.1). This fixture groups the declared fields of refusal
+records without inferring motives or adoption.
 
 A refusal record carries four fields (adoption-and-defection.md §6):
 
@@ -17,7 +15,7 @@ A refusal record carries four fields (adoption-and-defection.md §6):
     mechanism  which §4 candidate they say would have changed the decision,
                or "none"
 
-From a set of such records the fold computes a *falsification surface*:
+From a set of such records the fold computes a grouped summary:
 
   WHAT THIS FOLD COMPUTES
     - counts by actor, by exit, by named mechanism
@@ -25,10 +23,10 @@ From a set of such records the fold computes a *falsification surface*:
       themselves pointed at it) and CELL-COINCIDENT (a `mechanism = none`
       refusal in an (actor, exit) cell the candidate claims — contradiction
       pressure, but the fold does not read the reason)
-    - where a WAIT depends on another, still-missing side of the network
-      (including mutual WAIT deadlock)
-    - whether any §4 lever can break a detected mutual-WAIT from one side —
-      i.e. whether a solo (counterparty-independent) lever even reaches it
+    - where a WAIT record names another still-missing side of the network
+      (including reciprocal WAIT labels)
+    - whether a candidate labeled counterparty-independent is mapped to a WAIT
+      cell in a reciprocal-WAIT pair
     - which exits no candidate mechanism even claims to address
 
   WHAT THIS FOLD CANNOT COMPUTE
@@ -37,20 +35,18 @@ From a set of such records the fold computes a *falsification surface*:
     - whether adoption will or will not happen
     - whether a mechanism is valid in general (only: contradicted in *this*
       synthetic set, in the cells it claims)
-    - whether a refusal was strategic, lazy, hostile, or honest
+    - whether the stated reason matches private motivation
     - whether a CELL-COINCIDENT refuser ever weighed that candidate at all —
       reading the reason to decide would be the inference §6 forbids
-    - whether a solo-value lever, where one reaches a deadlock, is large
-      enough to seed adoption (its size is unmeasured; survey §114)
+    - whether a candidate carrying a solo or mixed label would change behavior
 
-A candidate mechanism is never VALIDATED here. The strongest a refusal can
-say for a mechanism is "named as the gap" — and that party still declined,
-so the lead is unproven. The fold can only contradict or weaken, never confirm.
+This fold does not validate a candidate mechanism. It reports authored candidate
+labels, named mechanisms, and cell-coincident records without predicting behavior.
 
 Red-team note: the fold is only as precise as §4's claims, which are stated
 by (actor, exit), not by reason. So a `mechanism = none` refusal contradicts
 every candidate that claims its cell, even one its reason has nothing to do
-with. That coarseness is reported honestly (NAMED vs CELL-COINCIDENT, "reason
+with. That coarseness is reported explicitly (NAMED vs CELL-COINCIDENT, "reason
 unread") rather than hidden — and it is not fixable by making the fold read
 reasons, because that is the forbidden inference. See README "Red-team notes".
 
@@ -58,10 +54,9 @@ The fixtures in `fixtures.json` are SYNTHETIC and illustrative. Real
 refusals of ARC — collected under docs/first-refusal-protocol.md — live in
 the sibling `fixtures_real.json`, and the same fold consumes both. A real
 record additionally carries a provenance envelope (source, date, visibility,
-stimulus; protocol §5). A real record whose vocabulary does not fit the
-schema is reported as a SCHEMA-BREAK — the protocol's §2 calls that the most
-valuable possible result, not an error. This is not an adoption simulator
-and predicts nothing. Stdlib only; no network.
+stimulus; protocol §5). A real record whose vocabulary does not fit the schema
+is reported as a SCHEMA-BREAK rather than silently discarded. This fixture is
+not an adoption simulator and predicts nothing. Stdlib only; no network.
 """
 
 import json
@@ -81,15 +76,12 @@ ALL_EXITS = ["WAIT", "DEFECT", "FORK", "REJECT"]
 # transcribed, not invented — each classification quotes the candidate's own
 # §4 residue or the coordination-economics survey:
 #
-#   "network" — value requires a counterparty to also move; cannot make
-#               moving-first rational from one side alone.
-#   "solo"    — value accrues to a single adopter with zero counterparties
-#               (a counterparty-independent / single-sided lever; survey §57).
-#   "mixed"   — has a solo thread but its principal value is network.
+#   "network" — candidate is labeled as requiring a counterparty.
+#   "solo"    — candidate is labeled counterparty-independent.
+#   "mixed"   — candidate carries both labels.
 #
-# This matters for the WAIT deadlock: a mutual-WAIT is a standoff over
-# *network* value (each waits for the other to move), so only a solo-value
-# lever can break it from one side (survey §57, §109). See fold [6].
+# The fold compares these authored labels with reciprocal WAIT cells. It does not
+# establish that a candidate would change behavior. See fold [6].
 CANDIDATES = {
     "4.1": {
         "name": "lower integration cost",
@@ -179,9 +171,7 @@ def load_sets(here):
 def validate_real(r):
     """Split a real record's problems into two kinds that mean opposite things.
 
-    - breaks : a value outside the schema's vocabulary. Per protocol §2 this
-      is the most valuable possible result — a real refusal the schema cannot
-      hold falsifies the schema. Broken records are excluded from the folds
+    - breaks : a value outside the schema's vocabulary. Broken records are excluded from the folds
       (their cells are undefined) but reported prominently, never discarded.
     - gaps   : a missing reason or provenance field. This is a recording
       error by the interviewer, not a finding about the schema. Gapped
@@ -284,7 +274,7 @@ def candidate_verdicts(refusals):
 
 
 def wait_dependencies(refusals):
-    """WAIT records and what each waits on; detect mutual-WAIT deadlock."""
+    """WAIT records and what each waits on; identify reciprocal-WAIT pairs."""
     waits = [r for r in refusals if r["exit"] == "WAIT"]
     waits_on_actor = {}  # actor -> set of actor types it waits on
     for r in waits:
@@ -301,26 +291,10 @@ def wait_dependencies(refusals):
 
 
 def solo_value_reach(refusals):
-    """Does any §4 lever break a detected mutual-WAIT — from one side?
-
-    A mutual-WAIT is a standoff over *network* value: each party waits for the
-    other to move, so the value each wants is exactly the value the other is
-    withholding. Lowering cost or sweetening a network benefit does not break
-    it, because at zero counterparties the benefit is still zero. Only a
-    *solo* lever — value that accrues to a single adopter with no counterparty
-    — can make moving-first rational from one side (survey §57).
-
-    This fold tests, per detected deadlock:
-      - which candidates even REACH it (claim a WAIT cell of a deadlocked
-        actor), and
-      - whether any reaching candidate carries a solo-value thread.
-
-    The survey names exactly one thin solo thread in ARC — the audit log's
-    self-delegation audit (§4.2 / survey §109). This fold makes that prose
-    claim load-bearing by checking whether it reaches the deadlock the
-    chicken-and-egg actually turns on. It predicts nothing: even a reaching
-    solo lever is a lead, not a path — its size is unmeasured (survey §114).
-    """
+    """Compare reciprocal-WAIT cells with the supplied candidate and
+    `value_locus` labels. For each pair, list candidates mapped to a WAIT cell and
+    those additionally labeled solo or mixed. This is structural label coverage,
+    not a prediction that a candidate would change behavior."""
     _, deadlocks = wait_dependencies(refusals)
     results = []
     for d in deadlocks:
@@ -334,7 +308,7 @@ def solo_value_reach(refusals):
 
 
 def unaddressed_cells(refusals):
-    """Refusal cells that NO candidate mechanism even claims to address."""
+    """Refusal cells that no candidate mechanism claims to address."""
     covered = set()
     for cand in CANDIDATES.values():
         covered |= claimed_cells(cand)
@@ -367,7 +341,7 @@ def main():
     label = "synthetic data" if not real else "synthetic + real data"
     print(f"ARC — Refusal-Recording Fold  ({label})")
     print("=" * 48)
-    print("Adoption does not fold. Refusals can.\n")
+    print("This probe groups refusal records; it does not model adoption.\n")
     print(f"Loaded {len(synthetic)} synthetic + {len(real)} real refusal records.")
     if real:
         print("Real records are marked '*' throughout the report.")
@@ -375,8 +349,7 @@ def main():
     print(hr("[0] Real records: provenance and schema survival"))
     if not real:
         print("  fixtures_real.json: 0 records.")
-        print("  ARC's contact with reality is still zero (protocol §9). The")
-        print("  pipeline below runs end-to-end; what is missing is the event.")
+        print("  No public refusal records are currently present.")
     for r, breaks, gaps in validated:
         print(f"\n  {rid(r)}  {r.get('actor')} / {r.get('exit')} / "
               f"mechanism={r.get('mechanism')}")
@@ -394,9 +367,7 @@ def main():
             print("      redaction cannot un-publish the repository.")
     if broken:
         print(f"\n  {len(broken)} record(s) broke the schema — excluded from the")
-        print("  folds below, but per protocol §2 this is the most valuable")
-        print("  possible result: a real refusal the schema cannot hold")
-        print("  falsifies the schema, not the refusal.")
+        print("  folds below; the schema mismatch is reported separately.")
 
     print(hr("[1] By actor"))
     for actor, n in summarize(refusals, "actor").most_common():
@@ -443,73 +414,66 @@ def main():
         print(f"  {r['actor']:<10} waits on  {target}{mark}")
     if deadlocks:
         for d in deadlocks:
-            print(f"  => mutual-WAIT deadlock: {{{', '.join(sorted(d))}}} "
-                  f"(each rational to wait; neither moves first)")
+            print(f"  => reciprocal-WAIT pair: {{{', '.join(sorted(d))}}} "
+                  f"(reciprocal WAIT labels; rationality not inferred)")
     else:
-        print("  (no mutual-WAIT deadlock in this set)")
+        print("  (no reciprocal-WAIT pair in this set)")
 
-    print(hr("[6] Does any §4 lever break a mutual-WAIT?"))
-    print("  A mutual-WAIT is a standoff over NETWORK value — each waits for the")
-    print("  other to move. Only a counterparty-independent (solo) lever breaks it")
-    print("  from one side. ARC's one named solo thread is the audit log's")
-    print("  self-delegation audit (4.2 / survey §109); the rest are network-value.")
+    print(hr("[6] Candidate-label coverage of reciprocal-WAIT cells"))
+    print("  This section compares reciprocal WAIT labels with the candidate")
+    print("  coverage and `value_locus` labels encoded in this fixture.")
     deadlocks, reach = solo_value_reach(refusals)
     if not deadlocks:
-        print("  (no mutual-WAIT deadlock in this set; nothing to break)")
+        print("  (no reciprocal-WAIT pair in this set)")
     for res in reach:
         d = res["deadlock"]
-        print(f"\n  deadlock {{{', '.join(sorted(d))}}}:")
+        print(f"\n  pair {{{', '.join(sorted(d))}}}:")
         if res["reaching"]:
             for cid in res["reaching"]:
                 cand = CANDIDATES[cid]
-                print(f"      reached by {cid} {cand['name']}  [{cand['value_locus']}]")
+                print(f"      mapped to {cid} {cand['name']}  [{cand['value_locus']}]")
         else:
-            print("      reached by no candidate at all")
+            print("      mapped to no candidate")
         if res["solo"]:
-            print(f"      => a solo-value lever reaches it: {', '.join(res['solo'])}")
-            print("         (a lead only — solo value is unmeasured; survey §114,")
-            print("         a hypothesis, not a path)")
+            print(f"      => candidates also labeled solo/mixed: {', '.join(res['solo'])}")
         else:
-            print("      => NO solo-value lever reaches it. The reaching candidates")
-            print("         are network-value, so §4 does not break this deadlock")
-            print("         from one side.")
+            print("      => no mapped candidate is labeled solo/mixed; the mapped")
+            print("         candidates are labeled network in this fixture.")
     solo_ids = [cid for cid, c in CANDIDATES.items() if c["value_locus"] in SOLO_LOCI]
     if deadlocks and solo_ids:
-        print("\n  Where ARC's solo thread actually sits:")
+        print("\n  Where the solo/mixed labels are mapped in this fixture:")
         for cid in solo_ids:
             cand = CANDIDATES[cid]
             has_wait = "incl. WAIT" if "WAIT" in cand["exits"] else "no WAIT cell"
             print(f"    {cid} {cand['name']} claims {{{', '.join(sorted(cand['exits']))}}}"
                   f"  ({has_wait})")
-        print("  The only solo lever ARC has is aimed at REJECT, not the WAIT the")
-        print("  chicken-and-egg turns on: the deadlock-breaking lever and the")
-        print("  deadlock do not meet.")
+        print("  Under the candidates and `value_locus` labels coded here, the")
+        print("  solo/mixed candidate is mapped to REJECT, not WAIT.")
 
     print(hr("[7] Exits no candidate mechanism even claims to address"))
     gaps = unaddressed_cells(refusals)
     if gaps:
         for r in gaps:
             print(f"  {r['actor']} / {r['exit']} : {rid(r)}  \"{r['reason'][:60]}...\"")
-        print("  (these refusals fall in cells the §4 set is silent on)")
+        print("  (the supplied candidate map has no matching cell for these refusals)")
     else:
         print("  (every refusal cell is claimed by some candidate)")
 
-    print(hr("[8] What this fold cannot compute (standing residue)"))
+    print(hr("[8] What this fold cannot compute"))
     for line in [
         "whether any stated reason is true (a reason is testimony, not fact)",
         "whether a NAMED-RELEVANT party would actually adopt if the mechanism existed",
         "whether adoption will or will not happen",
         "whether a mechanism is valid in general (only: contradicted in this set)",
-        "whether a refusal was strategic, lazy, hostile, or honest",
+        "whether the stated reason matches private motivation",
         "whether a CELL-COINCIDENT refuser ever weighed that candidate (the fold "
-        "does not read reasons; matching by reason would be forbidden inference)",
-        "whether a solo-value lever, where one reaches a deadlock, is large "
-        "enough to seed adoption (unmeasured; survey §114, hypothesis not path)",
+        "does not perform reason matching)",
+        "whether a candidate labeled solo or mixed would change behavior",
     ]:
         print(f"  - {line}")
-    print("\n  The fold seals what was said, never that it is so: the same wall")
-    print("  as view/interpretation fidelity (a signature certifies the record,")
-    print("  not its referent). A recorded \"no\" weakens a candidate; it does")
+    print("\n  The fold groups what the records say; it does not establish the reason")
+    print("  or referent. Fixture record checks cover only the named fields. A")
+    print("  recorded \"no\" contributes contradiction pressure under this fold; it does")
     print("  not explain the refuser, and adoption stays off-ledger.")
 
 

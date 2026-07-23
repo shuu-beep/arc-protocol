@@ -23,36 +23,36 @@ from pathlib import Path
 
 # (name, script path relative to repo root, one-line thesis)
 # Ordered as a reading path: canon first, then authority/custody, then the
-# fidelity wall, then the commerce catalog, then the adoption track.
+# fidelity checks, then the commerce catalog, then the adoption track.
 CATALOG = [
     ("canon-fold", "examples/canon-fold-demo/demo.py",
-     "scenarios fold a hand-built log; the five event types held"),
+     "authored scenarios fold a fixture log using the current five event types"),
     ("end-to-end", "examples/end-to-end-demo/flow.py",
-     "four parties sign their own events; standing moves only by ADJUDICATE"),
+     "scripted parties emit mock-signed records; one named standing fold reads ADJUDICATE"),
     ("coldstart", "examples/reference-client/coldstart_fixture.py",
-     "legitimacy before anyone can know whom to trust"),
+     "three illustrative cold-start strategies under named observer policies"),
     ("approval-seam", "examples/reference-client/approval_seam_fixture.py",
-     "the escalation return path as a custody surface"),
+     "in-process proposal binding on an escalation return path"),
     ("compromise", "examples/reference-client/compromise_fixture.py",
-     "a stolen hot key, and the exact size of the damage (real Ed25519)"),
+     "fixture-classified exposure after a modeled hot-key compromise"),
     ("threshold", "examples/threshold-authority-demo/probe.py",
-     "M-of-N joint authority — the question key-custody §8 leaves open"),
+     "one fixture-local M-of-N evidence-counting policy"),
     ("revocation", "examples/authority-revocation-demo/probe.py",
-     "what revocation does to an action that already completed"),
+     "two current-honoring readings after a recorded withdrawal"),
     ("cache", "examples/cache-discipline-demo/probe.py",
-     "the anti-social-credit claim is contingent on cache shape"),
+     "stale and cross-context reuse under three cache-keying strategies"),
     ("federation", "examples/federation-fidelity-demo/probe.py",
-     "does a federation bridge launder a drifted signer's act?"),
+     "matching recognition under binding, advisory, and ignored fixture readings"),
     ("temporal", "examples/temporal-fidelity-demo/probe.py",
-     "a valid signature does not prove the stamped timestamp is true"),
+     "the mock-signature check does not establish timestamp truth"),
     ("execution", "examples/execution-fidelity-demo/probe.py",
-     "a signed fulfillment asserts the world; the log cannot recover its truth"),
+     "a mock-signed fulfillment claim does not establish its world referent"),
     ("view", "examples/view-fidelity-demo/probe.py",
-     "WYSINWYS — a signature seals the signed bytes, not the displayed view"),
+     "a record commitment does not establish the view displayed or understood"),
     ("commerce", "examples/local-commerce-demo/episode.py",
-     "eight failure runs [A]-[H]: a byte-valid record is not a legitimate one"),
+     "eight fixture runs [A]-[H] under named Commerce review policies"),
     ("refusal", "examples/refusal-recording-demo/refusal_fold.py",
-     "adoption does not fold; refusals can"),
+     "records and groups authored refusal records; does not validate adoption"),
 ]
 
 HERE = Path(__file__).resolve().parent

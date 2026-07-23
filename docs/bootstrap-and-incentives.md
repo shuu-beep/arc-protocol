@@ -8,7 +8,7 @@
 
 ## 1. Why This Document Exists
 
-ARC argues that agent commerce infrastructure should be more open, inspectable, portable, and human-approved.
+Within its Commerce research, ARC examines open, inspectable, portable, and human-authorized application infrastructure.
 
 That does not explain why anyone would join.
 
@@ -18,7 +18,7 @@ This document records the current bootstrap and incentive gaps rather than prete
 
 ## 2. The Network Bootstrap Problem
 
-ARC does not currently solve the network bootstrap problem.
+The Commerce application research does not currently solve the network bootstrap problem.
 
 A useful local commerce network needs several groups at once:
 
@@ -26,7 +26,7 @@ A useful local commerce network needs several groups at once:
 - merchants willing to expose structured offers
 - logistics providers where delivery is required
 - discovery backends that can surface participants
-- payment integrations that users trust
+- payment integrations acceptable under the selected profile
 - reputation records that are meaningful enough to inspect
 - governance processes that can handle disputes
 
@@ -36,15 +36,15 @@ Each group has a reason to wait for the others.
 Consumers want useful merchants before installing or trusting an agent.
 Merchants want consumer demand before operating an agent.
 Logistics providers want transaction volume before integrating.
-Governance requires activity before it can prove legitimacy.
+Governance requires activity before its procedures can be evaluated.
 Reputation requires transactions before it can become useful.
 ```
 
-This chicken-and-egg problem is structural, not a marketing detail.
+This is a multi-party dependency in the Commerce application model.
 
 ## 3. Platforms Provide Real Value
 
-ARC criticizes centralized platform control, advertising dependency, and opaque ranking.
+Earlier Commerce framing criticized centralized platform control, advertising dependency, and opaque ranking.
 
 That criticism should not imply that centralized platforms provide no value.
 
@@ -52,7 +52,7 @@ Existing platforms often provide:
 
 - demand aggregation
 - search and discovery
-- consumer trust signals
+- consumer assurance signals
 - payment mediation
 - refund and chargeback workflows
 - customer support
@@ -64,7 +64,7 @@ Existing platforms often provide:
 
 ARC does not yet replace these functions.
 
-ARC asks whether some of these functions can eventually become more open, portable, inspectable, locally adaptable, and less extractive. That is a design question, not a proven result.
+The Commerce research asks whether some of these functions can use different funding and incentive structures while becoming more open, portable, inspectable, and locally adaptable. That is a design question, not a proven result.
 
 ## 4. Merchant Participation Is Not Guaranteed
 
@@ -88,7 +88,7 @@ Logistics providers face additional constraints:
 
 - route optimization
 - pickup timing
-- delivery proof
+- delivery evidence
 - insurance
 - worker availability
 - safety
@@ -96,7 +96,7 @@ Logistics providers face additional constraints:
 - integration cost
 - dispute responsibility
 
-A logistics agent is not useful merely because it can respond to a message. It must coordinate real-world capacity under time pressure.
+A logistics agent is not useful merely because it can respond to a message. Its usefulness depends on coordinating real-world capacity under time pressure.
 
 ARC has not yet shown that independent logistics agents can coordinate reliably enough for production commerce.
 
@@ -118,7 +118,7 @@ Possible sustainability models to study may include:
 
 ARC does not currently choose one model.
 
-It should not assume unpaid moderation can scale under adversarial pressure.
+This note does not assume unpaid moderation can scale under adversarial pressure.
 
 ## 7. Discovery Infrastructure Also Needs Support
 
@@ -134,9 +134,7 @@ Possible funding and operation models may differ by community:
 - clearly disclosed sponsored discovery
 - public-interest or municipal support
 
-The important boundary is that funding should not be hidden as neutral ranking.
-
-If sponsorship or paid placement exists, it should be explicit, machine-readable, and visible to humans and agents.
+A named Commerce application policy may require funding influence, sponsorship, or paid placement to be explicit, machine-readable, and visible to humans and agents.
 
 ## 8. Cold Start vs Sybil Resistance
 
@@ -144,13 +142,13 @@ New entrants need a path to discovery.
 
 Attackers exploit automatic exposure.
 
-If ARC hides new merchants until they have reputation, established participants become entrenched. If ARC promotes new agents too freely, Sybil attackers can create fake merchants, fake logistics providers, or fake buyer histories.
+If a Commerce profile hides new merchants until they have reputation, established participants may become entrenched. If it promotes new agents too freely, Sybil attackers may create fake merchants, fake logistics providers, or fake buyer histories.
 
-Current ARC documents treat this as a permanent tension. They do not define a final ranking rule.
+Current documents identify this tension but do not define a final ranking rule.
 
 Future work should examine:
 
-- verified-new-entrant labels
+- declared-new-entrant labels
 - probation periods
 - low-risk transaction limits
 - escrow-like participation where appropriate
@@ -161,7 +159,7 @@ Future work should examine:
 
 ## 9. No Built-In Demand Guarantee
 
-ARC should be explicit:
+This note records the following application limitations:
 
 ```txt
 ARC does not provide built-in demand.
@@ -173,15 +171,15 @@ ARC does not guarantee that open discovery will outperform centralized platforms
 
 A future pilot can test whether specific communities find enough value to participate.
 
-Until then, ARC remains an exploratory design proposal.
+Until then, the Commerce application remains exploratory.
 
 ## 10. Current Position
 
-ARC's incentive theory is incomplete.
+The Commerce application's incentive research is incomplete.
 
-That is acceptable at this stage if stated clearly. The next useful work is not to claim that open agent commerce will automatically attract participants, but to design small experiments that reveal what participants actually need.
+The next empirical step is to design small experiments that record what participants report needing, without claiming that open agent commerce will automatically attract them.
 
-Where this document catalogs the gaps by network role, [`adoption-and-defection.md`](adoption-and-defection.md) takes the per-actor decision view the threat model calls the honest entry point ([§18.1](threat-model.md)): why each actor can rationally wait, defect, fork, or reject, and which mechanisms — held as hypotheses, not claims — might change that. The historical economics behind those mechanisms — why comparable open protocols were adopted, or displaced after adopting — are surveyed in [`coordination-economics-survey.md`](coordination-economics-survey.md).
+Where this document catalogs gaps by network role, [`adoption-and-defection.md`](adoption-and-defection.md) takes an inverse per-actor view ([threat-model §18.1](threat-model.md)): why each actor may wait, defect, fork, or reject, and which mechanisms — held as hypotheses, not claims — might change that. Preliminary historical comparisons appear in [`coordination-economics-survey.md`](coordination-economics-survey.md).
 
 Useful future artifacts may include:
 
@@ -192,4 +190,4 @@ Useful future artifacts may include:
 - pilot recruitment notes
 - failure notes from communities that decline to participate
 
-A failed pilot may be as informative as a successful one.
+A failed pilot can provide data alongside any successful outcome.

@@ -1,81 +1,59 @@
 #!/usr/bin/env python3
 """
-ARC embodiment fixture — the custody boundary as a process boundary.
+ARC embodiment fixture — signer and agent as separate fixture objects.
 
 What this is
 ------------
-Every probe before this one asked what the LOG can hold. This one asks where the
-KEY lives at runtime. key-custody.md says signing is a capability, not a
-possession (D3), and that scope enforcement lives in the signer's trusted base,
-with the key, not the agent (D1). canon-ts LOCK A made "a hot key cannot mint
-authority beyond its mandate" a compiler fact. compromise_fixture made the
-runtime cost visible: if the hot key is RESIDENT in the agent, stealing the agent
-steals signing power, bounded only by the mandate scope x detection latency.
+Earlier fixtures focused on records and folds. This one models where signing key
+bytes reside at runtime. The agent and signer are separate Python objects: the
+agent constructs proposals, while the signer holds the hot key and applies this
+fixture's mandate checks.
 
-This fixture asks the question that leaves open: what if the key is NOT in the
-agent — what if it lives behind a separate SIGNER process the agent can only talk
-to? The constitution stops being a check and becomes a fact about which process
-holds which bytes:
+The object split produces these authored fixture behaviors:
 
-  * the agent holds NO key. It can only PROPOSE. A compromised agent yields
-    proposals, never signatures.
-  * the signer holds ONLY the hot key. It cannot mint root authority, because the
-    cold root key is not in the process — the tier line as a structural ABSENCE,
-    not a policy check.
-  * escalation (over-ceiling, widening the mandate) cannot be auto-signed. It
-    routes to a human approval inbox, where the cold root signs in a separate
-    ceremony.
+  * the agent object holds no key and submits proposals to the signer object;
+  * the signer object holds the hot key but not the root key, so it cannot
+    produce a root-signed Event through its signing method;
+  * escalation (over-ceiling, widening the mandate) is routed to an approval
+    inbox; the scripted cold-root ceremony can emit a separate approval record.
 
-What the runtime split moves, and what it cannot:
+What this fixture compares:
 
-  * mandate enforcement moves from FOLD-time to SIGN-time. In compromise_fixture
-    the out-of-scope forgeries existed ON the log and every reader's fold rejected
-    them (bounded, but present). Here the signer refuses to sign them, so they
-    NEVER BECOME EVENTS. The log stays clean of out-of-scope forgeries, and so do
-    post-revocation ones: the signer holds the key and stops signing once it
-    learns of the withdrawal.
-  * the IN-SCOPE window is untouched. The signer auto-signs in-scope proposals
-    whoever proposed them — a compromised agent still gets in-scope acts signed,
-    byte-indistinguishable from honest ones, exactly as in compromise_fixture.
-    finding I survives the split intact: revocation bounds the future, the
-    pre-detection in-scope acts stay, and excising only the compromised one still
-    needs per-act CHALLENGE + ADJUDICATE — the root disputes, the COMMUNITY
-    adjudicator rules (registry §4.5: adjudication's authority source is a
-    community process, not an individual key; the disputant does not judge its
-    own challenge), and the fold counts only rulings from an adjudicator the
-    reader honors.
-  * the trusted base shrinks to exactly ONE process — the signer. Its compromise
-    is compromise_fixture's world again: key-custody.md §8's open "compromised
-    signer," now localized to a single boundary instead of spread across the
-    agent.
-  * the boundary gains a SECOND seam. reference-client v1 proposed ONE closed
-    seam: propose_event(type, payload), agent -> signer. That is enough for
-    auto-signed acts. Escalation is not: it needs an approval RETURN path
-    (inbox -> a human's signed approval -> the log) the proposal seam never had.
+  * mandate checks run at sign time. In compromise_fixture
+    attacker-authored records are evaluated by a fold. Here the signer does not
+    sign the authored out-of-scope proposals; they are routed or refused and are
+    not appended as Events. Post-withdrawal proposals are also refused after
+    the signer receives the withdrawal.
+  * the signer auto-signs the authored in-scope proposals
+    regardless of who composed them, so attacker-authored and operator-authored
+    proposals can receive the same signer and fold treatment.
+    Under this fixture policy, revocation bounds later signer decisions while
+    pre-detection in-scope records remain in the log. The fixture later adds a
+    CHALLENGE and an ADJUDICATE for one record and counts rulings only from its
+    configured adjudicator set.
+  * scope enforcement is localized in the signer object, while custody, process
+    isolation, persistence, review, and deployment dependencies remain outside
+    this fixture. Signer compromise remains open.
+  * escalation adds an approval return path from the inbox and scripted cold-root
+    ceremony back to the signer.
 
-Real Ed25519 (RFC 8032, pure stdlib, reused from compromise_fixture) because the
-whole question is whether custody separation is REAL at runtime, and a mock
-signature cannot fail to be possessed. Only `signer` holds the agent secret; only
-the cold-root ceremony holds the root secret; the agent holds neither. The object
-graph IS the boundary.
+Illustrative Ed25519 (RFC 8032, pure stdlib, reused from compromise_fixture) is
+used for the named record checks. Only `signer` holds the agent secret in this
+object graph; the fixture provides no real process isolation or custody proof.
 
-Refusals (as deliberate as the content):
-  * not a daemon, not a wallet, not a security product. "Processes" are objects
-    sharing only a serializable seam; there is no network, no persistence, no
-    real isolation. The crypto is ILLUSTRATIVE — this probes constitutional
-    boundary visibility, not cryptographic assurance.
+Limits:
+  * the "processes" are objects sharing serializable data; there is no network,
+    persistence, or process isolation. The Ed25519 implementation is illustrative.
   * no new event type. A proposal is not an event (it carries no signature and
     never reaches the log unless the signer signs it). Approval is the existing
     consent.approval; revocation is consent.withdraw + nullifies; the dispute is
     CHALLENGE (the disputant) + ADJUDICATE (the community adjudicator).
-  * who drives the agent is GROUND TRUTH the generator holds. It is rendered as
-    "the omniscient view, available to no observer"; the signer never reads it. A
-    valid in-scope proposal is the same object whether the agent or an attacker
-    composed it.
+  * who drives the agent is a private fixture stipulation rendered separately;
+    the signer never reads it. A
+    signer evaluates proposal fields rather than this private author label.
 
-A fixture for the viewer; a probe when run directly. Not a custody spec, not
-doctrine — the runtime expression of the custody axis canon-ts and
-compromise_fixture explored, offered as a probe finding.
+A fixture for the viewer; a probe when run directly. It is not a custody
+specification.
 
 Run:  python3 embodiment_fixture.py
 """
@@ -91,10 +69,8 @@ CANONICAL_TYPES = {"KEY", "ATTEST", "AUTHORIZE", "CHALLENGE", "ADJUDICATE"}
 
 
 # ===========================================================================
-# Real Ed25519 — the RFC 8032 reference, pure stdlib (reused verbatim from
-# compromise_fixture.py). A secret signs, a public value verifies, and you cannot
-# produce a passing signature without the secret. That is exactly what makes
-# "the key is not in this process" mean something.
+# Illustrative Ed25519 — the RFC 8032 reference, pure stdlib (reused from
+# compromise_fixture.py). This is not a production cryptographic profile.
 # ===========================================================================
 
 _b = 256
@@ -242,9 +218,8 @@ class Event:
 
 @dataclass(frozen=True)
 class Proposal:
-    """What the agent emits. NOT an event: no signer, no signature, no id. It is a
-    request to the signer to mint an event. The agent holds no key, so this is the
-    most it can produce. A compromised agent can produce nothing more."""
+    """What the fixture agent emits. This is not an Event: it has no signer,
+    signature, or id. The fixture passes it to the signer object for evaluation."""
     type: str
     predicate: str
     refs: tuple[str, ...] = ()
@@ -254,10 +229,8 @@ class Proposal:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: real Ed25519 + signer anchored by a prior KEY
-    register. Note what is NOT on this log that was on compromise_fixture's: any
-    out-of-scope forgery. The signer refused those before they could be signed, so
-    they never became events to verify."""
+    """Fixture replay check: Ed25519 signature and prior KEY registration only.
+    It cannot establish custody, process isolation, authorship, or conformance."""
     registered: set[str] = set()
     for ev in events:
         if not ed25519_verify(bytes.fromhex(ev.signature), ev.signing_bytes(),
@@ -271,10 +244,9 @@ def verify_log(events: list[Event]) -> None:
 
 
 # ===========================================================================
-# The processes. The separation is in the object graph: only the signer holds the
-# agent secret; only the cold-root ceremony holds the root secret; the agent holds
-# neither. Passing the wrong bytes into the wrong object would BREAK the probe —
-# which is the point.
+# The processes. The separation is in the object graph: only the signer object
+# holds the agent secret; only the cold-root ceremony object holds the root secret;
+# the agent object holds neither.
 # ===========================================================================
 
 @dataclass
@@ -297,8 +269,7 @@ class Clock:
 
 def _mint(secret: bytes, pub_hex: str, ts: str, *, type_: str, predicate: str,
           **kw) -> Event:
-    """Build and sign one event with `secret`, asserting authorship by `pub_hex`.
-    The ONLY way an Event comes into being in this fixture."""
+    """Build an Event with `pub_hex` in the signer field and sign it with `secret`."""
     assert type_ in CANONICAL_TYPES, f"non-canonical type {type_!r}"
     partial = Event(id="", type=type_, signer=pub_hex, predicate=predicate,
                     timestamp=ts, **kw)
@@ -309,14 +280,13 @@ def _mint(secret: bytes, pub_hex: str, ts: str, *, type_: str, predicate: str,
 
 
 class SignerProcess:
-    """Holds the HOT key and a copy of the mandate (its trusted base). Receives a
-    Proposal, decides in its OWN process whether to sign it, and signs only what
-    the mandate covers. It does not hold the cold root key, so it physically
-    cannot mint root authority — refusal there is an absence, not a check."""
+    """Holds the hot key and a copy of the mandate. It applies this fixture's
+    proposal checks and optional approval branch. It does not hold the root key
+    and cannot produce a root-signed Event through this object."""
 
     def __init__(self, *, hot_pub: str, hot_secret: bytes, mandate: Event,
                  clock: Clock, log: list[Event]) -> None:
-        self._hot_secret = hot_secret        # the ONE secret this process holds
+        self._hot_secret = hot_secret        # the secret held by this fixture signer
         self.hot_pub = hot_pub
         self.mandate = mandate
         self.clock = clock
@@ -338,12 +308,11 @@ class SignerProcess:
         self.known_withdrawals.add(mandate_id)
 
     def handle(self, p: Proposal, *, approval: Event | None = None) -> Decision:
-        """The trusted base, exercised. `approval` is an optional cold-root
-        consent.approval delivered from the inbox; it rides above the mandate
-        ceiling exactly as in compromise_fixture's fold."""
-        # Structural: the signer can only sign as the key it holds. A proposal
-        # claiming the root's authority cannot be signed here at all — the cold
-        # key is not in this process. This is the tier line, embodied.
+        """Apply this fixture's signer checks. `approval` is an optional cold-root
+        consent.approval delivered from the inbox; this fixture permits it above
+        the mandate ceiling."""
+        # The signer can produce Events only with its hot key. The authored
+        # root-role proposal is therefore refused here.
         if p.as_role != "agent":
             return Decision("refused", f"this process holds only the hot key; it "
                             f"cannot sign as '{p.as_role}' (the cold key is not here)")
@@ -351,8 +320,9 @@ class SignerProcess:
         ctx = p.payload.get("context") or (p.scope or {}).get("context")
         amount = p.payload.get("amount_krw")
 
-        # A delivered root approval rides above the mandate — the human already said
-        # yes, off the hot key's authority.
+        # This older fixture treats the directly supplied ceremony approval as
+        # separate authority above the hot-key mandate. It does not authenticate a
+        # carried approval; approval_seam_fixture.py tests those additional checks.
         if approval is not None:
             cap = (approval.scope or {}).get("max_total_krw")
             if amount is None or cap is None or amount <= cap:
@@ -364,26 +334,26 @@ class SignerProcess:
         # Sign-time time-scoping: a withdrawn mandate stops the signer.
         if self.mandate.id in self.known_withdrawals:
             return Decision("refused", "the mandate was withdrawn — the signer no longer "
-                            "signs under it (the key still works; the trusted base refuses)")
+                            "signs under it (the key still works; this signer refuses)")
 
         # Out of the mandate's domain: not the hot key's authority. The signer will
-        # not sign and does not pretend a human at this signer could grant it.
+        # not sign and does not treat the hot key as cold-root authority.
         if self._context is not None and ctx is not None and ctx != self._context:
             return Decision("refused", f"out of mandate domain ({ctx} != {self._context}) — "
                             "not the hot key's authority")
 
         # Widening the mandate needs the root; the hot key cannot grant it. This is
-        # legitimate to ASK, so it routes to the human, not refused.
+        # configured to route to the approval inbox rather than refuse.
         if p.type == "AUTHORIZE":
             return Decision("routed", "widening or delegating the mandate needs the root "
                             "— routed to the approval inbox (the hot key cannot self-elevate)")
 
-        # Over the ceiling: legitimate to ask, beyond the hot key's authority.
+        # Over the ceiling: configured to route, beyond the hot key's mandate.
         if amount is not None and self._ceiling is not None and amount > self._ceiling:
             return Decision("routed", f"over the mandate ceiling ({amount} > {self._ceiling}) "
-                            "— routed to the approval inbox for a human")
+                            "— routed to the approval inbox")
 
-        # Within the live mandate: auto-signed, no human in the loop.
+        # Within the live mandate: signed without another approval record.
         ev = self._sign(p)
         return Decision("signed", "within the live mandate (right domain, within ceiling)", ev)
 
@@ -396,9 +366,7 @@ class SignerProcess:
 
 
 class ApprovalInbox:
-    """Where routed proposals wait for a human. The SECOND seam: the proposal seam
-    carried agent -> signer; this carries signer -> human -> back to a signed
-    event. It exists only because escalation does."""
+    """Where routed proposals wait for the scripted cold-root ceremony."""
 
     def __init__(self) -> None:
         self.pending: list[Proposal] = []
@@ -408,9 +376,8 @@ class ApprovalInbox:
 
 
 class AgentProcess:
-    """Proposes events. Holds NO key — there is no signing method here to call.
-    Whoever drives it (the honest operator or an attacker who has taken the
-    process over) can do exactly one thing: emit a Proposal."""
+    """Proposes Events and exposes no signing method. The configured operator or
+    attacker label can submit a Proposal to the signer object."""
 
     def __init__(self, *, signer: SignerProcess, inbox: ApprovalInbox) -> None:
         self._signer = signer
@@ -424,11 +391,10 @@ class AgentProcess:
 
 
 class ColdRootCeremony:
-    """The human with the cold key. NOT resident in the agent or the signer — it
-    is invoked for the rare ceremonial acts (mandate, approval, withdrawal,
-    dispute) and otherwise absent. Modeled as a separate object holding the only
-    copy of the root secret. It DISPUTES; it does not rule — adjudication
-    belongs to the community (registry §4.5), never to the disputant."""
+    """Scripted holder of the cold key. It is not resident in the agent or signer
+    and is invoked for mandate, approval, withdrawal, and challenge records. It
+    is a separate object in this fixture, not a process-isolation guarantee. The
+    configured community adjudicator emits the ruling counted by the fold."""
 
     def __init__(self, *, root_pub: str, root_secret: bytes, clock: Clock,
                  log: list[Event]) -> None:
@@ -464,11 +430,9 @@ class ColdRootCeremony:
 
 
 class CommunityAdjudicator:
-    """The commons authority — the market community's adjudicating key, held by
-    its own process (registry §4.5: ADJUDICATE's authority source is a community
-    process, not an individual key). It rules on disputed acts; it grants
-    nothing and spends nothing. The disputant (the root) is a different key: a
-    party does not judge its own challenge."""
+    """The adjudicator key configured for this fixture. The fold counts rulings
+    from this key and does not count the disputant root's self-ruling. This is a
+    fixture-policy choice, not a base-protocol authority rule."""
 
     def __init__(self, *, pub: str, secret: bytes, clock: Clock,
                  log: list[Event]) -> None:
@@ -488,15 +452,15 @@ class CommunityAdjudicator:
 # ===========================================================================
 # A light fold — only to show that what reached the log is honored, and that the
 # in-scope compromised act still needs adjudication to excise. Nothing here reads
-# ground truth.
+# private fixture stipulations.
 # ===========================================================================
 
 def honored_from_root(events: list[Event], *, root: str, agent: str,
                       honored_adjudicators: tuple[str, ...] = ()) -> dict:
     """Fold the log into per-act honoring from `root`, time-scoped. Because the
     signer already enforced scope at sign-time, almost everything on the log is in
-    bounds; the one thing the fold still decides is whether a per-act ADJUDICATE
-    from an adjudicator this reader HONORS has voided a specific event.
+    bounds. The fold also checks whether a per-act ADJUDICATE from an adjudicator
+    configured for this reader has voided a specific event.
     `honored_adjudicators` is the reader's policy choice (A&C §9); an ADJUDICATE
     from anyone else — the disputant included — is evidence, not authority."""
     by_id = {e.id: e for e in events}
@@ -557,9 +521,8 @@ def generate() -> dict:
     clock = Clock()
     log: list[Event] = []
 
-    # Keys are generated here, then handed to processes SEPARATELY. After this
-    # block, no single object holds more than its share. The attacker, later,
-    # takes over the agent — which holds nothing.
+    # Keys are generated here, then passed to separate fixture objects. The
+    # attacker label is later assigned to proposals submitted through the agent.
     def keypair(name: str) -> tuple[bytes, str]:
         sk = hashlib.sha256(b"arc-embodiment/" + name.encode()).digest()
         return sk, ed25519_publickey(sk).hex()
@@ -568,17 +531,17 @@ def generate() -> dict:
     agent_secret, agent_pub = keypair("agent")
     community_secret, community_pub = keypair("community")
 
-    print("\n1. OFFLINE CEREMONY — the cold root anchors keys and grants a mandate,")
-    print("   then goes away. From here the cold key is NOT in any running process.")
+    print("\n1. Offline ceremony — the cold root anchors keys and grants a mandate.")
+    print("   The root secret remains in the ceremony object and is not passed to the agent or signer.")
     ceremony = ColdRootCeremony(root_pub=root_pub, root_secret=root_secret,
                                 clock=clock, log=log)
     ceremony.register(root_pub)
     ceremony.register(agent_pub)
     mandate = ceremony.grant_mandate(agent_pub, context="market", ceiling=30000)
-    say("custody", "root key = COLD (held only by the ceremony); agent has NO key")
+    say("custody", "root secret is held by the ceremony object; the agent object has no key")
     say("custody", f"mandate: hot key may sign 'market' acts up to 30000  [{mandate.id}]")
 
-    print("\n2. BOOT — the signer holds the hot key + the mandate; the agent holds")
+    print("\n2. Signer setup — the signer holds the hot key + the mandate; the agent holds")
     print("   only a line to the signer. There is no signing method on the agent.")
     inbox = ApprovalInbox()
     signer = SignerProcess(hot_pub=agent_pub, hot_secret=agent_secret, mandate=mandate,
@@ -590,29 +553,28 @@ def generate() -> dict:
                         payload={"result": "confirmed", "amount_krw": amount,
                                  "context": context, "provider": "mock_pay"})
 
-    print("\n3. HONEST OPERATION — the operator drives the agent")
+    print("\n3. Configured operator proposals")
     show("in-scope payment 20000", agent.propose(market_payment(20000)))
 
     over = market_payment(90000)
     show("over-ceiling payment 90000", agent.propose(over))
-    say("inbox", "the over-ceiling proposal is waiting for a human")
-    say("human", "reviews it, recognizes it, and approves with the COLD key")
+    say("inbox", "the over-ceiling proposal is waiting for the scripted ceremony")
+    say("ceremony", "emits a cold-root approval for the configured amount and context")
     approval = ceremony.approve(90000, "market")
     show("  (re-submitted with approval)", agent.propose(over, approval=approval))
 
     widen = Proposal(type="AUTHORIZE", predicate="consent.mandate", refs=(agent_pub,),
                      scope={"context": "market", "max_total_krw": 100000})
     show("agent asks to widen its mandate", agent.propose(widen))
-    say("human", "reviews the widening request at the inbox and REJECTS it")
-    say("inbox", "rejected — an agent does not get to grant itself more authority")
+    say("ceremony", "the scripted widening path records no approval")
+    say("inbox", "the widening proposal remains routed; no approval is issued")
 
-    print("\n4. THE AGENT IS COMPROMISED — an attacker takes over the agent process.")
-    print("   It gained a PROPOSER, not a key. Watch where each forgery attempt dies.")
+    print("\n4. Private fixture stipulation — the attacker label submits proposals")
     comp = market_payment(25000)
     d_inscope = agent.propose(comp)
-    show("in-scope forgery 25000", d_inscope, attacker=True)
-    show("over-ceiling forgery 90000", agent.propose(market_payment(90000)), attacker=True)
-    show("out-of-context forgery", agent.propose(
+    show("in-scope attacker proposal 25000", d_inscope, attacker=True)
+    show("over-ceiling attacker proposal 90000", agent.propose(market_payment(90000)), attacker=True)
+    show("out-of-context attacker proposal", agent.propose(
         Proposal(type="ATTEST", predicate="identity.binding", refs=(mandate.id,),
                  payload={"claim": "controls_external_account", "context": "identity"})),
         attacker=True)
@@ -620,28 +582,28 @@ def generate() -> dict:
         Proposal(type="AUTHORIZE", predicate="consent.mandate", as_role="root",
                  refs=(agent_pub,), scope={"context": "market", "max_total_krw": 1000000})),
         attacker=True)
-    say("omniscient", "only the IN-SCOPE forgery (25000) reached the log; the other three")
-    say("omniscient", "never became events — the signer refused them BEFORE signing")
+    say("generator", "only the in-scope attacker-authored proposal (25000) reached the log;")
+    say("generator", "the signer refused the other three before signing")
 
-    print("\n5. DETECTION + REVOCATION — the cold root withdraws; the signer learns it")
+    print("\n5. Detection and revocation — the cold root withdraws; the signer learns it")
     revoke = ceremony.withdraw(mandate.id, agent_pub)
     signer.learn_withdrawal(mandate.id)
     say("root", f"withdrawal signed from the cold ceremony  [{revoke.id}]")
-    show("post-revoke forgery 25000", agent.propose(market_payment(25000)), attacker=True)
-    say("omniscient", "refused at SIGN-TIME — the signer holds the key and stopped. In")
-    say("omniscient", "compromise_fixture the thief HELD the key and this one got signed.")
+    show("post-withdrawal attacker proposal 25000", agent.propose(market_payment(25000)), attacker=True)
+    say("generator", "refused at sign time after the signer received the withdrawal;")
+    say("generator", "the compromise fixture instead stipulates loss of the key bytes")
 
-    print("\n6. THE RESIDUE REVOCATION COULD NOT REACH — the in-scope 25000 is on the")
-    print("   log, honored, byte-indistinguishable from honest acts. Per-act dispute:")
-    print("   the dispute routes to the commons — the community's key anchors, the")
-    print("   root disputes, and the COMMUNITY rules (registry §4.5: not the disputant).")
+    print("\n6. Pre-withdrawal in-scope record — the 25000 record is on the")
+    print("   log and honored under this fold like an operator-authored in-scope act.")
+    print("   the root emits a CHALLENGE and the configured community adjudicator")
+    print("   emits ADJUDICATE; this fixture policy does not count the disputant's self-ruling.")
     ceremony.register(community_pub)
     community = CommunityAdjudicator(pub=community_pub, secret=community_secret,
                                      clock=clock, log=log)
     ch = ceremony.dispute(d_inscope.event.id)
     ruling = community.rule_void(d_inscope.event.id)
-    say("root", f"CHALLENGE [{ch.id}] filed on that ONE event — the disputant's move")
-    say("community", f"ADJUDICATE void [{ruling.id}] — the commons' ruling, not the root's")
+    say("root", f"CHALLENGE [{ch.id}] targets the attacker-authored Event")
+    say("community", f"ADJUDICATE void [{ruling.id}] is counted by this fold")
 
     verify_log(log)
     return {"log": log, "root": root_pub, "agent": agent_pub,
@@ -659,8 +621,8 @@ def main() -> None:
     inscope_id = ctx["inscope_id"]
 
     print("\n" + "=" * 72)
-    print("WHAT ACTUALLY REACHED THE LOG — every event here has a valid signature")
-    print("and is in bounds, because the signer enforced scope BEFORE signing.")
+    print("Records appended to the log — every record passes the illustrative signature check")
+    print("and the signer-side checks named by this fixture.")
     print("=" * 72)
     proj = honored_from_root(log, root=root, agent=agent,
                              honored_adjudicators=(ctx["community"],))
@@ -671,51 +633,44 @@ def main() -> None:
         print(f"    {verdict}  {r['predicate']:<26} {amt:>11} [{r['id']}] — {r['basis']}")
 
     print("\n" + "=" * 72)
-    print("THE FINDING — a scope-enforcing signer moves enforcement to SIGN-TIME")
+    print("Fixture result — signer-side mandate checks run before Event creation")
     print("=" * 72)
     print("""
-  Compare the log to compromise_fixture's. There, the hot key was RESIDENT in the
-  agent; the thief stole it and signed four forgeries — over-ceiling, out-of-
-  context, self-elevation — that all LANDED on the log and were rejected only
-  later, by every reader's fold. Here the key lives behind a separate signer, and
-  the agent — compromised or not — can only PROPOSE. Three of the four forgeries
-  never became events at all:
+  In compromise_fixture, the generator stipulates loss of the hot-key bytes, so
+  attacker-authored records can pass its signature check and are evaluated by a
+  fold. Here only the signer object holds the hot-key bytes. The agent can propose,
+  and the signer produces these configured outcomes:
 
-    * over-ceiling 90000   -> ROUTED, not signed   (a human would have to approve)
+    * over-ceiling 90000   -> ROUTED, not signed   (cold-root approval path)
     * out-of-context       -> REFUSED              (not the hot key's domain)
-    * self-mint as root    -> REFUSED              (the cold key is not in the process)
+    * self-mint as root    -> REFUSED              (the signer object lacks the root key)
     * post-revoke 25000    -> REFUSED              (the signer stopped at sign-time)
 
-  Enforcement moved from fold-time to sign-time. The log never holds the out-of-
-  scope forgeries, so no reader has to reject them. The tier line — a hot key
-  cannot mint root authority — is now a structural ABSENCE (the cold key is not
-  there to sign with), not a rule the fold applies after the fact.
+  The refused proposals are not appended as Events. The self-mint proposal also
+  cannot be signed as the cold root because that key is absent from the signer
+  object.
 
-  But the IN-SCOPE window is untouched. The signer auto-signs in-scope proposals
-  whoever composed them, so the attacker's 25000 was signed exactly like the
-  honest 20000 — finding I, intact at runtime. Revocation bounds the future; the
-  acts signed before detection stay; excising only the compromised one still needs
-  the human to supply, off the log, the one fact it never held (the root's
-  CHALLENGE + the community adjudicator's ADJUDICATE void — the disputant does
-  not judge its own challenge, and the fold counts only rulings from an
-  adjudicator the reader honors). The runtime split cleans up the out-of-scope
-  blast radius; it cannot shrink the in-scope one.
+  For the authored in-scope cases, the signer applies the same checks without
+  reading the private author label. The attacker-authored 25000 therefore receives
+  the same signer and fold treatment as the configured operator's 20000 here.
+  Withdrawal bounds later signer decisions; the
+  acts signed before detection stay. This fixture distinguishes one record only
+  after adding a root CHALLENGE and a community adjudicator's ADJUDICATE void.
+  This fold does not count the disputant's self-ruling and counts only rulings
+  from an adjudicator configured for the reader. In the authored cases, the signer refuses the
+  out-of-scope attacker proposals but signs the in-scope proposal.
 
-  Two residues the split surfaces:
+  Two limitations remain:
 
-    * the trusted base is now exactly ONE process — the signer. Compromise it and
-      you are back in compromise_fixture's world. key-custody.md §8's open
-      "compromised signer" is not answered here; it is LOCALIZED — narrowed from
-      "wherever the agent ran" to a single boundary.
-    * the boundary needed a SECOND seam. reference-client v1's one closed verb,
-      propose_event, carried agent -> signer and was enough for auto-signed acts.
-      Escalation forced an approval RETURN path (inbox -> a cold-root approval ->
-      the log). The proposal seam alone cannot express "a human said yes."
+    * scope enforcement is localized in the signer object; broader custody and
+      deployment dependencies remain outside this fixture. Compromised-signer
+      behavior is not answered here.
+    * escalation uses a separate approval return path (inbox -> scripted
+      cold-root approval -> signer). The proposal path alone does not provide that
+      approval record.
 
-  Offered as a probe finding — the runtime expression of canon-ts LOCK A and
-  compromise_fixture's custody work, not settled doctrine. The crypto is real so
-  that "the key is not in this process" is a fact, not a claim; it is not a
-  security product.
+  The Ed25519 implementation and object boundaries are illustrative. This fixture
+  does not establish process isolation, custody assurance, or deployment security.
 """)
 
 

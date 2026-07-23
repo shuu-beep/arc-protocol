@@ -1,66 +1,56 @@
 #!/usr/bin/env python3
 """
-ARC cold-start fixture — legitimacy before anyone can know whom to trust.
+ARC cold-start fixture — three illustrative observer policies.
 
 What this is
 ------------
-The delegation-graph fixture showed that authority can be attributed locally,
-with no global identity — rooted-ness is the observer's fold parameter. This
-fixture pushes into the unstable region BEFORE that: the cold start, where
-legitimacy is not yet established and the log does not contain enough to
-establish it.
+The delegation-graph fixture computes rootedness from an observer-selected root.
+This fixture compares three additional observer policies at cold start, where the
+visible records do not establish hidden operator identity or real-world outcome
+quality.
 
 The claim under test:
 
     at cold start the log does not contain the information that would
-    distinguish an honest newcomer from a disguised Sybil. The distinction is
-    made by an observer's fold POLICY; policies legitimately disagree; and what
-    ARC should render is the disagreement itself — not a verdict.
+    establish hidden operator identity or real-world outcome quality. Observer
+    policies can return different readings; this fixture renders those readings.
 
-Four newcomers arrive, indistinguishable in kind on the log:
+Four newcomer patterns are represented:
 
-    nova      honest but unlinked — two real trades, one counterparty, no vouch
-    mint      a storefront pumped by a disposable swarm (sw1..sw3) whose shared
-              operator is NOT in the log — volume that looks like history
-    pact1/2   a coalition: mutual vouches, one casual outside tie, zero history
-    anointed  granted a mandate by an established root BEFORE any history —
-              authority arriving faster than reputation
+    nova      unlinked — two outcome attestations, one counterparty, no vouch
+    mint      three outcome attestations from keys privately stipulated to share
+              an operator; that relationship is not in the log
+    linked1/2 mutual vouches, one outside tie, and zero outcome history
+    pre-auth  a mandate from an established root before outcome history
 
-Three observers fold the SAME log, each with a root and a policy — all three
-policies are legitimate folds, and each one fails on a different newcomer:
+Three observers fold the same log, each with a root and an illustrative policy:
 
     observer-P  (root A)  path policy:    weight only via a live vouch/mandate
-                          path from my root        -> treats honest nova exactly
-                                                      like sybil mint: weight 0
+                          path from my root        -> gives nova and mint weight 0
     observer-H  (root A)  history policy: outcomes + distinct counterparties,
-                          no path needed            -> ranks mint's fake volume
-                                                      ABOVE nova's real history
+                          no path needed            -> ranks mint's authored volume
+                                                      above nova's thin record
     observer-T  (root B)  social policy:  vouches transitive to depth 2
-                                                     -> admits the coalition,
-                                                      until the coalition breaks
+                                                     -> includes the linked pair
 
-Two cuts of the log: "on arrival" and "after the collapse" (the anointing root
-withdraws its mandate; the coalition defects internally; two communities rule
-the SAME dispute about mint in opposite directions, and observers split along
-which ruling they honor). Between the cuts, the anointed agent moves in
-OPPOSITE directions under different policies — its authority dies while its
-earned reputation survives.
+Two cuts of the log are compared: "on arrival" and "later state." Between them,
+one root withdraws the pre-authorized mandate, one linked key retracts a vouch,
+and two communities issue different rulings on the same dispute. The path and
+history policies then return different readings for the pre-authorized key.
 
-What this fixture refuses to do (deliberately):
-  * no composite legitimacy score — each cell shows a categorical reading plus
-    the raw events it rests on (a single number would be the social-credit shape);
-  * no protocol-level identity verification — the generator KNOWS who is real
-    (it wrote the flow), and that knowledge is rendered separately as "the
-    omniscient view, available to no observer"; the folds never see it;
-  * no onboarding ladder, no minimum-edge doctrine, no new event type. Vouching
+Fixture limits:
+  * no composite score — each cell shows a categorical reading plus
+    the raw Events it rests on;
+  * no protocol-level identity verification — private generator stipulations are
+    rendered separately and are not inputs to the observer folds;
+  * no onboarding ladder, no minimum-edge requirement, no new event type. Vouching
     is `ATTEST rep.vouch`, retraction is `ATTEST rep.retraction` + `nullifies`
     — registry-style vocabulary over the five canonical types.
 
-The honest finding: the canon offers a newcomer exactly three exits from the
-cold start — earn edges slowly (nova), manufacture volume (mint), or borrow a
-weak tie (pact1, anointed) — and no observer can read off the log which exit
-produced the appearance in front of them. This is threat-model §18.1's
-adoption frontier seen from a single node. A fixture and a probe, not doctrine.
+This fixture groups three illustrative strategies — earned outcome claims,
+authored volume, or a borrowed tie. The visible records distinguish these paths;
+they do not prove hidden operator identity or real-world quality. This is a
+fixture and standalone probe, not a protocol policy.
 
 Run:  python3 coldstart_fixture.py
 """
@@ -80,16 +70,16 @@ NAMES = {
     "k:elder": "elder",
     "k:nova": "nova",
     "k:mint": "mint",
-    "k:sw1": "swarm-1", "k:sw2": "swarm-2", "k:sw3": "swarm-3",
-    "k:pact1": "pact-1",
-    "k:pact2": "pact-2",
-    "k:anointed": "anointed",
+    "k:sw1": "counterparty-1", "k:sw2": "counterparty-2", "k:sw3": "counterparty-3",
+    "k:pact1": "linked-1",
+    "k:pact2": "linked-2",
+    "k:anointed": "pre-authorized",
 }
 
 SUBJECTS = ("k:nova", "k:mint", "k:pact1", "k:pact2", "k:anointed")
 
 # Each observer = a root + a fold policy + which adjudicator it honors.
-# All three are legitimate folds; none of them is "the" reading.
+# All three are fixture policies; none is a base ARC requirement.
 OBSERVERS = (
     {"name": "observer-P", "root": "k:rootA", "policy": "path", "honors": "k:rootA",
      "blurb": "weight only via a live vouch/mandate path from my root"},
@@ -101,21 +91,20 @@ OBSERVERS = (
 
 CUTS = (
     ("on arrival", "2026-06-10T12:00:00Z"),
-    ("after the collapse", "2026-06-10T23:59:00Z"),
+    ("later state", "2026-06-10T23:59:00Z"),
 )
 
-# What only the generator knows. The folds never see this; the viewer renders
-# it separately, labeled as available to NO observer.
-GROUND_TRUTH = (
-    "mint and swarm-1..3 share one operator. The log does not contain this "
-    "fact — the swarm registered independent keys and disclosed nothing "
-    "(scenario 11: hidden siblings simply omit the linkage).",
-    "nova is honest. Nothing in the log distinguishes its thin real history "
-    "from the early stage of a patient Sybil.",
-    "the pact coalition had zero history and one casual outside tie; its "
-    "depth-2 legitimacy under observer-T rested entirely on that single vouch.",
-    "which of the three exits — earn, manufacture, borrow — produced each "
-    "appearance cannot be read off the log. That absence IS the cold start.",
+# Private generator stipulations. The folds do not receive these values, and the
+# viewer renders them separately.
+FIXTURE_STIPULATIONS = (
+    "mint and counterparty-1..3 share one operator. Each has a separate key; "
+    "the log does not link their operators.",
+    "The fixture separately stipulates nova's operator. The log's two outcome "
+    "attestations do not establish whether that operator is independent.",
+    "the linked pair had zero history and one casual outside tie; "
+    "observer-T's depth-2 path rested entirely on that single vouch.",
+    "the log does not identify whether each visible pattern came from independent "
+    "activity, coordinated volume, or a borrowed path.",
 )
 
 
@@ -146,7 +135,7 @@ class Event:
 
 
 def stub_sign(signer: str, body: bytes) -> str:
-    """MOCK. Real ARC uses Ed25519; a hash stands in so replay still verifies."""
+    """MOCK. This teaching fixture uses a deterministic hash for reproducible replay, not production security; ARC has no selected normative signature suite, so implementations and named profiles select and declare their suite."""
     return "stub:" + hashlib.sha256(signer.encode() + body).hexdigest()[:16]
 
 
@@ -162,8 +151,8 @@ def make(type_: str, signer: str, predicate: str, ts: str, **kw) -> Event:
 
 
 def verify_log(events: list[Event]) -> None:
-    """Verification IS replay: signature check + signer anchored by a prior KEY.
-    The swarm keys verify fine — anchoring is a log fact, legitimacy is not."""
+    """Fixture replay check: deterministic mock signature and prior KEY
+    registration only. It does not establish operators, outcomes, or conformance."""
     registered: set[str] = set()
     for ev in events:
         if ev.signature != stub_sign(ev.signer, ev.signing_bytes()):
@@ -176,7 +165,7 @@ def verify_log(events: list[Event]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# The fold: log -> one observer's legitimacy reading of one subject, at a cut.
+# The fold: log -> one observer's policy reading of one subject, at a cut.
 # Boundary logic lives here; the viewer renders the output and adds nothing.
 # ---------------------------------------------------------------------------
 
@@ -192,7 +181,7 @@ def _nullified_at(events: list[Event]) -> dict[str, str]:
 
 def _edges(events: list[Event], asof: str, kinds: tuple[str, ...],
            dead: dict[str, str], live_only: bool = True):
-    """Directed trust edges signer -> refs[0], recorded at or before the cut."""
+    """Directed vouch or mandate edges signer -> refs[0] at or before the cut."""
     preds = {"vouch": ("ATTEST", "rep.vouch"), "mandate": ("AUTHORIZE", "consent.mandate")}
     for e in events:
         if e.timestamp > asof or not e.refs:
@@ -226,22 +215,22 @@ def _bfs(events, root, asof, kinds, dead, *, max_depth=None, live_only=True) -> 
     return reach
 
 
-def project_legitimacy(events: list[Event], observer: dict, asof: str) -> dict:
+def project_reading(events: list[Event], observer: dict, asof: str) -> dict:
     """One observer's reading of every subject at one cut of the log.
 
-    Returns categorical verdicts plus the exact events each verdict rests on.
-    Deliberately NOT a score, and deliberately different per policy — the
-    disagreement between observers is the projection's real content. A verdict
+    Returns categorical verdicts plus the Events each verdict rests on.
+    This is not a score, and it differs by policy — the
+    disagreement between observers is the output being compared. A verdict
     whose path enters through a single FIRST edge is flagged (`hinge`): remove
     that one event and the subject becomes unreachable — a weak social link
-    carrying constitutional weight. (Narrow by design: hinge_of tests only the
+    carrying the selected policy result. (Narrow by design: hinge_of tests only the
     path's first edge, so a sole connector deeper in the path — one with
     alternative first edges — is not flagged by this fold.)"""
     dead = _nullified_at(events)
     root, policy, honors = observer["root"], observer["policy"], observer["honors"]
 
     def adjudication(subject: str):
-        """The ruling overlay — only rulings by the adjudicator THIS observer
+        """The ruling overlay — only rulings by the adjudicator this observer
         honors. Two communities can rule the same dispute in opposite
         directions; observers split along this line."""
         verdicts = []
@@ -294,7 +283,7 @@ def project_legitimacy(events: list[Event], observer: dict, asof: str) -> dict:
                 else:
                     verdict, cat = "NO PATH", "none"
                     detail = ("no vouch or mandate connects my root to this key — "
-                              "weight 0, honest or not")
+                              "weight 0 under this path policy")
         elif policy == "history":
             outs = [e for e in events
                     if e.type == "ATTEST" and e.predicate == "rep.outcome"
@@ -351,7 +340,7 @@ def project_legitimacy(events: list[Event], observer: dict, asof: str) -> dict:
 
 def matrix(events: list[Event], asof: str) -> list[dict]:
     """All observers' readings at one cut — the disagreement, computed."""
-    return [project_legitimacy(events, o, asof) for o in OBSERVERS]
+    return [project_reading(events, o, asof) for o in OBSERVERS]
 
 
 def changed_cells(events: list[Event]) -> list[dict]:
@@ -373,7 +362,7 @@ def changed_cells(events: list[Event]) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Participants — each holds one key and emits its OWN events into the ledger.
+# Participants — each holds one key and emits its own events into the ledger.
 # ---------------------------------------------------------------------------
 
 class Party:
@@ -394,8 +383,8 @@ class Ledger:
 
     def now(self) -> str:
         self._clock += 1
-        # Morning: arrivals (events 1..22, before cut 1 at 12:00). Midday: the
-        # anointed agent earns real history. Evening: the collapse.
+        # Morning: arrivals (events 1..22, before cut 1 at 12:00). Midday adds
+        # outcome claims; evening adds withdrawal, retraction, and rulings.
         hour = 9 if self._clock <= 22 else (13 if self._clock <= 24 else 19)
         return f"2026-06-10T{hour:02d}:{self._clock:02d}:00Z"
 
@@ -417,20 +406,20 @@ def generate_log() -> list[Event]:
     rootB = Party(led, "community-B", "k:rootB")
     elder = Party(led, "elder", "k:elder")
 
-    print("\n1. The established world — two community roots and one elder member")
+    print("\n1. Initial records — two community roots and one existing member")
     for p in (rootA, rootB, elder):
         p.emit("KEY", "id.key_register", payload={"key": p.key})
     rootA.emit("ATTEST", "rep.vouch", refs=("k:elder",),
                payload={"context": "market", "note": "long-standing member"})
 
-    print("\n2. nova arrives — honest, unlinked: two real trades, one counterparty")
+    print("\n2. nova arrives — unlinked: two outcome attestations, one counterparty")
     nova = Party(led, "nova", "k:nova")
     nova.emit("KEY", "id.key_register", payload={"key": nova.key})
     for n in (1, 2):
         elder.emit("ATTEST", "rep.outcome", refs=("k:nova",),
                    payload={"result": "positive", "context": "market", "trade": n})
 
-    print("\n3. mint arrives — with a disposable swarm whose shared operator is OFF the log")
+    print("\n3. mint arrives — three counterparties; their shared operator is a private stipulation")
     mint = Party(led, "mint", "k:mint")
     mint.emit("KEY", "id.key_register", payload={"key": mint.key})
     for k in ("k:sw1", "k:sw2", "k:sw3"):
@@ -438,11 +427,11 @@ def generate_log() -> list[Event]:
         sw.emit("KEY", "id.key_register", payload={"key": k})
         sw.emit("ATTEST", "rep.outcome", refs=("k:mint",),
                 payload={"result": "positive", "context": "market"})
-    say("generator", "sw1..sw3 are mint's own agents — the log records nothing of it")
+    say("generator", "the fixture stipulates that mint and counterparty-1..3 share an operator")
 
-    print("\n4. The pact — a coalition of newcomers with one casual outside tie")
-    pact1 = Party(led, "pact-1", "k:pact1")
-    pact2 = Party(led, "pact-2", "k:pact2")
+    print("\n4. Linked newcomers — mutual vouches and one outside tie")
+    pact1 = Party(led, "linked-1", "k:pact1")
+    pact2 = Party(led, "linked-2", "k:pact2")
     pact1.emit("KEY", "id.key_register", payload={"key": pact1.key})
     pact2.emit("KEY", "id.key_register", payload={"key": pact2.key})
     rootB.emit("ATTEST", "rep.vouch", refs=("k:pact1",),
@@ -451,10 +440,10 @@ def generate_log() -> list[Event]:
                         payload={"context": "market"})
     pact2.emit("ATTEST", "rep.vouch", refs=("k:pact1",), payload={"context": "market"})
     pact2.emit("ATTEST", "rep.vouch", refs=("k:mint",),
-               payload={"context": "market", "note": "coalition reaches outward"})
+               payload={"context": "market", "note": "links to mint"})
 
-    print("\n5. anointed arrives — authority BEFORE reputation")
-    anointed = Party(led, "anointed", "k:anointed")
+    print("\n5. pre-authorized arrives — mandate before recorded outcome history")
+    anointed = Party(led, "pre-authorized", "k:anointed")
     anointed.emit("KEY", "id.key_register", payload={"key": anointed.key})
     say("community-A", "granting a mandate to a key with zero recorded history")
     m_anointed = rootA.emit("AUTHORIZE", "consent.mandate", refs=("k:anointed",),
@@ -462,34 +451,35 @@ def generate_log() -> list[Event]:
 
     print("\n--- cut 1 (12:00): on arrival — fold the matrix here ---")
 
-    print("\n6. Midday — the anointed agent earns REAL history under its mandate")
+    print("\n6. Midday — the pre-authorized key gains outcome attestations")
     elder.emit("ATTEST", "rep.outcome", refs=("k:anointed",),
                payload={"result": "positive", "context": "market"})
     rootB.emit("ATTEST", "rep.outcome", refs=("k:anointed",),
                payload={"result": "positive", "context": "market"})
 
-    print("\n7. Evening — the collapse")
-    say("community-A", "confidence lost; withdrawing the anointed mandate")
+    print("\n7. Later records — withdrawal, retraction, dispute, and rulings")
+    say("community-A", "withdrawing the pre-authorized mandate")
     rootA.emit("AUTHORIZE", "consent.withdraw", refs=("k:anointed",),
                nullifies=(m_anointed.id,), payload={"reason": "confidence_lost"})
-    say("pact-1", "the coalition breaks from the inside")
+    say("linked-1", "retracting its vouch for linked-2")
     pact1.emit("ATTEST", "rep.retraction", refs=("k:pact2",),
-               nullifies=(v_p1p2.id,), payload={"reason": "defection"})
+               nullifies=(v_p1p2.id,), payload={"reason": "vouch_retracted"})
     pact1.emit("CHALLENGE", "dispute.open", refs=("k:pact2",),
                payload={"reason": "broke_agreement", "context": "market"})
-    say("elder", "mint's outcomes look coordinated; opening a dispute")
+    say("elder", "opening a dispute about mint's outcome pattern")
     d_mint = elder.emit("CHALLENGE", "dispute.open", refs=("k:mint",),
                         payload={"reason": "suspected_coordinated_outcomes",
                                  "context": "market"})
-    say("community-A / community-B", "the SAME dispute, ruled in opposite directions")
+    say("community-A / community-B", "issuing different rulings on the same dispute")
     rootA.emit("ADJUDICATE", "gov.warning", refs=("k:mint", d_mint.id),
                payload={"resolves": d_mint.id, "context": "market"})
     rootB.emit("ADJUDICATE", "gov.dismissal", refs=("k:mint", d_mint.id),
                payload={"resolves": d_mint.id, "context": "market"})
 
     verify_log(led.events)
-    print(f"\nGenerated log: {len(led.events)} signed events, none hand-written. "
-          "verify_log passes — the swarm included; anchoring is not legitimacy.")
+    print(f"\nGenerated log: {len(led.events)} mock-signed fixture Events. "
+          "The replay check passes with the counterparties included; key registration does "
+          "not establish hidden operator identity.")
     return led.events
 
 
@@ -518,14 +508,13 @@ def main() -> None:
         print(f"    {ch['observer']:<11} on {NAMES[ch['subject']]:<10} "
               f"{ch['before']}  ->  {ch['after']}")
 
-    print("\n--- the omniscient view — available to NO observer ---")
-    for t in GROUND_TRUTH:
+    print("\n--- generator-only stipulations — not inputs to observer folds ---")
+    for t in FIXTURE_STIPULATIONS:
         print(f"    * {t}")
     print("""
-The finding: no policy reads all four newcomers 'right', and 'right' is not in
-the log. The canon's three exits from cold start — earn edges, manufacture
-volume, borrow a tie — produce appearances the log cannot tell apart. ARC's
-job here is to render that uncertainty, not to resolve it.""")
+Fixture result: the three policies return different readings of the visible
+records. The log does not contain the private operator stipulations or establish
+real-world outcome quality.""")
 
 
 if __name__ == "__main__":

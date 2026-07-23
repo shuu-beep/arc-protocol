@@ -1,16 +1,16 @@
-# Information Sovereignty
+# User-Controlled Information Filtering
 
 > **Status:** Adjacent idea / speculative extension
-> **Purpose:** Explore how ARC's discovery philosophy may apply beyond commerce
-> This is not part of the core ARC commerce protocol.
+> **Purpose:** Explore user-controlled information filtering and discovery policy beyond commerce
+> This is adjacent research, not part of ARC's authority-protocol requirements.
 
 ---
 
 ## 1. Why This Is Separate
 
-ARC Protocol is currently focused on human-approved agent commerce.
+ARC is an implementation-neutral authority protocol. Commerce is its flagship application and first implementation profile.
 
-However, the same platform problem that appears in commerce also appears in information systems:
+A related platform concern appears in information systems:
 
 - social feeds
 - search results
@@ -18,7 +18,7 @@ However, the same platform problem that appears in commerce also appears in info
 - recommendation systems
 - community discovery
 
-In all of these systems, centralized platforms decide what people see, what is buried, and what becomes visible.
+In many of these systems, centralized platforms influence what people see, what is buried, and what becomes visible.
 
 This document explores a related question:
 
@@ -30,7 +30,7 @@ This is an adjacent idea, not a core protocol requirement.
 
 ## 2. The Platform Feed Problem
 
-Today, most people do not choose their information environment directly.
+Many people do not choose their information environment directly.
 
 They interact with feeds and recommendation systems optimized by platforms.
 
@@ -43,9 +43,9 @@ Those systems may optimize for:
 - retention
 - platform growth
 
-The user may believe they are choosing what to see, but the actual ordering, ranking, and repetition of information is often controlled by invisible systems.
+The ordering, ranking, and repetition of information are often influenced by systems users cannot inspect.
 
-This creates a sovereignty problem.
+This raises a user-control and inspectability question.
 
 Not because all recommendation is bad, but because users often cannot inspect, modify, or replace the systems that shape their attention.
 
@@ -69,15 +69,14 @@ Track communities discussing local commerce automation,
 but surface only posts with substantive technical or governance arguments.
 ```
 
-In this model, the agent does not decide for the platform.
-The user defines intent.
-The agent helps execute that intent.
+In this model, the user declares a curation policy.
+The agent applies it within declared capabilities and available sources.
 
 ---
 
 ## 4. The Filter Bubble Risk
 
-Information sovereignty must not become epistemic isolation.
+User-controlled curation can still produce epistemic isolation.
 
 A system that only shows users what they already like can become another kind of manipulation:
 
@@ -91,38 +90,37 @@ Replacing a platform algorithm with a personal filter does not automatically pro
 
 The danger changes form.
 
-Instead of being trapped inside a platform's engagement algorithm, users may trap themselves inside a comfort-optimized filter.
+Instead of depending entirely on a platform's engagement algorithm, users may create a comfort-optimized filter.
 
-ARC does not assume that personal preference alone is enough.
+This note does not assume that personal preference alone produces better understanding.
 
 ---
 
-## 5. Serendipity Margin
+## 5. Optional Out-of-Preference Discovery
 
-One possible design response is a Serendipity Margin.
+One possible design response is an optional out-of-preference discovery allocation.
 
-For example, a user might reserve a small margin of discovery for signals outside their normal preferences. The ratio and scope would be fully user-controlled.
+For example, a user might reserve a small share of discovery for signals outside their normal preferences. The ratio and scope would be user-controlled.
 
-The agent may use this margin to surface:
+The agent may use this allocation to surface:
 
-- credible disagreement
+- sources selected under a declared provenance rule
 - alternative community views
-- high-quality posts outside the user's usual interests
-- minority perspectives with strong evidence
-- random but verified discoveries
+- posts outside the user's usual interests that satisfy declared quality criteria
+- minority perspectives accompanied by evidence identified by the policy
+- random discoveries with disclosed provenance
 
-The goal is not to force unwanted content on users.
-The goal is to preserve the possibility of surprise, correction, and discovery.
+The stated aim would be to permit surprise, correction, and discovery without forcing content.
 
-**The sovereignty paradox:** Because user control is central to this adjacent idea, a user may set a serendipity margin to zero. That is an exercise of agency, but it may also create a highly personalized confirmation-bias environment.
+**The tension:** Because user control is central to this adjacent idea, a user may set the allocation to zero. That choice may also create a highly personalized confirmation-bias environment.
 
-This tension cannot simply be engineered away. This document does not claim to resolve it: the serendipity margin is an invitation, not a constraint, and the human retains the final choice.
+This document does not claim to resolve the tension: the allocation is optional, and the human retains the final choice.
 
 ---
 
 ## 6. User Control and Transparency
 
-Any serendipity mechanism should be:
+Any such mechanism should be:
 
 - user-configurable
 - visible
@@ -133,13 +131,13 @@ Any serendipity mechanism should be:
 The user should know why something appeared.
 
 ```txt
-Shown under serendipity margin:
+Shown under out-of-preference discovery:
 This post comes from a community you do not follow,
-but it has high trust from verified contributors
+but it is supported by evidence under the selected policy
 and challenges a topic you frequently read about.
 ```
 
-This preserves agency while reducing the risk of total self-confirmation.
+This is intended to preserve user choice while testing whether the mechanism reduces total self-confirmation.
 
 ---
 
@@ -147,15 +145,9 @@ This preserves agency while reducing the risk of total self-confirmation.
 
 This document does not propose that ARC should replace social networks, news feeds, or political discussion systems.
 
-It only records a possible future extension of ARC's discovery philosophy.
+It only records possible future discovery-policy research adjacent to ARC.
 
-Core ARC remains focused on:
+ARC's current protocol boundary is authority: scoped delegation, approval, revocation, adjudication, and audit.
+Commerce remains its flagship application and first implementation profile.
 
-- commerce
-- identity
-- reputation
-- human approval
-- community governance
-- transparent discovery
-
-Information sovereignty is an adjacent research direction.
+User-controlled information filtering is an adjacent research direction.
