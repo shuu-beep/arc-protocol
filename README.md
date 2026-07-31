@@ -263,6 +263,18 @@ Representative examples:
 - [`examples/refusal-recording-demo`](examples/refusal-recording-demo/) — shows
   how explicit refusal records can be folded into a comparable research surface.
 
+### Application reference implementation
+
+[ARC Execution Gate](https://github.com/shuu-beep/arc-execution-gate) is a
+minimal, non-normative reference implementation that evaluates ARC-derived
+authority immediately before dispatch to an external system. Its first example
+uses a simulated air-conditioner API to demonstrate delegated scope, exact
+human approval, revocation, exact request binding, and blocked dispatch.
+
+Its `ALLOW`, `DENY`, `REQUIRE_APPROVAL`, and `REVOKED` decision values and
+application policies are implementation-level behavior, not ARC Event types or
+extensions to ARC Canon.
+
 The current reference implementation passes the complete probe catalog. This
 provides executable evidence for the present protocol model and its documented
 semantics.
