@@ -10,6 +10,8 @@ Who allowed the agent to act? What exactly was delegated? When was human approva
 
 ARC extracts those recurring questions into a reusable protocol. Commerce remains its flagship application, but the protocol is designed for any domain where agents act under delegated authority.
 
+**[Why ARC?](docs/why-arc.md)** — How ARC differs from authentication, OAuth tool access, MCP, and execution runtimes.
+
 ---
 
 ## Table of Contents
@@ -263,21 +265,33 @@ Representative examples:
 - [`examples/refusal-recording-demo`](examples/refusal-recording-demo/) — shows
   how explicit refusal records can be folded into a comparable research surface.
 
-### Application reference implementation
+### Reference implementation stack
 
-[ARC Execution Gate](https://github.com/shuu-beep/arc-execution-gate) is a
-minimal, non-normative reference implementation that evaluates ARC-derived
-authority immediately before dispatch to an external system. Its first example
-uses a simulated air-conditioner API to demonstrate delegated scope, exact
-human approval, revocation, exact request binding, and blocked dispatch.
+```txt
+ARC Protocol
+      ↓ semantics
+ARC Reference Core
+      ↓ authority projection
+ARC Execution Gate
+      ↓ application policy
+dispatch
+```
 
-Its `ALLOW`, `DENY`, `REQUIRE_APPROVAL`, and `REVOKED` decision values and
-application policies are implementation-level behavior, not ARC Event types or
-extensions to ARC Canon.
+- **ARC Protocol** defines authority semantics. Its executable corpus currently
+  passes 14 probes.
+- **[ARC Reference Core](https://github.com/shuu-beep/arc-reference-core)**
+  computes current authority coverage, conflict status, and reason codes from
+  ARC evidence. It does not return application-level `ALLOW` or `DENY`
+  decisions. The current alpha baseline passes 93 tests.
+- **[ARC Execution Gate](https://github.com/shuu-beep/arc-execution-gate)**
+  combines the Core result with application policy to create a pre-dispatch
+  `GateDecision`. Its `software_deployment` consumer calls Reference Core
+  directly. The current baseline passes 69 tests.
 
-The current reference implementation passes the complete probe catalog. This
-provides executable evidence for the present protocol model and its documented
-semantics.
+The `software_deployment` connection is a simulated, structural-only
+integration. It does not establish production-grade signature verification,
+root trust, key provenance, or evidence completeness, and it does not connect
+to Cloudflare or a production deployment system.
 
 The next level of validation is independent: external review, separate
 implementations, adversarial testing, and real-world deployment experience.
