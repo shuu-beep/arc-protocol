@@ -413,6 +413,7 @@ The full roadmap is in [docs/roadmap.md](docs/roadmap.md).
 [Glossary](docs/glossary.md) ·
 [Future Protocol Spec](docs/future-protocol-spec.md) ·
 [Key Custody](docs/key-custody.md) ·
+[Why ARC?](docs/why-arc.md) ·
 [Trust Model Trade-offs](docs/trust-model-tradeoffs.md) ·
 [Landscape & Positioning](docs/landscape-and-positioning.md) ·
 [Liability Boundaries](docs/liability-boundaries.md) ·
