@@ -1,8 +1,9 @@
-# ARC Protocol: Commerce Reference-Application Threat Model
+# ARC Protocol: Authority and Reference-Application Threat Model
 
-> **Status:** Exploratory draft
+> **Status:** Non-normative research threat model; current boundaries clarified
 >
-> **Purpose:** Adversarial coordination analysis for the Commerce reference application, with protocol-general risks identified where applicable
+> **Purpose:** Preserve the Commerce adversarial catalog while making the
+> production authority/enforcement boundary explicit.
 >
 > For protocol mechanics, see [protocol.md](./protocol.md).
 >
@@ -16,13 +17,28 @@
 
 ## 1. Scope
 
-This document is not a complete security specification.
+This document is not a complete security specification or evidence that ARC is
+an independent security boundary.
 
 ARC is an implementation-neutral authority protocol; Commerce is its flagship application and first implementation profile. This document analyzes that application and assumes that hostile behavior, fraud, manipulation, collusion, and governance failure are normal risks in an open Commerce system. Signature, key-custody, authority, evidence, and observer-surface risks may also apply beyond Commerce.
 
 The goal of this threat model is not to prove that ARC can prevent all abuse.
 
-The goal is to make likely failure modes visible early enough that protocol semantics, Commerce application policy, named Projections, governance research, and deployment choices can be reviewed under adversarial pressure.
+The goal is to make failure modes visible across protocol semantics,
+application policy, evidence handling, and deployment enforcement.
+
+For a real side effect, a deployment must separately protect the signing key,
+authority store, approval channel, downstream credential, dispatch service, and
+target path. Protocol records, a client hook, Reference Core, or the current
+Execution Gate examples do not by themselves prevent hook deletion, process
+termination, credential theft, direct API calls, Event/key substitution, or an
+alternate network path.
+
+An ARC-aware design can remain meaningful after an agent-runtime compromise
+only when the relevant signer, current authority state, credential, approval
+channel, and enforcement point remain outside that runtime's control and the
+target rejects bypass paths. The current repositories do not deploy that
+architecture.
 
 Unless a passage identifies a protocol-general signature, authority, or evidence risk, the identity, reputation, discovery, governance, payment, refund, and UI scenarios below are Commerce application threats; infrastructure and privacy scenarios are deployment threats; and the adoption frontier is research.
 
@@ -76,6 +92,27 @@ This document groups risks into several categories:
 | Infrastructure attacks | Relay surveillance, backend concentration, dependency capture      |
 
 These categories overlap. A serious attack may combine several of them.
+
+### 3.1 Multi-Principal Transaction Threat Chain
+
+The Buyer Agent/Seller Agent profile creates a cross-party threat chain that
+cannot be reduced to one runtime's permission prompt:
+
+| Threat | Failure | Required boundary |
+| --- | --- | --- |
+| counterparty identity substitution | endpoint/key is mistaken for the represented principal or authorized Agent | external identity root, Agent/principal binding, key provenance |
+| offer mutation | price, item, seller, delivery, or cancellation terms change after review | attributable offer evidence and exact application binding |
+| stale evidence or decision | old mandate, standing view, or Gate result is reused after the Event set or `as_of` changes | Projection identity, fresh recomputation, dispatch-time check |
+| authority withdrawal | future acts continue under a causally withdrawn mandate | current Event set, authorized `nullifies`, profile ordering |
+| conflicting claims | one side or concurrent authorities present incompatible current histories | preserve `CONTESTED`; do not select by timestamp alone |
+| missing evidence | a party withholds negative, withdrawal, challenge, or key-lifecycle records | explicit observer surface and evidence-completeness contract |
+| collusion/reputation manipulation | nominally independent Agents manufacture positive outcomes or strategic disputes | contextual policy, diversity/correlation checks, bounded claims |
+| direct-path bypass | Agent skips the ARC-aware hook/Gate and calls the target with a stolen credential | independent credential owner, PEP, network/IAM path closure |
+| dispute-evidence laundering | a signed claim or ruling is treated as external truth or legitimate authority | profile-recognized adjudicator plus external procedure/enforcement |
+
+ARC can represent or expose parts of these failures. It does not automatically
+prevent them. Identity, evidence availability, credential custody, target
+enforcement, and real dispute institutions remain deployment responsibilities.
 
 ---
 
@@ -726,8 +763,14 @@ The threat model suggests several design directions:
 * minimize public exposure of sensitive transaction data
 * treat governance as attackable
 * treat AI outputs as fallible
+* keep signing keys and downstream credentials outside an untrusted agent runtime
+* close direct target and alternate network paths at the target/IAM boundary
+* bind an exact current decision to the request checked at dispatch
+* treat process-local replay detection as distinct from durable atomic consumption
+* require target-side idempotency and reconciliation for consequential effects
 
-These are not complete solutions. They are pressure points for future design and implementation.
+These are not complete solutions or an active implementation plan. They are
+ownership boundaries for evaluating any future deployment claim.
 
 ---
 
@@ -771,7 +814,12 @@ Each claim should be judged by what its declared observer surface makes verifiab
 
 Why a counterparty would choose to honor a particular community's authority — rather than ignore, fork, or decline it — remains an open question. Current probes do not establish adoption incentives or willingness to honor ARC authority. The Canon can represent a sanction and a named policy can select which authority it honors, but the corpus does not model the incentive to honor it.
 
-The question belongs to coordination economics: switching costs, network effects, authority-recognition signals, and application incentives. This document uses "why might a party not honor this authority" as its selected research framing. [`adoption-and-defection.md`](adoption-and-defection.md) groups possible responses into wait, defect, fork, and reject categories, then treats countering mechanisms as hypotheses rather than claims.
+The question belongs to coordination economics: switching costs, network
+effects, authority-recognition signals, and application incentives. Earlier
+research grouped possible responses into wait, defect, fork, and reject. The
+current corpus does not establish broad adoption, but market demand is not a
+precondition for protocol research or the technical value of an executable
+reference model.
 
 A fixture in the reference client ([`examples/reference-client`](../examples/reference-client/), `coldstart_fixture.py`) models three illustrative cold-start paths: slowly earning edges, manufacturing volume with undisclosed agents, and borrowing an established party's weak tie. Three supplied observer policies return different readings over the same fixture Events, and each misses a different private generator classification. The fixture demonstrates policy-relative outputs for those inputs; it does not exhaust real cold-start paths, establish legitimacy, or guarantee that a deployment renders every disagreement.
 

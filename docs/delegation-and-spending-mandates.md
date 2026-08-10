@@ -6,7 +6,7 @@
 >
 > This is not a new feature proposal. Delegation is expressed entirely with the existing Canon: the `AUTHORIZE` event, its `scope`, and the `nullifies` field. It introduces no new primitive, no new event type, no new Canon, and no new governance structure.
 >
-> For authority boundaries, see [authority-and-conflict.md](./authority-and-conflict.md). For the `AUTHORIZE` event and `nullifies`, see [event-registry.md](./event-registry.md). For projection, see [object-model.md](./object-model.md). For approval fatigue, see [threat-model.md](./threat-model.md) §9.1. For the original mention of intent-based delegation, see [philosophy.md](./philosophy.md) §5.1.
+> For authority boundaries, see [authority-and-conflict.md](./authority-and-conflict.md). For the `AUTHORIZE` event and `nullifies`, see [event-registry.md](./event-registry.md). For projection, see [object-model.md](./object-model.md). For approval fatigue, see [threat-model.md](./threat-model.md) §9.1. Earlier Commerce-origin material first mentioned intent-based delegation.
 
 ---
 
@@ -45,7 +45,7 @@ The first has prior human-authored coverage; the second does not. A very broad o
 
 A mandate is an `AUTHORIZE` that covers a *class* of future actions within explicit limits instead of one act-specific target. A spending mandate (`consent.mandate`) is the flagship Commerce-profile example. It is the same primitive as an approval, with a wider referent — not a new event type.
 
-It is the consumer-side counterpart to the provider-side credential scope already in [identity.md](./identity.md) §2.3 (`agent_scope`). Earlier documents mentioned consumer delegation but never specified it ([philosophy.md](./philosophy.md) §5.1, [README](../README.md) §4); here it is expressed in Canon terms.
+It is the consumer-side counterpart to the provider-side credential scope discussed in [identity.md](./identity.md) §5 (`agent_scope`). Earlier Commerce-origin documents mentioned consumer delegation but never specified it; here it is expressed in Canon terms.
 
 A mandate is **evidence** — a signed `AUTHORIZE`. Whether a given action is *covered* by it is a **Projection** ([object-model.md](./object-model.md) §4): under a named profile, fold the mandate, relevant prior actions, and any `nullifies`, then compare the candidate action with the declared scope. The "state" of a mandate (active, expired, exhausted, revoked) is therefore a projected view, not a stored field. This description does not by itself supply deterministic cross-parser meaning or atomic cumulative consumption.
 
@@ -95,7 +95,7 @@ Delegation is often proposed as the answer to approval fatigue ([threat-model.md
 
 This is the same warning-fatigue pattern discussed in [authority-and-conflict.md](./authority-and-conflict.md) §7. With delegation, the risk moves from *prompt frequency* to *mandate-design quality* and *audit-review quality*. A broad mandate that is never reviewed may provide weak evidence of continuing, attentive oversight.
 
-[philosophy.md](./philosophy.md) §5.1 records this exact tension: intent-based delegation may reduce prompts, but both excessive prompts and unread audit logs weaken meaningful attention. ARC does not claim delegation solves it.
+Earlier Commerce-origin research recorded this exact tension: intent-based delegation may reduce prompts, but both excessive prompts and unread audit logs weaken meaningful attention. ARC does not claim delegation solves it.
 
 Delegation can trade frequent act-specific decisions for less frequent mandate decisions. Whether that improves review depends on mandate quality, revisit cadence, and interface behavior; those effects remain unmeasured.
 

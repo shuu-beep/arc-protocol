@@ -2,7 +2,10 @@
 
 > ARC Protocol is an open-source protocol research project.
 > ARC is published under Apache-2.0 and is currently stewarded by one maintainer. Interoperability and future stewardship remain open work.
-> Research collaboration, independent implementation experiments, commercial work, grants, sponsorship, and stewardship proposals are welcome. Proposed changes must identify their semantic layer and any conformance impact.
+> Critical review, independent reproduction, security analysis, protocol
+> research, conformance work, and documentation corrections are welcome.
+> Production and adoption claims require separate evidence. Proposed changes
+> must identify their semantic layer and any conformance impact.
 
 ---
 
@@ -56,7 +59,7 @@ Contributions about agent delegation, governance, authority, and audit design sh
 
 The `docs/` folder contains normative, explanatory, application, historical, and research material. If you see something unclear, incomplete, or wrong — identify its layer, fix it, and submit a pull request.
 
-Documents that need the most work:
+Documents that most benefit from review:
 - `docs/protocol.md` — current protocol mechanics, boundaries, and reference-profile distinctions
 - `docs/identity.md` — exploratory identity, credential, and trust model
 - `docs/reputation.md` — exploratory Commerce reputation Projection/application model
@@ -73,17 +76,21 @@ Good proposals include:
 - Trade-offs you're aware of
 - Alternatives you considered
 
-### 5. Build Something
+### 5. Reproduce or Test Something
 
 The `examples/` directory is intended for working demonstrations of protocol concepts.
 
-If you want to build:
-- A simulated consumer agent
-- A mock merchant agent
-- A basic approval UI
-- A reputation scoring prototype
+Useful bounded work includes:
+- an independent implementation of a named Projection/profile
+- adversarial vectors for authority, ordering, completeness, and exact binding
+- a production-boundary critique covering credential ownership and bypass paths
+- reproduction of the existing probes without widening their claims
+- a separately approved multi-principal profile or example with explicit layer
+  and conformance boundaries
 
-Go ahead. Document what you built and why. Working code that demonstrates a concept is worth more than abstract discussion.
+New product surfaces, production integrations, and adoption claims require
+separate scope and evidence. Absence of current market demand does not freeze
+protocol research or conformance work.
 
 ### 6. Translate
 
@@ -100,11 +107,11 @@ Substantive semantic changes must identify their layer and evidence. Debate abou
 
 ---
 
-## Code Style (When Code Exists)
+## Code Style
 
-When the codebase grows, we'll add specific style guides. For now:
+For changes to the existing executable corpus:
 
-- TypeScript preferred
+- Match the language and style of the affected probe
 - Functional where practical
 - Document the why, not just the what
 - Tests for anything that handles money or identity
@@ -130,19 +137,6 @@ Be direct. Be honest. Disagree openly and argue from evidence.
 Don't be cruel. Don't make it personal.
 
 That's it.
-
----
-
-## Adjacent Ideas
-
-Some future-facing ideas, such as agent-mediated collaboration or user-controlled information filtering, are discussed separately in `docs/adjacent-ideas/`.
-
-These are not core protocol requirements.
-They are speculative extensions and should not be treated as current ARC scope.
-
-Future ARC-adjacent ideas may explore machine-readable collaboration intent and opt-in contributor discovery, where projects and contributors publish compatible intent and agents help humans find matches.
-
-For now, contribution remains entirely human-directed. The adjacent collaboration proposal assumes opt-in contact; base ARC does not define an outreach policy.
 
 ---
 

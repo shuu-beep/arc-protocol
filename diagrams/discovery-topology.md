@@ -1,41 +1,42 @@
-# ARC Commerce Reference Application: Discovery Topology
+# ARC Commerce Application: Discovery Topology Choices
 
-> **Purpose:** Visual reference for the Commerce flagship application's multi-backend discovery policy
-> This diagram describes application policy, not ARC Canon.
-> For discovery layer detail, see [docs/architecture.md](../docs/architecture.md).
-> For sponsored discovery and manipulation risks, see [docs/threat-model.md](../docs/threat-model.md).
-
-## Topology Diagram
+> **Status:** Non-normative application boundary diagram
+> **Purpose:** Show how independent counterparties may find one another without
+> making discovery an ARC service or Canon concern.
 
 ```mermaid
 flowchart LR
-    U["Human User"] --> CA["Consumer Agent"]
-
-    CA --> DB1["Local Community\nRegistry"]
-    CA --> DB2["External Map\nProvider"]
-    CA --> DB3["Reputation-Weighted\nIndex"]
-    CA --> DB4["Category Directory\nfood · logistics · services"]
-
-    DB1 --> MA1["Merchant Agent A\nlocal registry signal"]
-    DB2 --> MA2["Merchant Agent B\nmap-listed"]
-    DB3 --> MA3["Merchant Agent C\nreputation inputs available"]
-    DB4 --> MA4["Merchant Agent D\ncategory-specific"]
-
-    DB1 -. "sponsored: disclosed" .-> MA1
-    DB3 -. "sponsored: disclosed" .-> MA3
-
-    CA --> SWITCH["Optional backend\nselection"]
-    SWITCH --> DB1
-    SWITCH --> DB3
-
-    CA --> FILTER["User-defined filters\nreputation threshold\ncategory\ngeography"]
-    FILTER --> CA
+    P["Principal A"] --> B["Buyer Agent"]
+    B --> X{"External discovery choice"}
+    X --> C["Closed platform\nmarketplace or app directory"]
+    X --> F["Federated/community\nregistry or broker"]
+    X --> O["Open/decentralized\nindex or published endpoint"]
+    X --> D["Direct known\ncounterparty"]
+    C --> S["Seller Agent"]
+    F --> S
+    O --> S
+    D --> S
+    S --> Q["Principal B"]
 ```
 
-## Notes
+## Boundary
 
-- Within this Commerce profile, any discovery backend may include sponsored placement only when it is disclosed under that application policy.
-- This Commerce profile models user-selectable backends. That is an application backend-choice policy, not ARC Canon.
-- No single backend is mandatory or canonical within this illustrative profile.
-- Reputation indexes and local registries may overlap. The consumer agent may query multiple sources.
-- This topology is illustrative. Real deployments may vary based on community and region.
+- ARC does not prescribe, operate, or certify a discovery provider.
+- Discovery may be centralized, federated, community-operated, open,
+  decentralized, or direct. No option is canonical.
+- A directory result, ranking, Agent Card, endpoint, or marketplace listing is
+  not proof of identity, current authority, inventory, reputation, or honesty.
+- Contact and capability exchange are transport/application messages. They do
+  not become ARC Events unless an application deliberately records a relevant
+  signed claim using the existing Canon.
+- Sponsored placement, suppression, stale listings, Sybil entries, and
+  selective visibility remain discovery/application threats.
+
+After discovery, an application may use A2A, HTTP, FIPA interaction patterns,
+UCP, ACP, or another transport and commerce protocol. ARC's separate question
+is how declared signed authority and standing evidence is interpreted when the
+counterparties interact.
+
+See [Architecture](../docs/architecture.md),
+[Landscape and Positioning](../docs/landscape-and-positioning.md), and the
+[Threat Model](../docs/threat-model.md).

@@ -1,166 +1,278 @@
-# ARC Protocol: Landscape and Positioning
+# ARC Protocol: Current Landscape and Positioning
 
-> **Status:** Exploratory positioning note
->
-> **Purpose:** ARC is an implementation-neutral authority protocol for delegation among principals and agents over consequential actions. Commerce is its flagship application and first implementation profile, and therefore the comparison domain used here. This note locates ARC among the agent and commerce systems emerging in 2026 — beginning with what ARC is *not* — so external readers do not mistake it for a tool-use layer, an agent-interop layer, a checkout standard, a marketplace, a payment network, or a blockchain protocol.
->
-> This is positioning, not comparison-for-advantage. ARC does not claim to replace or outperform any system named here. Descriptions of external systems reflect ARC's current understanding and may be imprecise or out of date; they are not authoritative and may change.
->
-> For motivation, see [philosophy.md](./philosophy.md). For what ARC stores and computes, see [object-model.md](./object-model.md) and [event-registry.md](./event-registry.md). For authority boundaries, see [authority-and-conflict.md](./authority-and-conflict.md). For what remains unspecified, see [future-protocol-spec.md](./future-protocol-spec.md).
+> **Status:** Non-normative comparison, verified against official/primary
+> sources as of 2026-08.
+> **Purpose:** Distinguish operational composability from semantic equivalence
+> and separate technical difference from market adoption.
 
----
+## 1. Fixed Comparison Scenario
 
-## 1. Why This Document Exists
+```text
+Principal A
+  -> bounded delegation
+Buyer Agent
+  <-> Seller Agent
+  <- bounded seller-side authority/application constraints
+Principal B
+```
 
-Agent commerce in 2026 is not a single product but a layered stack of standards, and ARC is easy to misfile. A reader meeting ARC for the first time may reasonably assume it is "another checkout protocol," "another agent framework," or "an on-chain trust registry." It is none of those.
+The Buyer Agent may buy one qualifying item for no more than KRW 20,000 under
+quality and delivery constraints. The Seller Agent may propose price,
+configuration, availability, delivery, and cancellation terms. The Agents may
+discover, propose, counter, refuse, accept, escalate, transact, report outcomes,
+withdraw authority, and dispute claims.
 
-The clearest way to describe a narrow layer is to say which layers it is not. This document therefore locates ARC by contrast first, then states the small thing it actually tries to be.
+This comparison does not assume that ARC proves the Seller Agent's complete
+internal delegation chain. It compares the semantics and boundaries actually
+documented or exercised.
 
-It also makes the surrounding landscape explicit. Earlier ARC documents referred only to "multiple organizations exploring agent commerce" without naming anyone (see [future-protocol-spec.md](./future-protocol-spec.md) §1). Naming the neighboring systems is not a competitive move; it is so a reader can place ARC correctly.
+## 2. Layer Map
 
-## 2. What ARC Is
-
-ARC is, as currently understood, an authority layer for three things ([README](../README.md)):
-
-- **Principal-rooted authority and delegation** — consequential acts require Current Coverage from authority granted by the responsible principal or authority holder. Current ARC profiles are typically human-rooted; delegation is scoped and never self-widening.
-- **Portable authority** — ARC is designed to support portable authority evidence between agents and implementations under future named interoperability profiles; a recipient may honor or decline authority from another context.
-- **Recomputable audit** — named Projections fold identified Event sets under declared policy and ordering inputs. External Record Verification, independent recomputability, and public recomputability are separate claims.
-
-Commerce is ARC's **flagship application and first implementation profile, not its definition**, and the domain in which the comparisons below (§4–§11) are drawn — because that is where ARC first meets neighboring systems. In a current human-rooted Commerce profile, a purchase folds to the same primitives as other delegation: a merchant's offer is an `ATTEST`, the human's approval an `AUTHORIZE`, a dispute a `CHALLENGE`, a community ruling an `ADJUDICATE`. It remains an exploration, not a finished protocol ([future-protocol-spec.md](./future-protocol-spec.md)).
-
-In Canon terms ([object-model.md](./object-model.md), [authority-and-conflict.md](./authority-and-conflict.md)), ARC reasons over signed **Events**, computes relationships and reputation as on-demand **Projections**, and locates final authority with the party legitimately responsible for an action and its risk, while communities act only within declared commons and authority profiles — never with an algorithm. Current ARC profiles are typically human-rooted. Named application profiles may govern how Projection outputs are used; no universal score is authoritative protocol state.
-
-ARC's intended stance is an **overlay, not a replacement**: anti-dependency, not anti-company. It is most useful if the other layers below thrive.
-
-## 3. What ARC Is Not
-
-ARC is not:
-
-- a tool-use / capability layer (compare MCP, §4)
-- an agent-to-agent interop or transport layer (compare A2A, §5)
-- a checkout or commerce-semantics standard (compare ACP, §6)
-- a marketplace or platform operator (§7)
-- a payment network, wallet, or settlement rail (§8)
-- a blockchain protocol or on-chain registry (§9)
-
-Consistent with the rest of the corpus, ARC is also not a full-autonomy framework — its authority boundary is a hard constraint, not a removable feature. Current Commerce profiles are typically human-rooted ([philosophy.md](./philosophy.md), [roadmap.md](./roadmap.md)) — and ARC is not a token project ([roadmap.md](./roadmap.md)).
-
-## 4. ARC vs MCP
-
-MCP standardizes how an agent connects to external tools and data sources — a capability and transport concern: how an agent reaches a calendar, a database, or a service.
-
-ARC does not define tool connection. It assumes agents can already act, and asks a different question: by what authority may an agent perform a consequential act, and what signed evidence supports that authority and its audit? Commerce is the example used in this comparison.
-
-These are different layers. An ARC-compatible agent could use MCP to reach its tools; nothing in ARC competes with that.
-
-## 5. ARC vs A2A
-
-A2A standardizes how independent vendor agents discover and delegate to one another — an interoperability and communication concern: how agents talk.
-
-ARC is not a general agent-interop transport. It concerns authority over consequential agent-mediated acts; this comparison uses the narrower Commerce application — signed offers, approval, reputation, dispute, governance. ARC could ride on an A2A-style transport, or on others; it does not specify the transport.
-
-Different problem, not a rival: A2A asks "how do agents communicate?"; ARC asks "what authority covers an agent's consequential act, and what evidence records that coverage?"
-
-## 6. ARC vs Commerce Checkout Standards
-
-Commerce checkout standards — ACP and similar approaches — define product discovery, cart, and checkout so an agent can complete a purchase, often with merchant-owned checkout and a scoped payment token.
-
-ARC does not define checkout semantics and does not execute purchases. The Commerce profile applies its authority and audit semantics *around* such a transaction: did the unchanged act have Current Coverage; what does the named merchant-reputation Projection show from the available evidence; how is a dispute recorded.
-
-These can compose rather than collide. A plausible Commerce-profile sequence is: ARC authority coverage → checkout execution via a commerce standard → an ARC reputation claim recorded afterward.
-
-## 7. ARC vs Marketplace
-
-A marketplace aggregates buyers and sellers and operates discovery, ranking, fees, support, and dispute resolution under a single operator. Marketplaces provide real value — demand aggregation, trust signals, support, fraud handling — and ARC does not deny this ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md) §3).
-
-ARC is not a platform operator and runs no marketplace. It explores open, replaceable discovery backends and community governance instead of a single operator, and it provides no built-in demand and guarantees no participation ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md)).
-
-This is a structural difference, not a claim of superiority. In many respects ARC offers *less* than a mature marketplace. The open question ARC raises is whether some coordination functions can be made inspectable, portable, and less concentrated — not whether marketplaces should go away.
-
-## 8. ARC vs Payment Network
-
-Payment networks, wallets, and settlement rails move money. ARC does not ([architecture.md](./architecture.md) §4.2, [liability-boundaries.md](./liability-boundaries.md)). ARC selects no payment provider; regional integration remains application/profile work.
-
-In Canon terms, a payment-result claim enters ARC only as an `ATTEST` about an external transfer ([event-registry.md](./event-registry.md)): ARC records the claim, it does not settle the funds.
-
-So the Commerce profile depends on payment networks rather than competing with them. Payment execution stays with the provider, and the application proceeds only when the act has Current Coverage.
-
-### 8.1 Agent-Native Monetization Gateways (x402)
-
-A newer variant of the settlement layer deserves its own note, because it begins from the same observation ARC does. Cloudflare's **Monetization Gateway** (announced 2026-07-01, [blog.cloudflare.com/monetization-gateway](https://blog.cloudflare.com/monetization-gateway/)) is built on **x402**, an open protocol that revives the HTTP `402 Payment Required` status code: a server prices a request, the client pays in stablecoins, a facilitator verifies the payment, and the resource is delivered — per request, at sub-cent granularity, proxied at the edge. Agent identity is handled by a separate verification mechanism (Web Bot Auth), and the announcement explicitly anticipates agents that "carry wallets" and purchase autonomously.
-
-One possible overlap is a research question: increased agent traffic may change how conventional advertising or subscription models perform. ARC's historical Commerce material anticipated that possibility, but the corpus does not establish an "agent-first internet" or its business-model effects ([philosophy.md](./philosophy.md)).
-
-From that shared premise the two systems diverge into different layers:
-
-- **x402 makes the request a transaction.** Its question is *how does an agent pay*, and a facilitator applies the payment profile's checks. ARC's question is *by what authority did the agent act*: can an observer recompute Current Coverage from the declared Event set, named Projection/profile, and ordering inputs ([event-registry.md](./event-registry.md))?
-- **Wallet authorization is profile-specific.** A wallet transaction demonstrates satisfaction of that wallet or payment profile's authorization checks. It does not by itself establish faithful interpretation of a principal's intent. ARC separately represents act-specific or mandate-scoped authority granted by a principal or authority holder ([key-custody.md](./key-custody.md)).
-- **The verification dependencies differ.** The gateway model uses its facilitator and edge operator for payment checks. ARC's authority semantics do not require one deployment topology: a named deployment may use a central verifier, while stronger external or independent claims require the corresponding observer evidence surface ([authority-and-conflict.md](./authority-and-conflict.md)).
-- **Per-outcome pricing re-opens the record/referent boundary.** The announcement cites pricing "paid only when the work succeeds." Outcome-based pricing therefore requires an external determination mechanism. ARC can record related claims, challenges, and adjudications without proving the outcome ([event-registry.md](./event-registry.md) §2.4).
-
-These layers compose rather than collide. An x402 payment enters ARC the same way any settlement does — as an `ATTEST` about an external transfer (§8 above) — and ARC's Current Coverage boundary addresses a question x402 leaves open: whether the agent presenting the payment was authorized by its principal to make it. Conversely, x402 is a plausible settlement rail *underneath* an ARC-covered purchase.
-
-An incumbent gateway may have lower deployment friction with existing customers, but implementation cost and seller uptake are not established. This is the same adoption question §10 raises for closed platforms ([threat-model.md](./threat-model.md) §18.1). As elsewhere in this document, the comparison reflects ARC's current reading of a recently announced system and may become outdated.
-
-## 9. ARC vs Blockchain Protocol
-
-Blockchain protocols provide shared, manipulation-resistant ledgers and consensus. Some target agent trust directly, for example on-chain identity and reputation registries.
-
-ARC does not prescribe a storage or settlement backend ([philosophy.md](./philosophy.md) belief 5, [architecture.md](./architecture.md) §1.1). An implementation may use centralized services, federated or community-operated systems, a shared ledger, a blockchain, or combinations of them, provided the event, projection, and authority semantics remain intact. A chain may carry records or checkpoints or sit beneath external settlement; ARC itself supplies neither consensus nor settlement.
-
-The design difference is not chain versus no chain. ARC defines signed Events as canonical records and permits named Projections over declared inputs, rather than making a global score or persistent profile a protocol primitive ([object-model.md](./object-model.md)).
-
-Where some systems explore trust as *computed* on shared infrastructure, the current Commerce/reputation research explores trust as *governed* through a community process over evidence, with no authoritative stored universal score. "Computed" and "governed" are positioning language, not ARC protocol primitives. Both approaches are unproven, and base ARC mandates neither topology.
-
-## 10. ARC vs Closed Agent Commerce
-
-Sections §4–§9 contrast ARC with neighboring *layers* it composes with. This contrast is different in kind. A closed agent-commerce platform is not a layer ARC sits beside; it is an alternative way the whole stack could be organized. Both could exist, but they embody opposite bets about where coordination lives.
-
-One research hypothesis has a familiar shape: a large marketplace or super-app (an Amazon- or Coupang-style operator) extends into agent commerce by running the buyer's agent, discovery, ranking, advertising, and checkout as one closed loop. This carries practical advantages: demand is aggregated, fraud may be handled centrally, the interface is familiar, and existing users, merchants, and payment relationships may lower adoption friction. This is structural inference, not observed ARC adoption evidence. In the adoption scenarios described in [bootstrap-and-incentives.md](./bootstrap-and-incentives.md), the incumbent closed path may have lower initial friction. ARC has no evidence that resolves the comparison.
-
-What such a structure concentrates is an application-design question. When the operator owns both the buyer's agent and the seller's storefront, the buyer's agent is also the seller's gatekeeper, creating a potential conflict of interest. Candidate differences include:
-
-| Closed agent commerce | ARC Commerce application's contrasting research bet |
-| --- | --- |
-| Ranking controlled by one operator | A Commerce profile may offer alternative backends and disclose ranking inputs (§7) |
-| Operator-computed trust score | The research model explores community process over evidence and no authoritative universal score (§9) |
-| Merchant exit governed by platform terms | The research model explores contextual portability with unresolved inter-community costs ([trust-model-tradeoffs.md](./trust-model-tradeoffs.md)) |
-| Sponsorship disclosure set by operator policy | A named Commerce policy may require sponsorship disclosure (`discovery-bias.json`; [event-registry.md](./event-registry.md)) |
-| Agent authority set by platform policy | ARC represents Current Coverage from authority granted by the responsible principal or authority holder for consequential acts; current ARC profiles are typically human-rooted ([delegation-and-spending-mandates.md](./delegation-and-spending-mandates.md)) |
-
-None of this is a claim that closed platforms are illegitimate or should disappear. They provide application functions that some users may prefer, and the current Commerce research has no adoption evidence against them ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md)). A named deployment may expose ranking inputs or support alternative operators, but base ARC does not guarantee either property. Whether those choices affect adoption remains the open question in [threat-model.md](./threat-model.md) §18.1.
-
-## 11. Why These Systems Can Coexist
-
-The layered systems in §4–§9 mostly occupy different layers:
-
-| Layer | Example concern | ARC's relation |
+| Layer | Examples | Primary responsibility |
 | --- | --- | --- |
-| Tool access | reaching tools and data (MCP) | ARC uses, does not define |
-| Agent interop | agents discovering and delegating (A2A) | ARC may ride on, does not specify |
-| Checkout semantics | discovery, cart, checkout (ACP) | ARC wraps with approval and trust records |
-| Platform operation | aggregated marketplace | ARC explores an open alternative function |
-| Settlement | moving money (payment networks, x402-style gateways §8.1) | ARC depends on, records as `ATTEST` |
-| Shared ledger | manipulation-resistant records (blockchain) | Optional implementation or external settlement layer; not an ARC semantic |
+| Discovery and Agent transport | A2A, UCP profiles, FIPA broker, marketplace directories, HTTP | find and communicate with a counterparty |
+| Negotiation/application messages | FIPA Contract Net/Iterated Contract Net, A2A messages, application ontology | proposal, counter-round, refusal, acceptance, deadline |
+| Commerce state | ACP, UCP, seller/order systems | checkout, inventory, order, fulfillment, cancellation |
+| Buyer authorization and payment evidence | AP2, payment credentials/providers | mandate, exact transaction binding, verifier receipt, payment context |
+| Identity and access | OAuth/OIDC, RFC 8693, IAM, VC/OpenID4VP, Agent/merchant trust protocols | authenticate, delegate, present credentials, enforce current access |
+| Real transaction and remedy | payment rails, merchant systems, logistics, marketplaces, contracts, regulators, courts | settle, fulfill, refund, charge back, enforce |
+| ARC research layer | signed Events and named Projections | causal authority/standing history, conflict preservation, recomputation |
 
-ARC occupies the authority layer for consequential agent-mediated acts. In its flagship Commerce application, a transaction could plausibly use several neighboring layers at once — tools via MCP, agent contact via A2A-style transport, checkout via a commerce standard, settlement via a payment network — while ARC semantics represent authority coverage and attributable identity, reputation, dispute, and governance claims under named profiles.
+No single layer proves the claims owned by the next one.
 
-ARC's stance is overlay, not replacement: it addresses authority records around other layers rather than substituting for their transport, checkout, or settlement functions.
+## 3. Standards and Direct Comparators
 
-## 12. Current ARC Scope
+### A2A
 
-ARC today has a **Stage 0.8 Executable Reference Corpus** for its protocol model — beyond the Stage 0 documentation baseline, short of a running product ([roadmap.md](./roadmap.md) Stage 0.8, [README](../README.md)). The Canon (Relationship → Event → Projection → Authority) and the canonical event set (`KEY`, `ATTEST`, `AUTHORIZE`, `CHALLENGE`, `ADJUDICATE`) are exercised by small runnable probes — canonical folds, an end-to-end flow on real Ed25519, a browser reference client, an eight-run Commerce failure catalog, and adoption/refusal experiments — but remain exploratory drafts, not a finalized wire/security profile or conformance suite ([future-protocol-spec.md](./future-protocol-spec.md)).
+[A2A](https://a2a-protocol.org/latest/) defines Agent Cards, capability and
+authentication advertisement, messages, tasks, artifacts, streaming,
+asynchronous operation, cancellation, rejection, and failure handling.
 
-In scope:
+- **Provides:** Agent discovery and interoperable task/message transport.
+- **Overlaps:** attributable Agent capability claims and multi-turn interaction.
+- **External:** principal mandate, commercial commitment, payment, reputation,
+  adjudication, and target enforcement.
+- **Residual:** no common bilateral causal authority/standing Projection.
 
-- authority delegation and its audit, with Commerce as the flagship application and first implementation profile
-- identity, reputation, dispute, and governance expressed as signed events and projections
-- failure analysis of the above
+### FIPA interaction protocols
 
-Out of scope:
+The [FIPA Contract Net](https://www.fipa.org/specs/fipa00029/SC00029H.html)
+defines calls for proposals, proposal preconditions such as price/time, refusal,
+reply deadlines, acceptance/rejection, binding commitment after acceptance,
+completion, and failure. The
+[Iterated Contract Net](https://www.fipa.org/specs/fipa00030/SC00030H.pdf)
+supports revised rounds, and the
+[Brokering Interaction Protocol](https://www.fipa.org/specs/fipa00033/SC00033H.html)
+is relevant to mediated discovery.
 
-- tool-connection standards, general agent transport, and checkout semantics
-- marketplace operation and payment settlement
-- on-chain execution and full autonomy
+- **Provides:** the strongest direct interaction-pattern overlap with ARC's
+  Commerce proposal/counter/refusal/acceptance flow.
+- **External:** principal delegation, exact authorization, identity roots,
+  reputation, dispute authority, and enforcement.
+- **Residual:** interaction commitment is not a recomputed authority or standing
+  history.
 
-This positioning is a current orientation, not a fixed claim. As the external landscape changes, where ARC sits relative to it may need revisiting.
+### Agentic Commerce Protocol (ACP)
+
+[ACP](https://www.agenticcommerce.dev/docs) keeps the seller merchant of record
+and covers checkout creation/update/completion/cancellation, fulfillment
+selection, seller-calculated totals, and delegated payment tokens with amount,
+currency, merchant, and expiry constraints.
+
+- **Provides:** Agent-to-seller checkout and constrained payment operations.
+- **Overlaps:** exact transaction material, expiry, cancellation, escalation,
+  and idempotent application behavior.
+- **External:** general bargaining, bilateral principal authority, portable
+  contextual standing, and adjudication.
+
+### Universal Commerce Protocol (UCP)
+
+[UCP](https://ucp.dev/2026-04-08/specification/overview/) defines business
+profiles at `/.well-known/ucp`, version/capability negotiation, signing keys,
+REST/MCP/A2A bindings, checkout, order, fulfillment, adjustments, and identity
+linking. The business remains authoritative for commerce state.
+
+- **Provides:** discovery, capability intersection, signed profiles/messages,
+  and rich commerce lifecycle state.
+- **Overlaps:** counterparty identification, checkout binding, order/fulfillment
+  evidence, and transaction receipts.
+- **External:** principal mandate semantics, open-ended price negotiation,
+  contextual reputation, causal conflict, and adjudication.
+
+UCP capability negotiation selects mutually supported protocol features; it is
+not a generic offer/counteroffer bargaining protocol.
+
+### Agent Payments Protocol (AP2)
+
+Current [AP2 Agent Authorization](https://ap2-protocol.org/ap2/agent_authorization/)
+defines user-to-Agent mandate delegation on a Trusted Surface, User Credential
+and Trusted Agent Provider trust models, open and closed mandates, constraints,
+proof-of-possession transaction binding, verifier checks, and signed Mandate
+Receipts. It requires the provider signing key to remain inaccessible to the
+Agent outside the Trusted Surface.
+
+The [AP2 payment specification](https://ap2-protocol.org/ap2/specification/)
+binds checkout/payment mandates and receipts. In autonomous flows, an Agent must
+not present another open mandate without a rejection receipt from the prior
+attempt. The documents treat the mandate/receipt bundle as dispute evidence.
+
+- **Provides:** substantial native buyer delegation, exact binding, expiry,
+  constraint validation, receipts, and reuse reduction.
+- **Overlaps:** many earlier ARC buyer-authorization and payment-evidence claims.
+- **External:** dispute resolution/enforcement, evidence retrieval/retention,
+  contextual reputation, and Seller Principal delegation.
+- **Residual:** Agent-to-Agent mandate delegation is outside the current AP2
+  scope; AP2 does not preserve ARC's bilateral `CONTESTED`/adjudication/as-of
+  standing model.
+
+ARC must not claim generic delegation, exact approval, expiry, transaction
+binding, receipts, or replay control as unique in Agent commerce.
+
+### MCP authorization
+
+[MCP authorization](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization)
+uses OAuth-style protected-resource authorization and resource indicators to
+bind tokens to the intended MCP server.
+
+- **Provides:** authorization for client-to-tool-server access.
+- **Overlaps:** current access enforcement and audience/resource binding.
+- **External:** Agent-to-Agent bargaining, transaction state, reputation,
+  challenge/adjudication, and causal standing history.
+
+### OAuth, RFC 8693, IAM, and policy engines
+
+[RFC 8693](https://www.rfc-editor.org/info/rfc8693) supports token exchange,
+delegation/impersonation context, actor chains, scopes, and time bounds. OAuth,
+OIDC, IAM, gateways, and Cedar/OPA/OpenFGA-class policy systems can evaluate and
+enforce subject/action/resource/context rules.
+
+- **Provides:** mature identity, delegation, current policy, and target-side
+  enforcement within accepted authority domains.
+- **Overlaps:** scope narrowing, expiry, revocation, exact input conditions, and
+  allow/deny behavior.
+- **External:** one portable causal Event history, unresolved authority/standing
+  conflict, and profile/as-of Projection identity unless custom-built.
+
+If one IAM/PDP is the accepted complete source of truth, ARC may be unnecessary.
+
+### Verifiable Credentials and OpenID4VP
+
+[W3C Verifiable Credentials Data Model 2.0](https://www.w3.org/TR/vc-data-model-2.0/)
+provides portable signed claim containers. The
+[Bitstring Status List](https://www.w3.org/TR/vc-bitstring-status-list/) supports
+credential suspension/revocation status, and
+[OpenID4VP](https://openid.net/specs/openid-4-verifiable-presentations-1_0.html)
+binds presentations to verifier requests, nonces, and transaction data.
+
+- **Provides:** credential issuance/presentation building blocks and status.
+- **Overlaps:** identity, principal/Agent binding evidence, selective disclosure,
+  and replay-resistant presentation context.
+- **External:** negotiation, transaction lifecycle, contextual reputation,
+  causal authority conflict, and adjudication.
+
+### Merchant and payment Agent trust
+
+[Visa Trusted Agent Protocol](https://developer.visa.com/capabilities/trusted-agent-protocol/trusted-agent-protocol-specifications/)
+helps merchants recognize certified Agents, link consumer/device identity,
+verify signed payment context, and reject replay using timestamps/nonces.
+
+Mastercard's official
+[Verifiable Intent](https://www.mastercard.com/europe/en/news-and-trends/stories/2026/verifiable-intent.html)
+and [Agent Pay](https://www.mastercard.com/us/en/news-and-trends/press/2026/june/mastercard-launches-agent-pay-for-machines.html)
+materials describe Agent credentialing, permissioning, spend rules, and payment
+network participation. The public materials are product/intent descriptions,
+not a general bilateral authority-history specification.
+
+- **Provides:** merchant/payment trust and constrained payment context.
+- **External:** negotiation, portable reputation, causal challenge/adjudication,
+  and general Current Standing recomputation.
+
+### ERC-8004 and ERC-8183
+
+[ERC-8004](https://eips.ethereum.org/EIPS/eip-8004) proposes Agent identity,
+reputation, and validation registries. Feedback remains contextual and does not
+by itself solve Sybil behavior, authority conflict, or adjudication.
+
+[ERC-8183](https://eips.ethereum.org/EIPS/eip-8183) is a draft Agentic Commerce
+escrow protocol with client/provider/evaluator roles, budget setting, funding,
+submission, completion/rejection, expiry/refund, deliverable hashes, and
+external reputation hooks. It explicitly has no dispute resolution or
+arbitration and trusts its evaluator for completion/rejection.
+
+- **Provides:** direct overlap in Agent identity/reputation records and
+  transaction commitment/fulfillment state.
+- **External:** principal delegation, bilateral causal authority history,
+  independent adjudication, and off-chain real-world truth.
+- **Topology note:** ARC does not require a blockchain or shared ledger.
+
+## 4. Semantic Summary
+
+`FULL` means the referenced system natively covers the main row within its
+documented role; `PARTIAL` means a bounded subset; `EXTERNAL` means another
+layer owns it; `NOT COVERED` means the semantics are absent.
+
+| Semantic group | ARC | Strongest current alternatives |
+| --- | --- | --- |
+| Discovery and transport | EXTERNAL | A2A/UCP/FIPA: FULL |
+| Proposal, counter, refusal, acceptance | PARTIAL application profile | FIPA: FULL; A2A: transport support |
+| Principal-to-Agent delegation and narrowing | FULL reference semantics | AP2/OAuth/IAM: FULL in their domains |
+| Exact approval, expiry, transaction binding | FULL reference semantics | AP2: FULL for Agent payment authorization; ACP/UCP: commerce binding |
+| Replay/one-time controls | PARTIAL, process-local Gate example | AP2/ACP/application state: FULL or bounded by profile |
+| Payment and target enforcement | EXTERNAL | payment providers/IAM/merchant systems: FULL |
+| Fulfillment and transaction receipts | PARTIAL evidence model | ACP/UCP/AP2/application systems: FULL in their domains |
+| Identity evidence | PARTIAL | VC/OpenID4VP/UCP/Visa TAP/OAuth: stronger native layers |
+| Contextual reputation and Sybil/collusion limits | FULL bounded research Projection; no universal truth | marketplace/app state/ERC-8004: partial/external |
+| Conflicting claims and `CONTESTED` | FULL | policy/app state: custom/partial |
+| Causal withdrawal/challenge/adjudication | FULL reference semantics | distributed across auth, dispute, and application systems |
+| Event-set/profile/as-of Current Standing | FULL reference semantics | custom application history/recomputation required |
+| Real dispute enforcement | EXTERNAL | payment, marketplace, contractual, regulatory, and court systems |
+| Independent interoperability | PARTIAL/unproved | mature standards stronger |
+
+## 5. Composition Test
+
+The operational transaction is composable without ARC:
+
+```text
+A2A or FIPA
+  + ACP/UCP
+  + AP2
+  + credentials/OAuth/IAM
+  + marketplace/application state
+  + payment/fulfillment/dispute infrastructure
+```
+
+That composition can discover counterparties, exchange terms, authorize a
+buyer action, create checkout/payment state, fulfill, and apply real remedies.
+
+It does not natively reproduce ARC's combined bilateral signed authority and
+standing history, unresolved causal conflict, challenge/adjudication, and
+Event-set/profile/as-of recomputation. Adding those properties requires custom
+state, Event, causal-ordering, and Projection logic.
+
+**Result: MATERIAL SEMANTIC GAP REMAINS.**
+
+The result is not “ARC is required.” It means the residual is a real semantic
+property rather than convenience or naming. A deployment may still decide that
+the property is unnecessary or cheaper to implement locally.
+
+## 6. Market and Research Status
+
+Broad Agent-to-Agent commerce necessity is **pre-market / not yet testable**.
+No current comparison proves inevitable adoption, commercial necessity,
+production readiness, or an ecosystem requirement for ARC.
+
+That market result is independent from the technical result. Market demand is
+not a prerequisite for maintaining or developing ARC as research protocol, an
+executable reference, or a public technical profile.
+
+## 7. Positioning
+
+ARC should be described as:
+
+> An implementation-neutral research protocol and executable reference for
+> signed causal authority and standing evidence across independently
+> represented principals.
+
+It should not be described as the missing universal layer, a required commerce
+standard, a superior permission system, a marketplace, a payment network, an
+identity provider, or a production enforcement gateway.

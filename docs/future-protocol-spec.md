@@ -1,10 +1,12 @@
-# ARC Protocol: Future Protocol Specification Boundaries
+# ARC Protocol: Unresolved Specification and Conformance Boundaries
 
-> **Status:** Exploratory planning note
+> **Status:** Frozen gap register; not an active implementation plan
 >
-> **Purpose:** Clarify what ARC would need before it can be treated as a complete protocol specification.
+> **Purpose:** Record what the current corpus does not provide and what would
+> require separate approval before any interoperability or production claim.
 >
-> This document was added in response to critical review. It narrows the gap between ARC as a protocol-oriented design project and ARC as a future implementable protocol.
+> Active implementation is frozen. Requirements below preserve unresolved
+> evidence; they do not announce future delivery.
 
 ---
 
@@ -16,7 +18,7 @@ The existing documents define current Event and authority semantics and describe
 
 This distinction matters. A future interoperability claim needs shared observable behavior, declared errors, and reproducible conformance vectors.
 
-## 2. Future Specification and Profile Work
+## 2. Unresolved Specification and Profile Work
 
 Completing ARC's base specification and the separately named Commerce profile requires work in their respective layers below. Commerce rows are not base-protocol requirements.
 

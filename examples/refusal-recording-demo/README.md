@@ -2,8 +2,8 @@
 
 > This probe records and groups refusal records; it does not model or validate adoption.
 
-A small runnable fixture that groups synthetic *refusal records* using the
-categories in the [adoption research](../../docs/adoption-and-defection.md). It
+A small runnable fixture that groups synthetic *refusal records* using
+categories retained from the historical adoption research. It
 reports record counts and category matches without inferring motives or adoption.
 
 ```
@@ -41,7 +41,7 @@ declined, so the lead is unproven. The fold can only weaken, never confirm.
 
 ## The record
 
-Four fields, per [adoption-and-defection.md §6](../../docs/adoption-and-defection.md):
+Four fields, retained from the historical adoption-research procedure:
 
 ```txt
 actor      developer | company | merchant | user | community
@@ -57,8 +57,7 @@ are not claims about any real actor.
 
 ## Real records
 
-Real refusals of ARC — collected under the
-[first-refusal protocol](../../docs/first-refusal-protocol.md) — live in the
+Real refusals of ARC — collected under the historical first-refusal procedure — live in the
 sibling [`fixtures_real.json`](fixtures_real.json), which is currently empty.
 The same fold consumes both files; real records are marked `*`
 throughout the report and carry a provenance envelope
@@ -106,16 +105,16 @@ a mechanism is "named as the gap" — and that party still declined.
 The fold detects reciprocal `WAIT` labels and asks whether any authored
 candidate marked as counterparty-independent reaches either labeled cell. The
 result depends on the candidate coverage and `value_locus` labels supplied here
-([survey §57](../../docs/coordination-economics-survey.md)).
+(a label retained from the historical survey).
 
 So each candidate carries a `value_locus`, transcribed (not invented) from its
-own §4 residue or the survey:
+own §4 residue or the historical survey:
 
 - **network** — labeled as requiring a counterparty (4.1, 4.3, 4.4, 4.5, 4.6).
 - **mixed** — a candidate labeled here as having both single-party and network value.
   In this fixture, the audit log's *self-delegation audit* records and recomputes one party's
-  agent's approvals with no one else participating
-  ([survey §109](../../docs/coordination-economics-survey.md), [adoption §4.2](../../docs/adoption-and-defection.md)).
+  agent's approvals with no one else participating, as described in the
+  historical adoption research.
 
 The fold then checks, per deadlock, which candidates even *reach* it (claim a
 WAIT cell of a deadlocked actor) and whether any reaching candidate is solo.
@@ -135,7 +134,7 @@ This neither indicts nor predicts: it does not say adoption fails, only that
 the candidate set as written contains no counterparty-independent lever
 pointed at the standoff the WAIT records turn on. Whether the 4.2 solo thread
 could ever be *enlarged* to reach a WAIT is an open §4 question, not something
-the fold can settle — and its size is unmeasured ([survey §114](../../docs/coordination-economics-survey.md)).
+the fold can settle — and the historical survey left its size unmeasured.
 
 ## What the run shows (synthetic set)
 
@@ -153,8 +152,7 @@ the fold can settle — and its size is unmeasured ([survey §114](../../docs/co
 ## A note on the exit vocabulary
 
 Building this probe required a classification check: does the
-embrace-and-defederate pattern from
-[coordination-economics-survey.md §5](../../docs/coordination-economics-survey.md)
+embrace-and-defederate pattern from the historical coordination-economics research
 (XMPP, RSS) need a fifth exit, e.g. `CAPTURE`?
 
 This fixture keeps the four existing exit labels. A separate `CAPTURE` label
@@ -164,7 +162,7 @@ the authored examples are therefore mapped as follows:
 - genuinely adopt, then withdraw interoperation to retain the captured base →
   **DEFECT** (stop honouring once it pays; the "pay" is the retained base);
 - adopt the forms but never the substance (a compliance veneer) → **FORK**
-  (a captured variant; already [adoption-and-defection §3.2](../../docs/adoption-and-defection.md)).
+  (a captured variant already described in the historical adoption research).
 
 The company `DEFECT` example appears as an unaddressed cell under the supplied
 candidate map. The fixture does not infer the actor's motive or introduce a new exit.
@@ -179,7 +177,7 @@ Known limits of the authored categories and fold are listed below.
   subject its reason has nothing to do with (a "governance is unpaid" REJECT
   contributes cell-coincident pressure to "lower integration cost"). This is
   not fixable by making the fold read the reason: parsing the reason to decide
-  relevance is exactly the inference [§6](../../docs/adoption-and-defection.md)
+  relevance is exactly the inference the historical recording procedure
   forbids ("a reason paraphrased into our own category is a claim in
   disguise"). The fold is therefore only as precise as §4's claims, which are
   written by `(actor, exit)`, not by reason. The report therefore labels

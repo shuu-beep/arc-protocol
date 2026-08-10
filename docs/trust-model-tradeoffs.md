@@ -1,6 +1,6 @@
 # ARC Protocol: Trust Model Trade-offs
 
-> **Status:** Exploratory consolidation note
+> **Status:** Frozen research consolidation note
 >
 > **Purpose:** Gather the trust-model trade-offs already scattered across the corpus into one coordinate system, so they can be reasoned about together.
 >
@@ -43,7 +43,9 @@ Within one bounded context, a local profile can avoid requiring a global score. 
 At boundaries between communities, related risks may appear:
 
 - importing reputation may increase Sybil and evidence-laundering risk ([reputation.md](./reputation.md) §10, [threat-model.md](./threat-model.md) §13.1)
-- refusing all import leaves every community with its own cold start, and a malicious actor expelled in one can re-enter another fresh ([bootstrap-and-incentives.md](./bootstrap-and-incentives.md) §8, [reputation.md](./reputation.md) §13)
+- refusing all import leaves every community with its own cold start, and a
+  malicious actor expelled in one can re-enter another fresh
+  ([reputation.md](./reputation.md) §13)
 
 Locality can therefore create recurring cold-start costs across communities. A receiving community may accept imported evidence, partially weight it, require probation or additional checks, or reject it ([reputation.md](./reputation.md) §10). None of these policies is settled, and none by itself establishes Sybil resistance or privacy.
 
@@ -95,7 +97,8 @@ This consolidation does not resolve any trade-off. It makes them legible, not so
 
 ## 10. Open Questions
 
-- What cross-community reputation-import profiles, if any, can state bounded privacy and manipulation properties? (spatial)
+- What cross-community reputation-import profiles, if any, could state bounded
+  privacy and manipulation properties? (spatial; no active profile work)
 - What detection thresholds distinguish wash-trading from honest early activity without punishing newcomers? (temporal, shared with [reputation.md](./reputation.md) §6, §12)
 - What bounded privacy and manipulation properties, if any, can a portable reputation profile support?
 - Friction quality — the unsolved center shared with approval fatigue and delegation ([delegation-and-spending-mandates.md](./delegation-and-spending-mandates.md) §7) — cuts across these axes whenever a human is asked to weigh imported or aged trust.

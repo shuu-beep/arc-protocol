@@ -1,6 +1,8 @@
-# ARC Commerce Reference Application: Transaction Lifecycle
+# ARC Historical Commerce Application: Transaction Lifecycle
 
-> **Purpose:** Visual reference for an illustrative Commerce application Projection
+> **Status:** Frozen, non-normative application example
+> **Purpose:** Visual reference for the Commerce Projection exercised by the mock
+> corpus; not an active product workflow or ARC base-protocol state machine.
 > These application states are not additional ARC Canon Event types.
 > For message flow detail, see [protocol.md](../docs/protocol.md).
 
@@ -64,4 +66,5 @@ stateDiagram-v2
 - `resolved_fraud_finding` moves into `governance_action_pending` because adjudicated application findings may require suspension, appeal, or cross-community review before final closure.
 - Dispute states feed back into `reputation_pending` to record application outcome claims as evidence.
 - State labels summarize recorded claims and application findings; they are not outcome proof.
-- This diagram reflects the exploratory model in protocol.md and may change as the design matures.
+- This diagram reflects the frozen historical profile in `protocol.md`. It is
+  retained to explain the executable fixtures, not as an active design roadmap.

@@ -1,8 +1,9 @@
 # ARC Protocol: Local Commerce Simulation
 
-> **Status:** Exploratory simulation specification
+> **Status:** Frozen mock-simulation specification
 >
-> **Purpose:** Test a mock local-commerce flow against failure, manipulation, and governance pressure
+> **Purpose:** Preserve the mock local-commerce flow exercised by the current
+> failure catalog. This is not an active pilot or product plan.
 >
 > For transaction lifecycle and message types, see [protocol.md](./protocol.md).
 >
@@ -14,9 +15,12 @@
 
 ## 1. Why Simulation Is Needed
 
-This Commerce simulation examines a human-rooted ARC application profile, but written principles alone do not show whether its proposed interactions remain understandable under ordinary failure and deliberate manipulation.
+This Commerce simulation examines a human-rooted ARC application profile.
+Written principles alone do not show whether its proposed interactions remain
+understandable under ordinary failure and deliberate manipulation.
 
-A small simulation is useful because it can force the current protocol draft to confront concrete questions:
+The retained simulation forces the research model to confront concrete
+questions without establishing adoption or production safety:
 
 - Can a human tell which offer is current and which offer has expired?
 - Can a recommendation log reveal hidden ranking or coordination problems?
