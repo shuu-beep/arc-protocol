@@ -9,7 +9,7 @@
 > commerce. The protocol has since been stated independently of it: the current
 > spine is **human-rooted authority, scoped delegation, and recomputation over
 > disclosed signed evidence**, with Commerce as ARC's first implementation profile, not its definition
-> ([README §1](../README.md#1-what-arc-is)). The claims below are preserved as
+> ([README §1](../README.md#1-the-multi-principal-problem)). The claims below are preserved as
 > historical context, not current protocol requirements. Current documents govern
 > where this origin argument and the present protocol boundary differ.
 

@@ -82,7 +82,6 @@ Run one probe and inspect its neighboring README:
 python3 run_demos.py commerce
 ```
 
-<a id="1-what-arc-is"></a>
 
 ## 1. The Multi-Principal Problem
 
